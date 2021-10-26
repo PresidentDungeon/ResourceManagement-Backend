@@ -1,4 +1,4 @@
-name: .NET Core
+name: NestJS
 
 on:
   push:
@@ -28,4 +28,4 @@ jobs:
         run: npm ci
       
       - name: Run tests
-        run: npm run test
+        run: jest --passWithNoTests
