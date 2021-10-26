@@ -2,8 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthenticationHelper } from './authentication.helper';
 import { User } from "../core/models/user";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
-import { UnauthorizedException } from "@nestjs/common";
-import { async } from "rxjs";
 
 describe('AuthenticationService', () => {
   let service: AuthenticationHelper;
@@ -62,29 +60,6 @@ describe('AuthenticationService', () => {
     expect(firstHash).toBe(secondHash);
   });
 
-  it('Generate hash throws error if password is undefined, null or empty', () => {
-    let password: string = '';
-    let salt: string = "someSalt";
-
-    let errorStringToExcept: string = 'Password must be instantiated';
-
-    expect(() => { service.generateHash(null, salt); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateHash(undefined, salt); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateHash(password, salt); }).toThrow(errorStringToExcept);
-  });
-
-  it('Generate hash throws error if salt is undefined, null or empty', () => {
-    let password: string = "somePassword";
-    let salt: string = '';
-
-    let errorStringToExcept = 'Salt must be instantiated';
-
-    expect(() => { service.generateHash(password, null); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateHash(password, undefined); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateHash(password, salt); }).toThrow(errorStringToExcept);
-  });
-  //#endregion
-
   //#region validateLogin
   it('Valid login for user', () => {
     let userPassword: string = 'somePassword';
@@ -102,17 +77,6 @@ describe('AuthenticationService', () => {
     let errorStringToExcept: string = 'Entered password is incorrect';
 
     expect(() => { service.validateLogin(user, userPassword)}).not.toThrow(errorStringToExcept);
-  });
-
-  it('Invalid login throws error if user is undefined or null', () => {
-    let userToValidate: User = null;
-    let password: string = "somePassword";
-
-    let errorStringToExcept = 'User must be instantiated';
-
-    expect(() => { service.validateLogin(null, password); }).toThrow(errorStringToExcept);
-    expect(() => { service.validateLogin(undefined, password); }).toThrow(errorStringToExcept);
-    expect(() => { service.validateLogin(userToValidate, password); }).toThrow(errorStringToExcept);
   });
 
   it('Invalid login for user throws error', () => {
@@ -134,14 +98,6 @@ describe('AuthenticationService', () => {
   });
   //#endRegion
 
-  //#region generateJWTToken
-  it('Generation of JWT token fails if user is undefined or null', () => {
-    let errorStringToExcept = 'User must be instantiated';
-    expect(() => { service.generateJWTToken(null); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateJWTToken(undefined); }).toThrow(errorStringToExcept);
-    expect(jwtMock.sign).toHaveBeenCalledTimes(0);
-  });
-
   it('Generation of JWT token is successful on valid user', () => {
 
     const user: User = {
@@ -161,7 +117,6 @@ describe('AuthenticationService', () => {
   //#endRegion
 
   //#region validateJWTToken
-
   it('Validate valid token should return true', () => {
     let token: string = 'SomeToken';
 

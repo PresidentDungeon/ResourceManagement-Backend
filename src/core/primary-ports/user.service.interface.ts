@@ -9,4 +9,6 @@ export interface IUserService{
 
   login(username: string, password: string): Promise<User>
   verifyJWTToken(token: string): boolean
+
+  verifyUser(user: User): void
 }

@@ -18,10 +18,6 @@ export class AuthenticationHelper {
   }
 
   generateHash(password: string, salt: string): string{
-
-    if(password == undefined || password == null || password.length == 0) {throw 'Password must be instantiated';}
-    else if(salt == undefined || salt == null ||salt.length == 0) {throw 'Salt must be instantiated';}
-
     let hash: Hmac = crypto.createHmac('sha512', salt);
     hash.update(password);
     let value = hash.digest('hex');
@@ -29,8 +25,6 @@ export class AuthenticationHelper {
   }
 
   validateLogin(userToValidate: User, password: string): void{
-
-    if(userToValidate == undefined || userToValidate == null) {throw 'User must be instantiated';}
 
     let hashedPassword: string = this.generateHash(password, userToValidate.salt);
     let storedPassword: string = userToValidate.password;
@@ -41,9 +35,6 @@ export class AuthenticationHelper {
   }
 
   generateJWTToken(user: User): string{
-
-    if(user == undefined || user == null) {throw 'User must be instantiated';}
-
     const payload = {ID: user.ID, username: user.username, role: user.userRole};
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     return this.jwtService.sign(payload, options);
@@ -57,5 +48,4 @@ export class AuthenticationHelper {
     this.jwtService.verify(token, options);
     return true;
   }
-
 }
