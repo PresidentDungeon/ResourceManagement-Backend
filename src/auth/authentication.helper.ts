@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Hmac } from "crypto";
 import { User } from "../core/models/user";
-import { JwtService } from "@nestjs/jwt";
+import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 
 const crypto = require('crypto');
 const saltLength = 16
@@ -40,18 +40,22 @@ export class AuthenticationHelper {
     }
   }
 
-  /*
   generateJWTToken(user: User): string{
+
+    if(user == undefined || user == null) {throw 'User must be instantiated';}
+
     const payload = {ID: user.ID, username: user.username, role: user.userRole};
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     return this.jwtService.sign(payload, options);
   }
 
-  validateJWTToken(token: string): string{
+  validateJWTToken(token: string): boolean{
+
+    if(token == undefined || token == null || token.length == 0) {throw 'Must enter a valid token';}
+
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     this.jwtService.verify(token, options);
-    return token;
+    return true;
   }
-  */
 
 }

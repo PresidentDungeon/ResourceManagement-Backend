@@ -8,5 +8,5 @@ export interface IUserService{
   generateJWTToken(user: User): string
 
   login(username: string, password: string): Promise<User>
-  verifyJWTToken(token: string): string
+  verifyJWTToken(token: string): boolean
 }

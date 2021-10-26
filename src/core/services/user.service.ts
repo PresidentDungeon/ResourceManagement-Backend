@@ -1,27 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { IUserService } from "../primary-ports/user.service.interface";
 import { User } from "../models/user";
+import { AuthenticationHelper } from "../../auth/authentication.helper";
 
 @Injectable()
 export class UserService implements IUserService{
 
+  constructor(private authenticationHelper: AuthenticationHelper) {}
+
   generateHash(password: string, salt: string): string {
-    return "";
+    throw 'To be implemented';
   }
 
   generateJWTToken(user: User): string {
-    return "";
+    throw 'To be implemented';
   }
 
   generateSalt(): string {
-    return "";
+    throw 'To be implemented';
   }
 
   login(username: string, password: string): Promise<User> {
-    return Promise.resolve(undefined);
+    throw 'To be implemented';
   }
 
-  verifyJWTToken(token: string): string {
-    return "";
+  verifyJWTToken(token: string): boolean {
+    //return this.authenticationHelper
+    return false;
   }
 }
