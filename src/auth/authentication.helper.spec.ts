@@ -1,16 +1,38 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthenticationHelper } from './authentication.helper';
 import { User } from "../core/models/user";
+import { JwtService, JwtSignOptions } from "@nestjs/jwt";
+
+class JwtServiceMock {
+
+  sign(payload: any, options: JwtSignOptions): string
+  {
+    return 'token';
+  }
+
+  verify(token: string, options: JwtSignOptions): boolean
+  {
+    return true;
+  }
+}
 
 describe('AuthenticationService', () => {
   let service: AuthenticationHelper;
+  let jwtMock: JwtService;
 
   beforeEach(async () => {
+
+    const MockProvider = {
+      provide: JwtService,
+      useClass: JwtServiceMock
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthenticationHelper],
+      providers: [AuthenticationHelper, MockProvider],
     }).compile();
 
     service = module.get<AuthenticationHelper>(AuthenticationHelper);
+    jwtMock = module.get<JwtService>(JwtService);
   });
 
   it('Should be defined', () => {

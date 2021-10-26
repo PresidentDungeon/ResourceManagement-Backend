@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Hmac } from "crypto";
 import { User } from "../core/models/user";
+import { JwtService } from "@nestjs/jwt";
 
 const crypto = require('crypto');
 const saltLength = 16
@@ -10,7 +11,7 @@ export class AuthenticationHelper {
 
   secretKey = this.generateSalt();
 
-  constructor() {}
+  constructor(private jwtService: JwtService) {}
 
   generateSalt(): string{
     return crypto.randomBytes(saltLength).toString('hex').slice(0, saltLength);
