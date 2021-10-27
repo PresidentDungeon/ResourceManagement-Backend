@@ -1,4 +1,3 @@
-
 import { Module } from "@nestjs/common";
 import { AuthenticationHelper } from './auth/authentication.helper';
 import { AuthModule } from './auth/auth.module';
@@ -12,7 +11,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { UserEntity } from "./infrastructure/data-source/postgres/entities/user.entity";
 
 @Module({
-  imports: [DatabaseModule, AuthModule, UserModule, ConfigModule.forRoot({
+  imports: [UserModule, ConfigModule.forRoot({
     validationSchema: Joi.object({
       POSTGRES_HOST: Joi.string().required(),
       POSTGRES_PORT: Joi.number().required(),
@@ -21,9 +20,9 @@ import { UserEntity } from "./infrastructure/data-source/postgres/entities/user.
       POSTGRES_DB: Joi.string().required(),
       PORT: Joi.number(),
     })
-  }), TypeOrmModule.forFeature([UserEntity])],
+  }), DatabaseModule, AuthModule],
   controllers: [UserController],
-  providers: [AuthenticationHelper, UserService],
+  providers: [],
   exports: []
 })
 export class AppModule {}
