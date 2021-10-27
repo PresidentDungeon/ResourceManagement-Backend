@@ -7,7 +7,9 @@ export class RoleEntity {
   @PrimaryGeneratedColumn()
   public ID: number;
 
-  @Column()
+  @Column({
+    unique: true
+  })
   public role: string;
 
   @OneToMany(() => UserEntity, (user: UserEntity) => user.role)
