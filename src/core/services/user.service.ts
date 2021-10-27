@@ -34,12 +34,11 @@ export class UserService implements IUserService{
   }
 
   verifyUser(user: User) {
-
     if(user == undefined || user == null) {throw 'User must be instantiated';}
-    if(user.ID == undefined || user.ID == null || user.ID < 0){throw 'User must have a valid ID'}
-    if(user.username == undefined || user.username == null || user.username.length < 0){throw 'User must have a valid Username'}
-    if(user.password == undefined || user.password == null || user.password.length < 0){throw 'User must have a valid Password'}
-    if(user.salt == undefined || user.salt == null || user.salt.length < 0){throw 'An error occurred with Salt'}
-    if(user.userRole == undefined || user.userRole == null || user.userRole.length < 0){throw 'User must have a valid Role'}
+    if(user.ID == undefined || user.ID == null || user.ID <= 0){throw 'User must have a valid ID'}
+    if(user.username == undefined || user.username == null || user.username.length <= 0){throw 'User must have a valid Username'}
+    if(user.password == undefined || user.password == null || user.password.length <= 0){throw 'User must have a valid Password'}
+    if(user.salt == undefined || user.salt == null || user.salt.length <= 0){throw 'An error occurred with Salt'}
+    if(user.userRole == undefined || user.userRole == null || user.userRole.length <= 0){throw 'User must have a valid Role'}
   }
 }

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { AuthenticationHelper } from "../../auth/authentication.helper";
 import { User } from "../models/user";
+import theoretically from "jest-theories";
 
 describe('UserService', () => {
   let service: UserService;
@@ -88,14 +89,65 @@ describe('UserService', () => {
   });
 
   it('Generate JWT token AuthenticationService is not called on invalid user', () => {
-
     let user: User = null
-    expect(() => { service.generateJWTToken(user); }).toThrow();
     expect(authenticationMock.generateJWTToken).toHaveBeenCalledTimes(0);
   });
   //#endRegion
 
   //#region verifyUser
+  describe('Error handling with invalid users', () => {
+    let user: User;
+    const theories = [
+      { input: user = null, expected: "User must be instantiated" },
+      { input: user = undefined, expected: "User must be instantiated" },
+
+      { input: user = {ID: undefined, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+        expected: "User must have a valid ID" },
+      { input: user = {ID: null, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: 'Admin' },
+        expected: "User must have a valid ID" },
+      { input: user = {ID: 0, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+        expected: "User must have a valid ID" },
+      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: 'Hans', password: undefined, salt: 'someSalt', userRole: 'Admin'},
+        expected: "User must have a valid Password" },
+      { input: user = {ID: 1, username: 'Hans', password: null, salt: 'someSalt', userRole: 'Admin'},
+        expected: "User must have a valid Password" },
+      { input: user = {ID: 1, username: 'Hans', password: '', salt: 'someSalt', userRole: 'Admin'},
+        expected: "User must have a valid Password" },
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: undefined, userRole: 'Admin'},
+        expected: "An error occurred with Salt" },
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: null, userRole: 'Admin'},
+        expected: "An error occurred with Salt" },
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: '', userRole: 'Admin'},
+        expected: "An error occurred with Salt" },
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: undefined},
+        expected: "User must have a valid Role" },
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: null},
+        expected: "User must have a valid Role" },
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: ''},
+        expected: "User must have a valid Role" },
+    ];
+
+    theoretically('The right error message is thrown to the fitting error', theories, theory => {
+      expect(() => { service.verifyUser(theory.input as User); }).toThrow(theory.expected);
+    })
+  });
+
+  describe('Validation of valid user does not throw error', () => {
+    let user: User;
+    const theories = [
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: 'Admin'}},
+    ];
+
+    theoretically('No error message is thrown on valid user', theories, theory => {
+      expect(() => { service.verifyUser(theory.input as User);}).not.toThrow();
+    })
+  });
   //endRegion
 
 });
