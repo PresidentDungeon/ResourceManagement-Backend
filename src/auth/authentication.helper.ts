@@ -5,6 +5,7 @@ import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 
 const crypto = require('crypto');
 const saltLength = 16
+const veriLength = 6;
 
 @Injectable()
 export class AuthenticationHelper {
@@ -35,9 +36,14 @@ export class AuthenticationHelper {
   }
 
   generateJWTToken(user: User): string{
-    const payload = {ID: user.ID, username: user.username, role: user.userRole};
+    const payload = {ID: user.ID, username: user.username, role: user.role.role};
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     return this.jwtService.sign(payload, options);
+  }
+
+  //missing test
+  generateVerificationToken(): string{
+    return crypto.randomBytes(veriLength).toString('hex').slice(0, veriLength);
   }
 
   validateJWTToken(token: string): boolean{

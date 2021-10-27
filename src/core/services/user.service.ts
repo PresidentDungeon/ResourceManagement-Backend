@@ -2,11 +2,67 @@ import { Injectable } from '@nestjs/common';
 import { IUserService } from "../primary-ports/user.service.interface";
 import { User } from "../models/user";
 import { AuthenticationHelper } from "../../auth/authentication.helper";
+import { InjectRepository } from "@nestjs/typeorm";
+import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
+import { Repository } from "typeorm";
 
 @Injectable()
 export class UserService implements IUserService{
 
-  constructor(private authenticationHelper: AuthenticationHelper) {}
+  constructor(private authenticationHelper: AuthenticationHelper, @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>) {}
+
+  //Missing test
+  createUser(username: string, password: string): User {
+
+    if(username == null || username.length < 8 || username.length > 24){
+      throw new Error('Username must be between 8-24 characters');
+    }
+    if(password == null || password.length < 8){
+      throw new Error('Password must be minimum 8 characters long');
+    }
+
+    let salt: string = this.authenticationHelper.generateSalt();
+    let hashedPassword: string = this.authenticationHelper.generateHash(password, salt);
+    return {ID: 0, username: username, password: hashedPassword, salt: salt, role: null};
+  }
+
+  //Missing test
+  async addUser(user: User): Promise<User> {
+
+    const existingUsers = await this.userRepository.count({where: `"username" ILIKE '${user.username}`});
+
+    if(existingUsers > 0)
+    {
+      throw 'User with the same name already exists';
+    }
+
+    //We need to create a validation code for registration
+    const verificationCode = this.authenticationHelper.generateVerificationToken();
+    user.authenticationCode = verificationCode;
+
+    const newUser = await this.userRepository.create(user);
+    await this.userRepository.save(newUser);
+    return newUser;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   generateSalt(): string {
     return this.authenticationHelper.generateSalt();
@@ -38,6 +94,5 @@ export class UserService implements IUserService{
     if(user.username == undefined || user.username == null || user.username.length <= 0){throw 'User must have a valid Username'}
     if(user.password == undefined || user.password == null || user.password.length <= 0){throw 'User must have a valid Password'}
     if(user.salt == undefined || user.salt == null || user.salt.length <= 0){throw 'An error occurred with Salt'}
-    if(user.userRole == undefined || user.userRole == null || user.userRole.length <= 0){throw 'User must have a valid Role'}
   }
 }

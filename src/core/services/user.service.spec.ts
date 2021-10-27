@@ -80,7 +80,7 @@ describe('UserService', () => {
       ID: 1,
       password: 'somePassword',
       salt: 'someSalt',
-      userRole: 'Admin',
+      role: {ID: 1, role: 'admin'},
       username: 'Hans'
     }
 
@@ -90,6 +90,7 @@ describe('UserService', () => {
 
   it('Generate JWT token AuthenticationService is not called on invalid user', () => {
     let user: User = null
+    expect(() => { service.generateJWTToken(user); }).toThrow();
     expect(authenticationMock.generateJWTToken).toHaveBeenCalledTimes(0);
   });
   //#endRegion
@@ -101,36 +102,30 @@ describe('UserService', () => {
       { input: user = null, expected: "User must be instantiated" },
       { input: user = undefined, expected: "User must be instantiated" },
 
-      { input: user = {ID: undefined, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+      { input: user = {ID: undefined, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid ID" },
-      { input: user = {ID: null, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: 'Admin' },
+      { input: user = {ID: null, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null },
         expected: "User must have a valid ID" },
-      { input: user = {ID: 0, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+      { input: user = {ID: 0, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid ID" },
-      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', userRole: 'Admin'},
+      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Hans', password: undefined, salt: 'someSalt', userRole: 'Admin'},
+      { input: user = {ID: 1, username: 'Hans', password: undefined, salt: 'someSalt', role: null},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Hans', password: null, salt: 'someSalt', userRole: 'Admin'},
+      { input: user = {ID: 1, username: 'Hans', password: null, salt: 'someSalt', role: null},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Hans', password: '', salt: 'someSalt', userRole: 'Admin'},
+      { input: user = {ID: 1, username: 'Hans', password: '', salt: 'someSalt', role: null},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: undefined, userRole: 'Admin'},
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: undefined, role: null},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: null, userRole: 'Admin'},
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: null, role: null},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: '', userRole: 'Admin'},
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: '', role: null},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: undefined},
-        expected: "User must have a valid Role" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: null},
-        expected: "User must have a valid Role" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: ''},
-        expected: "User must have a valid Role" },
     ];
 
     theoretically('The right error message is thrown to the fitting error', theories, theory => {
@@ -141,7 +136,7 @@ describe('UserService', () => {
   describe('Validation of valid user does not throw error', () => {
     let user: User;
     const theories = [
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', userRole: 'Admin'}},
+      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null}},
     ];
 
     theoretically('No error message is thrown on valid user', theories, theory => {
