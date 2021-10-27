@@ -29,8 +29,7 @@ export class UserService implements IUserService{
   }
 
   verifyJWTToken(token: string): boolean {
-    //return this.authenticationHelper
-    return false;
+    return this.authenticationHelper.validateJWTToken(token);
   }
 
   verifyUser(user: User) {
