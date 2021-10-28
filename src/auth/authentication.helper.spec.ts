@@ -29,9 +29,11 @@ describe('AuthenticationService', () => {
     expect(service).toBeDefined();
   });
 
+  //#region SecretKey
   it('Secret key should be defined', () => {
     expect(service.secretKey.length).toBeDefined();
   });
+  //#endregion
 
   //#region GenerateSalt
   it('Generated salt should be defined', () => {
@@ -59,6 +61,7 @@ describe('AuthenticationService', () => {
 
     expect(firstHash).toBe(secondHash);
   });
+  //#endregion
 
   //#region validateLogin
   it('Valid login for user', () => {
@@ -70,7 +73,7 @@ describe('AuthenticationService', () => {
       ID: 1,
       password: generatedHash,
       salt: generatedSalt,
-      userRole: 'Admin',
+      role: {ID: 1, role: 'admin'},
       username: 'Hans'
     }
 
@@ -88,7 +91,7 @@ describe('AuthenticationService', () => {
       ID: 1,
       password: generatedHash,
       salt: generatedSalt,
-      userRole: 'Admin',
+      role: {ID: 1, role: 'admin'},
       username: 'Hans'
     }
 
@@ -96,15 +99,16 @@ describe('AuthenticationService', () => {
 
     expect(() => { service.validateLogin(user, 'someDifferentPassword')}).toThrow(errorStringToExcept);
   });
-  //#endRegion
+  //#endregion
 
+  //#region GenerateJWTToken
   it('Generation of JWT token is successful on valid user', () => {
 
     const user: User = {
       ID: 1,
       password: 'someHash',
       salt: 'someSalt',
-      userRole: 'Admin',
+      role: {ID: 1, role: 'admin'},
       username: 'Hans'
     }
 
@@ -114,7 +118,17 @@ describe('AuthenticationService', () => {
     expect(typeof result).toBe('string');
     expect(jwtMock.sign).toHaveBeenCalledTimes(1);
   });
-  //#endRegion
+  //#endregion
+
+  //#region GenerateVerificationToken
+  it('Generated verification code should be defined', () => {
+    expect(service.generateVerificationToken().length).toBeDefined();
+  });
+
+  it('Generated verification code should be 6 characters', () => {
+    expect(service.generateVerificationToken().length).toBe(6);
+  });
+  //#endregion
 
   //#region validateJWTToken
   it('Validate valid token should return true', () => {
@@ -135,20 +149,9 @@ describe('AuthenticationService', () => {
     expect(jwtMock.verify).toHaveBeenCalledTimes(0);
   });
 
-  it('Invalid token should result in error', async () => {
+  it('Invalid token should result in error',  () => {
 
-    const MockProviderTest = {
-      provide: JwtService,
-      useFactory: () => ({ verify: jest.fn((token: string, options: JwtSignOptions) => {throw 'Token is not valid';})
-      })
-    }
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthenticationHelper, MockProviderTest],
-    }).compile();
-
-    service = module.get<AuthenticationHelper>(AuthenticationHelper);
-    jwtMock = module.get<JwtService>(JwtService);
+    jest.spyOn(jwtMock, "verify").mockImplementationOnce(() => {throw new Error('Token is not valid')});
 
     let token: string = 'invalidToken';
     let errorStringToExcept = 'Token is not valid';
@@ -156,5 +159,6 @@ describe('AuthenticationService', () => {
     expect(() => { service.validateJWTToken(token); }).toThrow(errorStringToExcept);
     expect(jwtMock.verify).toHaveBeenCalledTimes(1);
   });
-  //#endRegion
+  //#endregion
+
 });

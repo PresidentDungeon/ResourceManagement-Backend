@@ -7,6 +7,8 @@ import { ConfigModule } from "@nestjs/config";
 import * as Joi from '@hapi/joi';
 import { RoleModule } from "./api/role.module";
 import { RoleService } from './core/services/role.service';
+import { MailModule } from "./infrastructure/mail/mail.module";
+import { MailService } from './infrastructure/mail/mail.service';
 
 @Module({
   imports: [UserModule, ConfigModule.forRoot({
@@ -17,10 +19,12 @@ import { RoleService } from './core/services/role.service';
       POSTGRES_PASSWORD: Joi.string().required(),
       POSTGRES_DB: Joi.string().required(),
       PORT: Joi.number(),
+      EMAIL_USER: Joi.string().required(),
+      EMAIL_PASS: Joi.string().required()
     })
-  }), DatabaseModule, AuthModule, RoleModule],
+  }), DatabaseModule, AuthModule, RoleModule, MailModule],
   controllers: [UserController],
-  providers: [RoleService],
+  providers: [],
   exports: []
 })
 export class AppModule {}

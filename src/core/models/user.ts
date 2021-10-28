@@ -6,5 +6,5 @@ export interface User {
   password: string
   salt: string
   role: Role
-  authenticationCode?: string
+  verificationCode?: string
 }

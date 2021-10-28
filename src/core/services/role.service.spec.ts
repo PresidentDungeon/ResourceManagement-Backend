@@ -14,7 +14,7 @@ describe('RoleService', () => {
     const MockProvider = {
       provide: getRepositoryToken(RoleEntity),
       useFactory: () => ({
-        findOne: jest.fn(() => {return 'saltValue';}),
+        findOne: jest.fn(() => {let roleEntity: RoleEntity = {ID: 1, role: 'Admin'}; return new Promise(resolve => {resolve(roleEntity);});}),
       })
     }
 
@@ -30,7 +30,7 @@ describe('RoleService', () => {
     expect(service).toBeDefined();
   });
 
-  //#Region findRoleByName
+  //#region FindRoleByName
 
   it('Calling findRoleByName with invalid name returns error', async () => {
 
@@ -40,7 +40,7 @@ describe('RoleService', () => {
     await expect(service.findRoleByName(null)).rejects.toEqual(errorStringToExcept);
     await expect(service.findRoleByName(undefined)).rejects.toEqual(errorStringToExcept);
     await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
-    await expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
+    expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
   });
 
   it('Calling findRoleByName with valid name returns role', async () => {
@@ -52,7 +52,7 @@ describe('RoleService', () => {
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(mockRole);
 
     await expect(await service.findRoleByName(role)).toBe(mockRole);
-    await expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+    expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
   });
 
   it('Calling findRoleByName with valid name but without any results throws error', async () => {
@@ -61,12 +61,11 @@ describe('RoleService', () => {
     let mockRole: Role = {ID: 1, role: 'User'};
     let errorStringToExcept: string = 'The specified role could not be found';
 
-    //We mock findOne method for the repository to return the mockRole
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
 
     await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
-    await expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+    expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
   });
-  //#Endregion
+  //#endregion
 
 });

@@ -3,33 +3,166 @@ import { UserService } from './user.service';
 import { AuthenticationHelper } from "../../auth/authentication.helper";
 import { User } from "../models/user";
 import theoretically from "jest-theories";
+import { Repository } from "typeorm";
+import { getRepositoryToken } from "@nestjs/typeorm";
+import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
+import exp from "constants";
+import { UnauthorizedException } from "@nestjs/common";
 
 describe('UserService', () => {
   let service: UserService;
   let authenticationMock: AuthenticationHelper;
+  let mockUserRepository: Repository<UserEntity>;
 
   beforeEach(async () => {
 
-    const MockProvider = {
+    const AuthenticationMock = {
       provide: AuthenticationHelper,
       useFactory: () => ({
         generateSalt: jest.fn(() => {return 'saltValue';}),
         generateHash: jest.fn((password: string, salt: string) => {return 'hashValue';}),
         generateJWTToken: jest.fn((password: string, salt: string) => {return 'signedToken';}),
+        generateVerificationToken: jest.fn(() => {return 'verificationToken';}),
+        validateJWTToken: jest.fn(() => {return true;})
+      })
+    }
+
+    const MockUserRepository = {
+      provide: getRepositoryToken(UserEntity),
+      useFactory: () => ({
+        count: jest.fn(() => {}),
+        save: jest.fn((userEntity: UserEntity) => { return new Promise(resolve => {resolve(userEntity);});}),
+        create: jest.fn((userEntity: UserEntity) => {return new Promise(resolve => {resolve(userEntity);});}),
       })
     }
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService, MockProvider],
+      providers: [UserService, AuthenticationMock, MockUserRepository],
     }).compile();
 
     service = module.get<UserService>(UserService);
     authenticationMock = module.get<AuthenticationHelper>(AuthenticationHelper);
+    mockUserRepository = module.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
   });
 
   it('Should be defined', () => {
     expect(service).toBeDefined();
   });
+
+
+  //#region CreateUser
+  it('Creation of user with invalid username fails', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('Creation of user with invalid username or password fails', () => {
+      let username: string;
+      let password: string;
+
+    const theories = [
+      { username: username = null, password: password = 'password', expectedError: "Username must be between 8-60 characters" },
+      { username: username = 'Jensen', password: password = 'password', expectedError: "Username must be between 8-60 characters" },
+      { username: username = 'ThisUsernameIsTooLongAndShouldResultInAnError................', password: password = 'password', expectedError: "Username must be between 8-60 characters" },
+      { username: username = 'username', password: password = 'passwor', expectedError: "Password must be minimum 8 characters long" },
+    ];
+
+    theoretically('The correct error message is thrown during user creation', theories, theory => {
+      expect(() => { service.createUser(theory.username, theory.password); }).toThrow(theory.expectedError);
+      expect(authenticationMock.generateSalt).toHaveBeenCalledTimes(0);
+      expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+    })
+  });
+
+  describe('Creation of user with valid username or password returns user object', () => {
+    let username: string;
+    let password: string;
+
+    const theories = [
+      { username: username = 'username', password: password = 'password'},
+      { username: username = 'ThisUsernameIsAlmostTooLongForRegistrationButIsWithinLimit..', password: password = 'password'},
+    ];
+
+    theoretically('User creation is successful with correct values', theories, theory => {
+
+      const user: User = service.createUser(theory.username, theory.password);
+
+      expect(user).toBeDefined();
+      expect(user.salt).toBeDefined();
+      expect(user.password).toBeDefined();
+      expect(user.role).toBeNull();
+
+      expect(user.username).toBe(theory.username);
+      expect(user.password).not.toBe(theory.password);
+
+      expect(authenticationMock.generateSalt).toHaveBeenCalledTimes(1);
+      expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    })
+  });
+
+  //#endregion
+
+  //#region AddUser
+
+  it('Creation of user with invalid username fails', async () => {
+
+    //jest.spyOn(mockUserRepository, "count").mockResolvedValueOnce(1);
+    //jest.spyOn(mockUserRepository, "count").mockImplementationOnce(() => Promise.resolve(5));
+
+    let user: User = {
+      ID: 0,
+      username: '',
+      password: 'Password',
+      salt: 'SaltValue',
+      role: null
+    }
+
+    await expect(service.addUser(user)).rejects.toThrow();
+    expect(mockUserRepository.count).toHaveBeenCalledTimes(0);
+    expect(authenticationMock.generateVerificationToken).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+  });
+
+  it('Creation of user is successful on valid data', async () => {
+
+    jest.spyOn(mockUserRepository, "count").mockResolvedValueOnce(0);
+
+    let user: User = {
+      ID: 0,
+      username: 'Peter@gmail.com',
+      password: 'Password',
+      salt: 'SaltValue',
+      role: null
+    }
+
+    let returnedUser: User;
+
+    await expect(returnedUser = await service.addUser(user)).resolves;
+    expect(user).toBe(returnedUser);
+    expect(mockUserRepository.count).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateVerificationToken).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('Creation of user throws error when registering with same username', async () => {
+
+    jest.spyOn(mockUserRepository, "count").mockResolvedValueOnce(1);
+    let errorStringToExcept: string = 'User with the same name already exists';
+
+
+    let user: User = {
+      ID: 0,
+      username: 'Peter@gmail.com',
+      password: 'Password',
+      salt: 'SaltValue',
+      role: null
+    }
+
+    await expect(service.addUser(user)).rejects.toThrow(errorStringToExcept);
+    expect(mockUserRepository.count).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateVerificationToken).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+  });
+  //#endregion
 
   //#region GenerateSalt
   it('Generate salt is called in authentication service', () => {
@@ -93,7 +226,29 @@ describe('UserService', () => {
     expect(() => { service.generateJWTToken(user); }).toThrow();
     expect(authenticationMock.generateJWTToken).toHaveBeenCalledTimes(0);
   });
-  //#endRegion
+  //#endregion
+
+  //#region Login
+  //#endregion
+
+  //#region VerifyJWTToken
+
+  it('Validation of valid token should return true', () => {
+    let validToken = 'token';
+    expect(service.verifyJWTToken(validToken)).toBe(true);
+    expect(authenticationMock.validateJWTToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('Validation of invalid token should throw exception', () => {
+
+    jest.spyOn(authenticationMock, "validateJWTToken").mockImplementationOnce(() => {throw new UnauthorizedException()});
+
+    let invalidToken = 'token';
+    expect(() => { service.verifyJWTToken(invalidToken); }).toThrow();
+    expect(authenticationMock.validateJWTToken).toHaveBeenCalledTimes(1);
+  });
+
+  //#endregion
 
   //#region verifyUser
   describe('Error handling with invalid users', () => {
@@ -106,7 +261,7 @@ describe('UserService', () => {
         expected: "User must have a valid ID" },
       { input: user = {ID: null, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null },
         expected: "User must have a valid ID" },
-      { input: user = {ID: 0, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null},
+      { input: user = {ID: -1, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid ID" },
       { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid Username" },
@@ -143,6 +298,6 @@ describe('UserService', () => {
       expect(() => { service.verifyUser(theory.input as User);}).not.toThrow();
     })
   });
-  //endRegion
+  //#endregion
 
 });

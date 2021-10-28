@@ -17,7 +17,8 @@ export class RoleService implements IRoleService {
       throw 'Role must be instantiated';
     }
 
-    const foundRole = await this.roleRepository.findOne({where: `"role" ILIKE '${role}`})
+    const foundRole = await this.roleRepository.findOne({where: `"role" ILIKE '${role}'`})
+
     if(foundRole == null || foundRole == undefined){throw 'The specified role could not be found'}
     return foundRole;
   }

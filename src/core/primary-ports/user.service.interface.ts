@@ -10,7 +10,7 @@ export interface IUserService{
   generateHash(password: string, salt: string): string
   generateJWTToken(user: User): string
 
-  login(username: string, password: string): Promise<User>
+  login(username: string, password: string): Promise<[User, string]>
   verifyJWTToken(token: string): boolean
 
   verifyUser(user: User): void

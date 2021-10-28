@@ -41,14 +41,13 @@ export class AuthenticationHelper {
     return this.jwtService.sign(payload, options);
   }
 
-  //missing test
   generateVerificationToken(): string{
     return crypto.randomBytes(veriLength).toString('hex').slice(0, veriLength);
   }
 
   validateJWTToken(token: string): boolean{
 
-    if(token == undefined || token == null || token.length == 0) {throw 'Must enter a valid token';}
+    if(token == undefined || token == null || token.length == 0) {throw new Error('Must enter a valid token');}
 
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     this.jwtService.verify(token, options);

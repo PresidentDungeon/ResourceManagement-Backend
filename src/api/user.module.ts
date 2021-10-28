@@ -6,9 +6,10 @@ import { UserService } from "../core/services/user.service";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { UserEntity } from "../infrastructure/data-source/postgres/entities/user.entity";
 import { RoleModule } from './role.module';
+import { MailModule } from "../infrastructure/mail/mail.module";
 
 @Module({
-  imports: [AuthModule, TypeOrmModule.forFeature([UserEntity])],
+  imports: [AuthModule, RoleModule, MailModule, TypeOrmModule.forFeature([UserEntity])],
   providers: [{provide: IUserServiceProvider, useClass: UserService}],
   controllers: [UserController],
   exports: [IUserServiceProvider]

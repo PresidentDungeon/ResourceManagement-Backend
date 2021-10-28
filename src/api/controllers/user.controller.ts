@@ -5,16 +5,16 @@ import { User } from "../../core/models/user";
 import { LoginResponseDto } from "../dtos/login.response.dto";
 import { Role } from "../../core/models/role";
 import { IRoleService, IRoleServiceProvider } from "../../core/primary-ports/role.service.interface";
+import { IMailService, IMailServiceProvider } from "../../core/primary-ports/mail.service.interface";
 
 @Controller('user')
 export class UserController {
 
-  constructor(@Inject(IUserServiceProvider) private userService: IUserService, @Inject(IRoleServiceProvider) private roleService: IRoleService) {}
+  constructor(@Inject(IUserServiceProvider) private userService: IUserService, @Inject(IRoleServiceProvider) private roleService: IRoleService,
+              @Inject (IMailServiceProvider) private mailService: IMailService) {}
 
   @Post('register')
   async register(@Body() loginDto: LoginDto){
-
-    //This register is used for standard login page, why we give no options for user role and use standard of 'user'
     try
     {
       let createdUser: User = this.userService.createUser(loginDto.username, loginDto.password);
@@ -22,39 +22,32 @@ export class UserController {
       createdUser.role = foundRole;
 
       let addedUser: User = await this.userService.addUser(createdUser);
-
-
-
-
-
+      this.mailService.sendUserConfirmation(addedUser, addedUser.verificationCode);
+      return addedUser;
     }
     catch (e)
     {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
-
-
-
   }
 
+  @Post('mailTest')
+  async mailTest(@Body() loginDto: LoginDto){
 
+    let user: User = {
+      ID: 1,
+      username: loginDto.username,
+      password: '',
+      role: {ID: 1, role: "Admin"},
+      salt: 'value',
+      verificationCode: '2x32yz'
+    }
 
-
+    this.mailService.sendUserConfirmation(user, user.verificationCode);
+  }
 
   @Post('login')
   async login(@Body() loginDto: LoginDto){
-
-    try
-    {
-      const foundUser: User = await this.userService.login(loginDto.username, loginDto.password);
-      const tokenString = this.userService.generateJWTToken(foundUser);
-      const responseDTO: LoginResponseDto = {token: tokenString};
-      return responseDTO;
-    }
-    catch (e)
-    {
-      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
-    }
   }
 
   @Post('verifyToken')
@@ -62,5 +55,4 @@ export class UserController {
     try{return this.userService.verifyJWTToken(loginResponseDTO.token);}
     catch (e) {throw new HttpException(e.message, HttpStatus.NOT_FOUND);}
   }
-
 }
