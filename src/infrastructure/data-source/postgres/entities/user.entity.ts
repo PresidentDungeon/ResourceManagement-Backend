@@ -28,6 +28,9 @@ export class UserEntity {
   })
   public status: string;
 
+  @Column()
+  public verificationCode: string;
+
   @Index()
   @ManyToOne(() => RoleEntity, (roleEntity: RoleEntity) => roleEntity.users)
   public role: RoleEntity;
