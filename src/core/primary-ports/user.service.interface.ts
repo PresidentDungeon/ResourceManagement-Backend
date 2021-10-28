@@ -5,6 +5,7 @@ export interface IUserService{
 
   createUser(username: string, password: string): User
   addUser(user: User): Promise<User>
+  verifyUser(ID: number, verificationCode: string)
 
   generateSalt(): string
   generateHash(password: string, salt: string): string
@@ -13,5 +14,5 @@ export interface IUserService{
   login(username: string, password: string): Promise<[User, string]>
   verifyJWTToken(token: string): boolean
 
-  verifyUser(user: User): void
+  verifyUserEntity(user: User): void
 }

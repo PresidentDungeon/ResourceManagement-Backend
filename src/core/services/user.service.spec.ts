@@ -3,7 +3,7 @@ import { UserService } from './user.service';
 import { AuthenticationHelper } from "../../auth/authentication.helper";
 import { User } from "../models/user";
 import theoretically from "jest-theories";
-import { Repository } from "typeorm";
+import { Repository, SelectQueryBuilder } from "typeorm";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import exp from "constants";
@@ -23,7 +23,8 @@ describe('UserService', () => {
         generateHash: jest.fn((password: string, salt: string) => {return 'hashValue';}),
         generateJWTToken: jest.fn((password: string, salt: string) => {return 'signedToken';}),
         generateVerificationToken: jest.fn(() => {return 'verificationToken';}),
-        validateJWTToken: jest.fn(() => {return true;})
+        validateJWTToken: jest.fn(() => {return true;}),
+        validateLogin: jest.fn(() => {return true;})
       })
     }
 
@@ -33,6 +34,7 @@ describe('UserService', () => {
         count: jest.fn(() => {}),
         save: jest.fn((userEntity: UserEntity) => { return new Promise(resolve => {resolve(userEntity);});}),
         create: jest.fn((userEntity: UserEntity) => {return new Promise(resolve => {resolve(userEntity);});}),
+        createQueryBuilder: jest.fn(() => {}),
       })
     }
 
@@ -48,7 +50,6 @@ describe('UserService', () => {
   it('Should be defined', () => {
     expect(service).toBeDefined();
   });
-
 
   //#region CreateUser
   it('Creation of user with invalid username fails', () => {
@@ -105,9 +106,6 @@ describe('UserService', () => {
 
   it('Creation of user with invalid username fails', async () => {
 
-    //jest.spyOn(mockUserRepository, "count").mockResolvedValueOnce(1);
-    //jest.spyOn(mockUserRepository, "count").mockImplementationOnce(() => Promise.resolve(5));
-
     let user: User = {
       ID: 0,
       username: '',
@@ -161,6 +159,123 @@ describe('UserService', () => {
     expect(mockUserRepository.count).toHaveBeenCalledTimes(1);
     expect(authenticationMock.generateVerificationToken).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+  });
+  //#endregion
+
+  //#region VerifyUser
+
+  it('Verification of user with invalid ID throws error', async () => {
+
+    let ID: number = 0;
+    let verificationCode = "X2TMM6";
+
+    let errorStringToExcept: string = 'Invalid ID entered';
+
+    await expect(service.verifyUser(null, verificationCode)).rejects.toThrow(errorStringToExcept);
+    await expect(service.verifyUser(undefined, verificationCode)).rejects.toThrow(errorStringToExcept);
+    await expect(service.verifyUser(ID, verificationCode)).rejects.toThrow(errorStringToExcept);
+
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
+  });
+
+  it('Verification of user with invalid verificationCode throws error', async () => {
+
+    let ID: number = 1;
+    let verificationCode = "X2TMM";
+
+    let errorStringToExcept: string = 'Invalid verification code entered';
+
+    await expect(service.verifyUser(ID, null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.verifyUser(ID, undefined)).rejects.toThrow(errorStringToExcept);
+    await expect(service.verifyUser(ID, verificationCode)).rejects.toThrow(errorStringToExcept);
+
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
+  });
+
+  it('Verification of user with wrong verificationCode throws error', async () => {
+
+    const createQueryBuilder: any = {
+      leftJoinAndSelect: () => createQueryBuilder,
+      andWhere: () => createQueryBuilder,
+      getOne: jest.fn(() => {return new Promise(resolve => {resolve(null);});}),
+    };
+
+    jest
+      .spyOn(mockUserRepository, 'createQueryBuilder')
+      .mockImplementation(() => {return createQueryBuilder});
+
+    let ID: number = 1;
+    let verificationCode = "X2TMM6";
+
+    let errorStringToExcept: string = 'Wrong verification code entered';
+
+    await expect(service.verifyUser(ID, verificationCode)).rejects.toThrow(errorStringToExcept);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
+  it('Verification of user with active status throws error', async () => {
+
+    let user: UserEntity = {
+      ID: 1, username: 'Username',
+      password: 'Password', salt: 'someSalt',
+      status: 'active',
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    const createQueryBuilder: any = {
+      leftJoinAndSelect: () => createQueryBuilder,
+      andWhere: () => createQueryBuilder,
+      getOne: jest.fn(() => {return new Promise(resolve => {resolve(user);});}),
+    };
+
+    jest
+      .spyOn(mockUserRepository, 'createQueryBuilder')
+      .mockImplementation(() => {return createQueryBuilder});
+
+    let ID: number = 1;
+    let verificationCode = "2xY3b4";
+
+    let errorStringToExcept: string = 'This user has already been verified';
+
+    await expect(service.verifyUser(ID, verificationCode)).rejects.toThrow(errorStringToExcept);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
+  it('Verification of user with pending status and correct verification code is successful', async () => {
+
+    let user: UserEntity = {
+      ID: 1, username: 'Username',
+      password: 'Password', salt: 'someSalt',
+      status: 'pending',
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    const createQueryBuilder: any = {
+      leftJoinAndSelect: () => createQueryBuilder,
+      andWhere: () => createQueryBuilder,
+      getOne: jest.fn(() => {return new Promise(resolve => {resolve(user);});}),
+    };
+
+    jest
+      .spyOn(mockUserRepository, 'createQueryBuilder')
+      .mockImplementation(() => {return createQueryBuilder});
+
+    let ID: number = 1;
+    let verificationCode = "2xY3b4";
+
+    await expect(service.verifyUser(ID, verificationCode)).resolves;
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
   });
   //#endregion
 
@@ -229,6 +344,84 @@ describe('UserService', () => {
   //#endregion
 
   //#region Login
+
+  it('Login with username of null results in error', async () => {
+
+    let username: string = null;
+    let password: string = 'somePassword';
+    let errorStringToExcept = 'Username or Password is non-existing';
+
+    await expect(service.login(username, password)).rejects.toThrow(errorStringToExcept);
+    expect(authenticationMock.validateLogin).toHaveBeenCalledTimes(0);
+  });
+
+  it('Login with password of null results in error', async () => {
+
+    let username: string = 'someUsername';
+    let password: string = null;
+    let errorStringToExcept = 'Username or Password is non-existing';
+
+    await expect(service.login(username, password)).rejects.toThrow(errorStringToExcept);
+    expect(authenticationMock.validateLogin).toHaveBeenCalledTimes(0);
+  });
+
+  it('Login with non-existing users results in error', async () => {
+
+    const createQueryBuilder: any = {
+      leftJoinAndSelect: () => createQueryBuilder,
+      andWhere: () => createQueryBuilder,
+      getOne: jest.fn(() => {return new Promise(resolve => {resolve(null);});}),
+    };
+
+    jest
+      .spyOn(mockUserRepository, 'createQueryBuilder')
+      .mockImplementation(() => createQueryBuilder);
+
+    let username: string = 'nonExistingUser';
+    let password: string = 'somePassword';
+    let errorStringToExcept = 'No user registered with such a name';
+
+    await expect(service.login(username, password)).rejects.toThrow(errorStringToExcept);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.validateLogin).toHaveBeenCalledTimes(0);
+
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
+  it('Login with existing users returns found user and user status', async () => {
+
+    let user: UserEntity = {
+      ID: 1, username: 'Username',
+      password: 'Password', salt: 'someSalt',
+      status: 'pending',
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    const createQueryBuilder: any = {
+      leftJoinAndSelect: () => createQueryBuilder,
+      andWhere: () => createQueryBuilder,
+      getOne: jest.fn(() => {return new Promise(resolve => {resolve(user);});}),
+    };
+
+    jest
+      .spyOn(mockUserRepository, 'createQueryBuilder')
+      .mockImplementation(() => {return createQueryBuilder});
+
+    let username: string = 'existingUser';
+    let password: string = 'somePassword';
+
+    let foundUser, status
+
+    await expect([foundUser, status] = await service.login(username, password)).resolves;
+
+    expect(foundUser).toBe(user);
+    expect(status).toBe(user.status);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.validateLogin).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
   //#endregion
 
   //#region VerifyJWTToken
@@ -284,7 +477,7 @@ describe('UserService', () => {
     ];
 
     theoretically('The right error message is thrown to the fitting error', theories, theory => {
-      expect(() => { service.verifyUser(theory.input as User); }).toThrow(theory.expected);
+      expect(() => { service.verifyUserEntity(theory.input as User); }).toThrow(theory.expected);
     })
   });
 
@@ -295,9 +488,8 @@ describe('UserService', () => {
     ];
 
     theoretically('No error message is thrown on valid user', theories, theory => {
-      expect(() => { service.verifyUser(theory.input as User);}).not.toThrow();
+      expect(() => { service.verifyUserEntity(theory.input as User);}).not.toThrow();
     })
   });
   //#endregion
-
 });

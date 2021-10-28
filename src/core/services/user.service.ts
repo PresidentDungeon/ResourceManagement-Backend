@@ -3,9 +3,8 @@ import { IUserService } from "../primary-ports/user.service.interface";
 import { User } from "../models/user";
 import { AuthenticationHelper } from "../../auth/authentication.helper";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
+import { UserEntity, UserStatus } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { Repository } from "typeorm";
-import any = jasmine.any;
 
 @Injectable()
 export class UserService implements IUserService{
@@ -29,7 +28,7 @@ export class UserService implements IUserService{
 
   async addUser(user: User): Promise<User> {
 
-    this.verifyUser(user);
+    this.verifyUserEntity(user);
     const existingUsers = await this.userRepository.count({where: `"username" ILIKE '${user.username}'`});
 
     if(existingUsers > 0)
@@ -44,6 +43,35 @@ export class UserService implements IUserService{
     return newUser;
   }
 
+  async verifyUser(ID: number, verificationCode: string) {
+
+    if(ID == null || ID == undefined || ID <= 0)
+    {
+      throw new Error('Invalid ID entered');
+    }
+    if(verificationCode == null || verificationCode == undefined || verificationCode.length < 6)
+    {
+      throw new Error('Invalid verification code entered');
+    }
+
+    let qb = this.userRepository.createQueryBuilder("user");
+    qb.andWhere(`user.ID = :userID`, { userID: `${ID}`});
+    qb.andWhere(`user.verificationCode = :verificationCode`, { verificationCode: `${verificationCode}`});
+    const foundUser: UserEntity = await qb.getOne();
+
+    if(foundUser == null)
+    {
+      throw new Error('Wrong verification code entered');
+    }
+    if(foundUser.status != UserStatus.PENDING)
+    {
+      throw new Error('This user has already been verified');
+    }
+
+    foundUser.status = 'active';
+    await this.userRepository.save(foundUser);
+  }
+
   generateSalt(): string {
     return this.authenticationHelper.generateSalt();
   }
@@ -56,20 +84,35 @@ export class UserService implements IUserService{
   }
 
   generateJWTToken(user: User): string {
-    this.verifyUser(user);
+    this.verifyUserEntity(user);
     return this.authenticationHelper.generateJWTToken(user);
   }
 
-  //Missing test
   async login(username: string, password: string): Promise<[User, string]> {
-    throw new Error ('To Be Implemented');
+
+    if(username == null || password == null){
+      throw new Error('Username or Password is non-existing');
+    }
+
+    let qb = this.userRepository.createQueryBuilder("user");
+    qb.leftJoinAndSelect('user.role', 'role');
+    qb.andWhere(`user.username = :Username`, { Username: `${username}`});
+    const foundUser: UserEntity = await qb.getOne();
+
+    if(foundUser == null)
+    {
+      throw new Error('No user registered with such a name');
+    }
+
+    this.authenticationHelper.validateLogin(foundUser, password);
+    return [foundUser, foundUser.status];
   }
 
   verifyJWTToken(token: string): boolean {
     return this.authenticationHelper.validateJWTToken(token);
   }
 
-  verifyUser(user: User) {
+  verifyUserEntity(user: User) {
     if(user == undefined || user == null) {throw new Error('User must be instantiated');}
     if(user.ID == undefined || user.ID == null || user.ID < 0){throw new Error('User must have a valid ID')}
     if(user.username == undefined || user.username == null || user.username.length <= 0){throw new Error('User must have a valid Username');}
