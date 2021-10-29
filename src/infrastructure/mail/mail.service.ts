@@ -18,6 +18,7 @@ export class MailService implements IMailService{
       template: './confirmation',
       context: {
         url: verificationLink,
+        code: user.verificationCode
       }
     })
 

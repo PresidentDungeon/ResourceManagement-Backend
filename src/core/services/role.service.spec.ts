@@ -26,8 +26,12 @@ describe('RoleService', () => {
     mockRepository = module.get<Repository<RoleEntity>>(getRepositoryToken(RoleEntity));
   });
 
-  it('should be defined', () => {
+  it('service should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('mock repository should be defined', () => {
+    expect(mockRepository).toBeDefined();
   });
 
   //#region FindRoleByName

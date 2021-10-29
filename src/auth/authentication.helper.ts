@@ -46,9 +46,6 @@ export class AuthenticationHelper {
   }
 
   validateJWTToken(token: string): boolean{
-
-    if(token == undefined || token == null || token.length == 0) {throw new Error('Must enter a valid token');}
-
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     this.jwtService.verify(token, options);
     return true;
