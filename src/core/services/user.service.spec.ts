@@ -60,19 +60,18 @@ describe('UserService', () => {
   });
 
   //#region CreateUser
-  it('Creation of user with invalid username fails', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('Creation of user with invalid username or password fails', () => {
       let username: string;
       let password: string;
 
     const theories = [
-      { username: username = null, password: password = 'password', expectedError: "Username must be between 8-60 characters" },
-      { username: username = 'Jensen', password: password = 'password', expectedError: "Username must be between 8-60 characters" },
-      { username: username = 'ThisUsernameIsTooLongAndShouldResultInAnError................', password: password = 'password', expectedError: "Username must be between 8-60 characters" },
-      { username: username = 'username', password: password = 'passwor', expectedError: "Password must be minimum 8 characters long" },
+      { username: username = null, password: password = 'password', expectedError: "Username must be a valid email" },
+      { username: username = '', password: password = 'password', expectedError: "Username must be a valid email" },
+      { username: username = 'Jensen', password: password = 'password', expectedError: "Username must be a valid email" },
+      { username: username = 'Jensen@@gmail', password: password = 'password', expectedError: "Username must be a valid email" },
+      { username: username = 'Jensen@@hotmail.com', password: password = 'password', expectedError: "Username must be a valid email" },
+      { username: username = 'Jensen@gmail.com', password: password = null, expectedError: "Password must be minimum 8 characters long" },
+      { username: username = 'Jensen@gmail.com', password: password = 'passwor', expectedError: "Password must be minimum 8 characters long" },
     ];
 
     theoretically('The correct error message is thrown during user creation', theories, theory => {
@@ -87,8 +86,9 @@ describe('UserService', () => {
     let password: string;
 
     const theories = [
-      { username: username = 'username', password: password = 'password'},
-      { username: username = 'ThisUsernameIsAlmostTooLongForRegistrationButIsWithinLimit..', password: password = 'password'},
+      { username: username = 'Jensen@hotmail.com', password: password = 'password'},
+      { username: username = 'Jensen@gmail.com', password: password = 'k2vLqEW>m_k?s^2]'},
+      { username: username = 'Jensen@gmail.de', password: password = 'password'},
     ];
 
     theoretically('User creation is successful with correct values', theories, theory => {
@@ -210,7 +210,7 @@ describe('UserService', () => {
 
     let storedUser: UserEntity = {
       ID: 1,
-      username: 'Username',
+      username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
       status: 'pending',
@@ -219,7 +219,7 @@ describe('UserService', () => {
 
     let expectedUser: User = {
       ID: 1,
-      username: 'Username',
+      username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
       verificationCode: '2xY3b4',
@@ -235,7 +235,7 @@ describe('UserService', () => {
       .spyOn(mockUserRepository, 'createQueryBuilder')
       .mockImplementation(() => {return createQueryBuilder});
 
-    let username: string = 'Username';
+    let username: string = 'Username@gmail.com';
     let foundUser, status
 
     await expect([foundUser, status] = await service.getUserByUsername(username)).resolves;
@@ -308,7 +308,7 @@ describe('UserService', () => {
   it('Verification of user with active status throws error', async () => {
 
     let user: UserEntity = {
-      ID: 1, username: 'Username',
+      ID: 1, username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
       status: 'active',
@@ -340,7 +340,7 @@ describe('UserService', () => {
   it('Verification of user with pending status and correct verification code is successful', async () => {
 
     let user: UserEntity = {
-      ID: 1, username: 'Username',
+      ID: 1, username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
       status: 'pending',
@@ -430,10 +430,10 @@ describe('UserService', () => {
 
     let user: User = {
       ID: 1,
+      username: 'Username@gmail.com',
       password: 'somePassword',
       salt: 'someSalt',
       role: {ID: 1, role: 'admin'},
-      username: 'Hans'
     }
 
     service.generateJWTToken(user);
@@ -461,7 +461,7 @@ describe('UserService', () => {
 
   it('Login with password of null results in error', async () => {
 
-    let username: string = 'username';
+    let username: string = 'Username@gmail.com';
     let password: string = null;
     let errorStringToExcept = 'Username or Password is non-existing';
 
@@ -490,7 +490,7 @@ describe('UserService', () => {
 
     let storedUser: UserEntity = {
       ID: 1,
-      username: 'Username',
+      username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
       status: 'pending',
@@ -499,7 +499,7 @@ describe('UserService', () => {
 
     let expectedUser: User = {
       ID: 1,
-      username: 'Username',
+      username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
       role: {ID: 1, role: 'user'}};
@@ -509,7 +509,7 @@ describe('UserService', () => {
       .mockImplementation((username: string) => {return new Promise(resolve => {resolve([expectedUser, storedUser.status]);});});
 
 
-    let username: string = 'Username';
+    let username: string = 'Username@gmail.com';
     let password: string = 'Password';
     let foundUser, status
 
@@ -562,11 +562,11 @@ describe('UserService', () => {
       { input: user = null, expected: "User must be instantiated" },
       { input: user = undefined, expected: "User must be instantiated" },
 
-      { input: user = {ID: undefined, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null},
+      { input: user = {ID: undefined, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid ID" },
-      { input: user = {ID: null, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null },
+      { input: user = {ID: null, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: null },
         expected: "User must have a valid ID" },
-      { input: user = {ID: -1, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null},
+      { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid ID" },
       { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid Username" },
@@ -574,17 +574,17 @@ describe('UserService', () => {
         expected: "User must have a valid Username" },
       { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', role: null},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Hans', password: undefined, salt: 'someSalt', role: null},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: undefined, salt: 'someSalt', role: null},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Hans', password: null, salt: 'someSalt', role: null},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: null, salt: 'someSalt', role: null},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Hans', password: '', salt: 'someSalt', role: null},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: '', salt: 'someSalt', role: null},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: undefined, role: null},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, role: null},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: null, role: null},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, role: null},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: '', role: null},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: '', role: null},
         expected: "An error occurred with Salt" },
     ];
 
@@ -596,7 +596,7 @@ describe('UserService', () => {
   describe('Validation of valid user does not throw error', () => {
     let user: User;
     const theories = [
-      { input: user = {ID: 1, username: 'Hans', password: 'somePassword', salt: 'someSalt', role: null}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: null}},
     ];
 
     theoretically('No error message is thrown on valid user', theories, theory => {

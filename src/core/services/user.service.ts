@@ -9,12 +9,14 @@ import { Repository } from "typeorm";
 @Injectable()
 export class UserService implements IUserService{
 
+  emailRegex: RegExp = new RegExp('^(([^<>()\\[\\]\\\\.,;:\\s@"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@"]+)*)|(".+"))@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$');
+
   constructor(private authenticationHelper: AuthenticationHelper, @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>) {}
 
   createUser(username: string, password: string): User {
 
-    if(username == null || username.length < 8 || username.length > 60){
-      throw new Error('Username must be between 8-60 characters');
+    if(username == null || !this.emailRegex.test(username)){
+      throw new Error('Username must be a valid email');
     }
     if(password == null || password.length < 8){
       throw new Error('Password must be minimum 8 characters long');
