@@ -9,12 +9,14 @@ import { Repository } from "typeorm";
 @Injectable()
 export class UserService implements IUserService{
 
+  emailRegex: RegExp = new RegExp('^(([^<>()\\[\\]\\\\.,;:\\s@"]+(\\.[^<>()\\[\\]\\\\.,;:\\s@"]+)*)|(".+"))@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$');
+
   constructor(private authenticationHelper: AuthenticationHelper, @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>) {}
 
   createUser(username: string, password: string): User {
 
-    if(username == null || username.length < 8 || username.length > 60){
-      throw new Error('Username must be between 8-60 characters');
+    if(username == null || !this.emailRegex.test(username)){
+      throw new Error('Username must be a valid email');
     }
     if(password == null || password.length < 8){
       throw new Error('Password must be minimum 8 characters long');
@@ -41,6 +43,25 @@ export class UserService implements IUserService{
     const newUser = await this.userRepository.create(user);
     await this.userRepository.save(newUser);
     return newUser;
+  }
+
+  async getUserByUsername(username: string): Promise<[User, string]>{
+
+    if(username == null){
+      throw new Error('Username must be instantiated or valid');
+    }
+
+    let qb = this.userRepository.createQueryBuilder("user");
+    qb.leftJoinAndSelect('user.role', 'role');
+    qb.andWhere(`user.username = :Username`, { Username: `${username}`});
+    const foundUser: UserEntity = await qb.getOne();
+
+    if(foundUser == null)
+    {
+      throw new Error('No user registered with such a name');
+    }
+
+    return [{ID: foundUser.ID, username: foundUser.username, password: foundUser.password, salt: foundUser.salt, role: foundUser.role, verificationCode: foundUser.verificationCode}, foundUser.status];
   }
 
   async verifyUser(ID: number, verificationCode: string) {
@@ -94,21 +115,14 @@ export class UserService implements IUserService{
       throw new Error('Username or Password is non-existing');
     }
 
-    let qb = this.userRepository.createQueryBuilder("user");
-    qb.leftJoinAndSelect('user.role', 'role');
-    qb.andWhere(`user.username = :Username`, { Username: `${username}`});
-    const foundUser: UserEntity = await qb.getOne();
-
-    if(foundUser == null)
-    {
-      throw new Error('No user registered with such a name');
-    }
+    let [foundUser, status] = await this.getUserByUsername(username);
 
     this.authenticationHelper.validateLogin(foundUser, password);
-    return [foundUser, foundUser.status];
+    return [foundUser, status];
   }
 
   verifyJWTToken(token: string): boolean {
+    if(token == undefined || token == null || token.length == 0) {throw new Error('Must enter a valid token');}
     return this.authenticationHelper.validateJWTToken(token);
   }
 

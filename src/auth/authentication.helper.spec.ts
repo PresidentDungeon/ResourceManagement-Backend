@@ -13,7 +13,7 @@ describe('AuthenticationService', () => {
       provide: JwtService,
       useFactory: () => ({
         sign: jest.fn((payload: any, options: JwtSignOptions) => {return 'token';}),
-        verify: jest.fn((token: string, options: JwtSignOptions) => {return 'token';})
+        verify: jest.fn((token: string, options: JwtSignOptions) => {})
       })
     }
 
@@ -25,13 +25,21 @@ describe('AuthenticationService', () => {
     jwtMock = module.get<JwtService>(JwtService);
   });
 
-  it('Should be defined', () => {
+  it('Service should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('Mock JWT Service should be defined', () => {
+    expect(jwtMock).toBeDefined();
   });
 
   //#region SecretKey
   it('Secret key should be defined', () => {
     expect(service.secretKey.length).toBeDefined();
+  });
+
+  it('Secret key should be 16 characters long', () => {
+    expect(service.secretKey.length).toBe(16);
   });
   //#endregion
 
@@ -122,7 +130,7 @@ describe('AuthenticationService', () => {
 
   //#region GenerateVerificationToken
   it('Generated verification code should be defined', () => {
-    expect(service.generateVerificationToken().length).toBeDefined();
+    expect(service.generateVerificationToken()).toBeDefined();
   });
 
   it('Generated verification code should be 6 characters', () => {
@@ -136,17 +144,6 @@ describe('AuthenticationService', () => {
 
     expect(service.validateJWTToken(token)).toBe(true);
     expect(jwtMock.verify).toHaveBeenCalledTimes(1);
-  });
-
-  it('Validate token with undefined, null or empty token results in error', () => {
-    let token: string = '';
-
-    let errorStringToExcept = 'Must enter a valid token';
-
-    expect(() => { service.validateJWTToken(null); }).toThrow(errorStringToExcept);
-    expect(() => { service.validateJWTToken(undefined); }).toThrow(errorStringToExcept);
-    expect(() => { service.validateJWTToken(token); }).toThrow(errorStringToExcept);
-    expect(jwtMock.verify).toHaveBeenCalledTimes(0);
   });
 
   it('Invalid token should result in error',  () => {

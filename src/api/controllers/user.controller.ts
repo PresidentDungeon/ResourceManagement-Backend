@@ -1,4 +1,4 @@
-import { Body, Controller, HttpException, HttpStatus, Inject, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Query } from "@nestjs/common";
 import { IUserService, IUserServiceProvider } from "../../core/primary-ports/user.service.interface";
 import { User } from "../../core/models/user";
 import { Role } from "../../core/models/role";
@@ -7,6 +7,7 @@ import { IMailService, IMailServiceProvider } from "../../core/primary-ports/mai
 import { LoginDTO } from "../dtos/login.dto";
 import { LoginResponseDTO } from "../dtos/login.response.dto";
 import { VerificationDTO } from "../dtos/verification.dto";
+import { VerificationRequestDTO } from "../dtos/verification.request.dto";
 
 @Controller('user')
 export class UserController {
@@ -24,7 +25,6 @@ export class UserController {
 
       let addedUser: User = await this.userService.addUser(createdUser);
       this.mailService.sendUserConfirmation(addedUser, addedUser.verificationCode);
-      return addedUser;
     }
     catch (e)
     {
@@ -32,19 +32,18 @@ export class UserController {
     }
   }
 
-  @Post('mailTest')
-  async mailTest(@Body() loginDto: LoginDTO){
-
-    let user: User = {
-      ID: 1,
-      username: loginDto.username,
-      password: '',
-      role: {ID: 1, role: "Admin"},
-      salt: 'value',
-      verificationCode: '2x32yz'
+  @Get('resendVerificationMail')
+  async resendVerificationMail(@Query() verificationRequestDTO: VerificationRequestDTO){
+    try
+    {
+      console.log(verificationRequestDTO.username);
+      const [foundUser] = await this.userService.getUserByUsername(verificationRequestDTO.username);
+      this.mailService.sendUserConfirmation(foundUser, foundUser.verificationCode);
     }
-
-    this.mailService.sendUserConfirmation(user, user.verificationCode);
+    catch (e)
+    {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
   }
 
   @Post('login')
