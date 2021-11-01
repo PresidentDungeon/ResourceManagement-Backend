@@ -2,20 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { Hmac } from "crypto";
 import { User } from "../core/models/user";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
+import { PasswordToken } from "../core/models/password.token";
 
 const crypto = require('crypto');
-const saltLength = 16
-const veriLength = 6;
 
 @Injectable()
 export class AuthenticationHelper {
 
-  secretKey = this.generateSalt();
+  secretKeyLength: number = 16;
+  maxPasswordTokenAgeInSeconds: number = 60 * 60 * 1000;
+  secretKey = this.generateToken(this.secretKeyLength);
 
   constructor(private jwtService: JwtService) {}
 
-  generateSalt(): string{
-    return crypto.randomBytes(saltLength).toString('hex').slice(0, saltLength);
+  generateToken(tokenLength: number): string{
+
+    if(tokenLength == null || tokenLength <= 0 || !Number.isInteger(tokenLength)){
+      throw new Error('Token length must be a positive numeric number')
+    }
+
+    return crypto.randomBytes(tokenLength).toString('hex').slice(0, tokenLength);
   }
 
   generateHash(password: string, salt: string): string{
@@ -41,13 +47,21 @@ export class AuthenticationHelper {
     return this.jwtService.sign(payload, options);
   }
 
-  generateVerificationToken(): string{
-    return crypto.randomBytes(veriLength).toString('hex').slice(0, veriLength);
-  }
-
   validateJWTToken(token: string): boolean{
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     this.jwtService.verify(token, options);
     return true;
   }
+
+  validatePasswordToken(passwordToken: PasswordToken): boolean{
+
+    const date: Date = new Date();
+
+    if(date.getTime() - passwordToken.time.getTime() >= this.maxPasswordTokenAgeInSeconds){
+      throw new Error('Password reset link has expired')
+    }
+
+    return true;
+  }
+
 }

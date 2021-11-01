@@ -52,7 +52,6 @@ describe('RoleService', () => {
     let role: string = 'Admin';
     let mockRole: Role = {ID: 1, role: 'Admin'};
 
-    //We mock findOne method for the repository to return the mockRole
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(mockRole);
 
     await expect(await service.findRoleByName(role)).toBe(mockRole);
@@ -70,6 +69,7 @@ describe('RoleService', () => {
     await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
   });
+
   //#endregion
 
 });

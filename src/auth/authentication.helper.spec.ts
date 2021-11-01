@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthenticationHelper } from './authentication.helper';
 import { User } from "../core/models/user";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
+import theoretically from "jest-theories";
+import { PasswordToken } from "../core/models/password.token";
 
 describe('AuthenticationService', () => {
   let service: AuthenticationHelper;
@@ -43,119 +45,176 @@ describe('AuthenticationService', () => {
   });
   //#endregion
 
-  //#region GenerateSalt
-  it('Generated salt should be defined', () => {
-    expect(service.generateSalt().length).toBeDefined();
+
+
+  //#region GenerateRandomString
+
+  describe('Generated token throws error on invalid token length', () => {
+    let tokenLength: Number;
+    let errorStringToExpect: string = 'Token length must be a positive numeric number';
+
+    const theories = [
+      { input: tokenLength = null},
+      { input: tokenLength = 0},
+      { input: tokenLength = -1},
+      { input: tokenLength = Number.MIN_SAFE_INTEGER},
+      { input: tokenLength = 1.1},
+      { input: tokenLength = -1.1},
+    ];
+
+    theoretically('The right error message is thrown to the fitting error', theories, theory => {
+      expect(() => { service.generateToken(theory.input); }).toThrow(errorStringToExpect);
+    })
   });
 
-  it('Generated salt should be 16 characters', () => {
-    expect(service.generateSalt().length).toBe(16);
-  });
-  //#endregion
+   describe('Generated token returns token of expected length', () => {
+     let tokenLength: Number;
 
-  //#region GenerateHash
-  it('Generated hash value should be defined', () => {
-    let password: string = "somePassword";
-    let salt: string = "someSalt";
-    expect(service.generateHash(password, salt)).toBeDefined();
-  });
+     const theories = [
+       { input: tokenLength = 1},
+     ];
 
-  it('Generated hash from same password and salt must be identical', () => {
-    let password: string = "somePassword";
-    let salt: string = "someSalt";
+     theoretically('The token is of expected length', theories, theory => {
+       const token: string = service.generateToken(theory.input);
+       expect(token.length).toBe(theory.input);
+     })
+   });
 
-    let firstHash = service.generateHash(password, salt);
-    let secondHash = service.generateHash(password, salt);
+   //#endregion
 
-    expect(firstHash).toBe(secondHash);
-  });
-  //#endregion
+   //#region GenerateHash
 
-  //#region validateLogin
-  it('Valid login for user', () => {
-    let userPassword: string = 'somePassword';
-    let generatedSalt: string = service.generateSalt();
-    let generatedHash: string = service.generateHash(userPassword, generatedSalt);
+   it('Generated hash value should be defined', () => {
+     let password: string = "somePassword";
+     let salt: string = "someSalt";
+     expect(service.generateHash(password, salt)).toBeDefined();
+   });
 
-    let user: User = {
-      ID: 1,
-      password: generatedHash,
-      salt: generatedSalt,
-      role: {ID: 1, role: 'admin'},
-      username: 'Hans'
-    }
+   it('Generated hash from same password and salt must be identical', () => {
+     let password: string = "somePassword";
+     let salt: string = "someSalt";
 
-    let errorStringToExcept: string = 'Entered password is incorrect';
+     let firstHash = service.generateHash(password, salt);
+     let secondHash = service.generateHash(password, salt);
 
-    expect(() => { service.validateLogin(user, userPassword)}).not.toThrow(errorStringToExcept);
-  });
+     expect(firstHash).toBe(secondHash);
+   });
 
-  it('Invalid login for user throws error', () => {
-    let userPassword: string = 'somePassword';
-    let generatedSalt: string = service.generateSalt();
-    let generatedHash: string = service.generateHash(userPassword, generatedSalt);
+   //#endregion
 
-    const user: User = {
-      ID: 1,
-      password: generatedHash,
-      salt: generatedSalt,
-      role: {ID: 1, role: 'admin'},
-      username: 'Hans'
-    }
+   //#region validateLogin
 
-    let errorStringToExcept: string = 'Entered password is incorrect';
+   it('Valid login for user', () => {
 
-    expect(() => { service.validateLogin(user, 'someDifferentPassword')}).toThrow(errorStringToExcept);
-  });
-  //#endregion
+     let saltSize: number = 16;
 
-  //#region GenerateJWTToken
-  it('Generation of JWT token is successful on valid user', () => {
+     let userPassword: string = 'somePassword';
+     let generatedSalt: string = service.generateToken(saltSize);
+     let generatedHash: string = service.generateHash(userPassword, generatedSalt);
 
-    const user: User = {
-      ID: 1,
-      password: 'someHash',
-      salt: 'someSalt',
-      role: {ID: 1, role: 'admin'},
-      username: 'Hans'
-    }
+     let user: User = {
+       ID: 1,
+       password: generatedHash,
+       salt: generatedSalt,
+       role: {ID: 1, role: 'admin'},
+       username: 'Hans'
+     }
 
-    const result = service.generateJWTToken(user);
+     let errorStringToExcept: string = 'Entered password is incorrect';
 
-    expect(result).toBeDefined();
-    expect(typeof result).toBe('string');
-    expect(jwtMock.sign).toHaveBeenCalledTimes(1);
-  });
-  //#endregion
+     expect(() => { service.validateLogin(user, userPassword)}).not.toThrow(errorStringToExcept);
+   });
 
-  //#region GenerateVerificationToken
-  it('Generated verification code should be defined', () => {
-    expect(service.generateVerificationToken()).toBeDefined();
-  });
+   it('Invalid login for user throws error', () => {
 
-  it('Generated verification code should be 6 characters', () => {
-    expect(service.generateVerificationToken().length).toBe(6);
-  });
-  //#endregion
+     let saltSize: number = 16;
 
-  //#region validateJWTToken
-  it('Validate valid token should return true', () => {
-    let token: string = 'SomeToken';
+     let userPassword: string = 'somePassword';
+     let generatedSalt: string = service.generateToken(saltSize);
+     let generatedHash: string = service.generateHash(userPassword, generatedSalt);
 
-    expect(service.validateJWTToken(token)).toBe(true);
-    expect(jwtMock.verify).toHaveBeenCalledTimes(1);
-  });
+     const user: User = {
+       ID: 1,
+       password: generatedHash,
+       salt: generatedSalt,
+       role: {ID: 1, role: 'admin'},
+       username: 'Hans'
+     }
 
-  it('Invalid token should result in error',  () => {
+     let errorStringToExcept: string = 'Entered password is incorrect';
 
-    jest.spyOn(jwtMock, "verify").mockImplementationOnce(() => {throw new Error('Token is not valid')});
+     expect(() => { service.validateLogin(user, 'someDifferentPassword')}).toThrow(errorStringToExcept);
+   });
+   //#endregion
 
-    let token: string = 'invalidToken';
-    let errorStringToExcept = 'Token is not valid';
+   //#region GenerateJWTToken
 
-    expect(() => { service.validateJWTToken(token); }).toThrow(errorStringToExcept);
-    expect(jwtMock.verify).toHaveBeenCalledTimes(1);
-  });
-  //#endregion
+   it('Generation of JWT token is successful on valid user', () => {
+
+     const user: User = {
+       ID: 1,
+       password: 'someHash',
+       salt: 'someSalt',
+       role: {ID: 1, role: 'admin'},
+       username: 'Hans'
+     }
+
+     const result = service.generateJWTToken(user);
+
+     expect(result).toBeDefined();
+     expect(typeof result).toBe('string');
+     expect(jwtMock.sign).toHaveBeenCalledTimes(1);
+   });
+
+   //#endregion
+
+   //#region validateJWTToken
+
+   it('Validate valid token should return true', () => {
+     let token: string = 'SomeToken';
+
+     expect(service.validateJWTToken(token)).toBe(true);
+     expect(jwtMock.verify).toHaveBeenCalledTimes(1);
+   });
+
+   it('Invalid token should result in error',  () => {
+
+     jest.spyOn(jwtMock, "verify").mockImplementationOnce(() => {throw new Error('Token is not valid')});
+
+     let token: string = 'invalidToken';
+     let errorStringToExcept = 'Token is not valid';
+
+     expect(() => { service.validateJWTToken(token); }).toThrow(errorStringToExcept);
+     expect(jwtMock.verify).toHaveBeenCalledTimes(1);
+   });
+
+   //#endregion
+
+   //#region ValidatePasswordToken
+
+   it('Validation of expired password token throws error',  () => {
+
+     const date: Date = new Date();
+     date.setHours(date.getHours() - 1);
+
+     let errorStringToExcept = 'Password reset link has expired';
+
+     const passwordToken: PasswordToken = {user: null, time: date, hashedResetToken: ''}
+
+     expect(() => { service.validatePasswordToken(passwordToken); }).toThrow(errorStringToExcept);
+   });
+
+   it('Validation of valid password token returns true',  () => {
+
+     const date: Date = new Date();
+     date.setHours(date.getHours() - 1);
+     date.setMinutes(date.getMinutes() + 1);
+
+     const passwordToken: PasswordToken = {user: null, time: date, hashedResetToken: ''}
+
+     expect(service.validatePasswordToken(passwordToken)).toBe(true);
+   });
+
+   //#endregion
 
 });

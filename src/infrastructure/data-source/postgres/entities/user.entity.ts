@@ -1,5 +1,6 @@
-import { Column, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { RoleEntity } from "./role.entity";
+import { PasswordTokenEntity } from "./password-token.entity";
 
   export enum UserStatus {
     PENDING = "pending",
@@ -34,5 +35,8 @@ export class UserEntity {
   @Index()
   @ManyToOne(() => RoleEntity, (roleEntity: RoleEntity) => roleEntity.users)
   public role: RoleEntity;
+
+  @OneToOne(() => PasswordTokenEntity,{cascade: true})
+  public passwordToken?: PasswordTokenEntity
 
 }
