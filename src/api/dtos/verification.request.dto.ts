@@ -1,3 +1,3 @@
 export interface VerificationRequestDTO {
-  username: string
+  email: string
 }

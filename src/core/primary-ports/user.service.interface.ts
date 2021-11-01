@@ -5,16 +5,20 @@ export const IUserServiceProvider = 'IUserServiceProvider'
 export interface IUserService{
 
   createUser(username: string, password: string): User
-  addUser(user: User): Promise<User>
-  verifyUser(ID: number, verificationCode: string)
+  addUser(user: User): Promise<string>
+  verifyUser(username: string, verificationCode: string)
   getUserByUsername(username: string): Promise<[User, string]>
 
   generateSalt(): string
   generateHash(password: string, salt: string): string
   generateJWTToken(user: User): string
+  generateNewVerificationCode(user: User, status: string): Promise<string>
+  generatePasswordResetToken(username: string): Promise<string>
 
   login(username: string, password: string): Promise<[User, string]>
   verifyJWTToken(token: string): boolean
+  verifyPasswordToken(user: User, passwordToken: string)
+  updatePassword(username: string, passwordToken: string, password: string)
 
   verifyUserEntity(user: User): void
 }

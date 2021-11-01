@@ -5,6 +5,7 @@ import { IRoleServiceProvider } from "../core/primary-ports/role.service.interfa
 import { RoleService } from "../core/services/role.service";
 import { AuthModule } from "../auth/auth.module";
 import { MailModule } from '../infrastructure/mail/mail.module';
+import { PasswordTokenEntity } from "../infrastructure/data-source/postgres/entities/password-token.entity";
 
 @Module({
   imports: [TypeOrmModule.forFeature([RoleEntity])],

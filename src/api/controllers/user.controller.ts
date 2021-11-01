@@ -8,6 +8,7 @@ import { LoginDTO } from "../dtos/login.dto";
 import { LoginResponseDTO } from "../dtos/login.response.dto";
 import { VerificationDTO } from "../dtos/verification.dto";
 import { VerificationRequestDTO } from "../dtos/verification.request.dto";
+import { PasswordChangeRequestDTO } from "../dtos/password.change.request.dto";
 
 @Controller('user')
 export class UserController {
@@ -23,8 +24,8 @@ export class UserController {
       let foundRole: Role = await this.roleService.findRoleByName('user');
       createdUser.role = foundRole;
 
-      let addedUser: User = await this.userService.addUser(createdUser);
-      this.mailService.sendUserConfirmation(addedUser, addedUser.verificationCode);
+      let verificationToken: string = await this.userService.addUser(createdUser);
+      this.mailService.sendUserConfirmation(loginDto.username, verificationToken);
     }
     catch (e)
     {
@@ -34,16 +35,14 @@ export class UserController {
 
   @Get('resendVerificationMail')
   async resendVerificationMail(@Query() verificationRequestDTO: VerificationRequestDTO){
-    try
-    {
-      console.log(verificationRequestDTO.username);
-      const [foundUser] = await this.userService.getUserByUsername(verificationRequestDTO.username);
-      this.mailService.sendUserConfirmation(foundUser, foundUser.verificationCode);
+
+    try{
+      let [foundUser, status] = await this.userService.getUserByUsername(verificationRequestDTO.email);
+      let verificationCode = await this.userService.generateNewVerificationCode(foundUser, status);
+      this.mailService.sendUserConfirmation(foundUser.username, verificationCode);
     }
-    catch (e)
-    {
-      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
-    }
+    catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
+
   }
 
   @Post('login')
@@ -78,7 +77,44 @@ export class UserController {
 
   @Post('verifyUser')
   async verifyUser(@Body() verificationDTO: VerificationDTO){
-    try{await this.userService.verifyUser(verificationDTO.ID, verificationDTO.verificationCode);}
+    try{await this.userService.verifyUser(verificationDTO.username, verificationDTO.verificationCode);}
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
   }
+
+
+  @Get('requestPasswordMail')
+  async requestPasswordResetMail(@Query() verificationRequestDTO: VerificationRequestDTO){
+    try{
+      const passwordResetToken: string = await this.userService.generatePasswordResetToken(verificationRequestDTO.email);
+      this.mailService.sendUserPasswordReset(verificationRequestDTO.email, passwordResetToken);
+    }
+    catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+
+  }
+
+  @Post('verifyPasswordToken')
+  async verifyPasswordToken(@Body() verificationDTO: VerificationDTO){
+    try {
+      let [foundUser] = await this.userService.getUserByUsername(verificationDTO.username);
+      await this.userService.verifyPasswordToken(foundUser, verificationDTO.verificationCode);
+    }
+    catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+
+  }
+
+  @Post('requestPasswordChange')
+  async requestPasswordChange(@Body() passwordChangeRequestDTO: PasswordChangeRequestDTO){
+    try {
+      await this.userService.updatePassword(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
+      this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
+    }
+    catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
 }

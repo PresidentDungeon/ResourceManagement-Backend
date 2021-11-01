@@ -7,9 +7,10 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { UserEntity } from "../infrastructure/data-source/postgres/entities/user.entity";
 import { RoleModule } from './role.module';
 import { MailModule } from "../infrastructure/mail/mail.module";
+import { PasswordTokenEntity } from "../infrastructure/data-source/postgres/entities/password-token.entity";
 
 @Module({
-  imports: [AuthModule, RoleModule, MailModule, TypeOrmModule.forFeature([UserEntity])],
+  imports: [AuthModule, RoleModule, MailModule, TypeOrmModule.forFeature([UserEntity, PasswordTokenEntity])],
   providers: [{provide: IUserServiceProvider, useClass: UserService}],
   controllers: [UserController],
   exports: [IUserServiceProvider]

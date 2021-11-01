@@ -1,4 +1,4 @@
 export interface VerificationDTO {
-  ID: number,
+  username: string,
   verificationCode: string
 }
