@@ -6,5 +6,6 @@ export interface User {
   password: string
   salt: string
   role: Role
+  status?: string
   verificationCode?: string
 }

@@ -9,6 +9,9 @@ import { UserEntity } from "../../infrastructure/data-source/postgres/entities/u
 import exp from "constants";
 import { UnauthorizedException } from "@nestjs/common";
 import { PasswordTokenEntity } from "../../infrastructure/data-source/postgres/entities/password-token.entity";
+import { Filter } from "../models/filter";
+import { UserDTO } from "../../api/dtos/user.dto";
+import { FilterList } from "../models/filterList";
 
 describe('UserService', () => {
   let service: UserService;
@@ -58,7 +61,11 @@ describe('UserService', () => {
       andWhere: () => createQueryBuilder,
       update: jest.fn(() => {return updateQueryBuilder}),
       delete: jest.fn(() => {return deleteQueryBuilder}),
-      getOne: () => {}
+      getOne: jest.fn(() => {}),
+      getMany: jest.fn(() => {}),
+      getCount: jest.fn(() => {}),
+      offset: jest.fn(() => {}),
+      limit: jest.fn(() => {}),
     };
 
     const updateQueryBuilder: any = {
@@ -101,7 +108,7 @@ describe('UserService', () => {
     expect(mockPasswordTokenRepository).toBeDefined();
   });
 
- //#region CreateUser
+  //#region CreateUser
 
  describe('Creation of user with invalid username or password fails', () => {
 
@@ -156,7 +163,7 @@ describe('UserService', () => {
 
  //#endregion
 
- //#region AddUser
+  //#region AddUser
 
  it('Saving user with invalid data fails', async () => {
 
@@ -225,9 +232,35 @@ describe('UserService', () => {
    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
  });
 
+  it('Error during saving of user throws correct error', async () => {
+
+    jest.spyOn(mockUserRepository, "save").mockImplementation(resolve => {throw new Error()});
+
+    let errorStringToExcept: string = 'Internal server error';
+
+    let user: User = {
+      ID: 0,
+      username: 'Peter@gmail.com',
+      password: 'Password',
+      salt: 'SaltValue',
+      role: null
+    }
+
+    await expect(service.addUser(user)).rejects.toThrow(errorStringToExcept);
+    expect(mockUserRepository.count).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.create).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.create).toHaveBeenCalledWith(user);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(mockUserRepository, 'save').mockReset();
+  });
+
  //#endregion
 
- //#region GetUserByUsername
+  //#region GetUserByUsername
 
  it('Find user with invalid username results in error', async () => {
 
@@ -267,14 +300,6 @@ describe('UserService', () => {
      verificationCode: '2xY3b4',
      role: {ID: 1, role: 'user'}};
 
-   let expectedUser: User = {
-     ID: 1,
-     username: 'Username@gmail.com',
-     password: 'Password',
-     salt: 'someSalt',
-     verificationCode: '2xY3b4',
-     role: {ID: 1, role: 'user'}};
-
    jest
      .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
      .mockImplementation(() => {return new Promise(resolve => {resolve(storedUser);});});
@@ -282,18 +307,188 @@ describe('UserService', () => {
    let username: string = 'Username@gmail.com';
    let foundUser, status
 
-   await expect([foundUser, status] = await service.getUserByUsername(username)).resolves;
+   await expect(foundUser = await service.getUserByUsername(username)).resolves;
 
-   expect(foundUser).toStrictEqual(expectedUser);
-   expect(status).toBe(storedUser.status);
+   expect(foundUser).toStrictEqual(storedUser);
    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
 
    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
  });
 
- //#endregion
+  //#endregion
 
- //#region VerifyUser
+  //#region GetUsers
+
+
+  describe('Get users throws error when inserting invalid filter',  () => {
+
+    let filter: Filter;
+    let expectedError: string;
+
+    const theories = [
+      { filter: filter = null, expectedError: 'Invalid filter entered'},
+      { filter: filter = undefined, expectedError: 'Invalid filter entered'},
+      { filter: filter = {itemsPrPage: null, currentPage: 1}, expectedError: 'Invalid items pr. page entered'},
+      { filter: filter = {itemsPrPage: undefined, currentPage: 1}, expectedError: 'Invalid items pr. page entered'},
+      { filter: filter = {itemsPrPage: 0, currentPage: 1}, expectedError: 'Invalid items pr. page entered'},
+      { filter: filter = {itemsPrPage: Number.MIN_SAFE_INTEGER, currentPage: 1}, expectedError: 'Invalid items pr. page entered'},
+      { filter: filter = {itemsPrPage: 1, currentPage: null}, expectedError: 'Invalid current page entered'},
+      { filter: filter = {itemsPrPage: 1, currentPage: undefined}, expectedError: 'Invalid current page entered'},
+      { filter: filter = {itemsPrPage: 1, currentPage: 0}, expectedError: 'Invalid current page entered'},
+      { filter: filter = {itemsPrPage: 1, currentPage: Number.MIN_SAFE_INTEGER}, expectedError: 'Invalid current page entered'},
+    ];
+
+    theoretically('The correct error message is thrown during user filtering', theories,  async theory => {
+      await expect(service.getUsers(theory.filter)).rejects.toThrow(theory.expectedError);
+      expect(mockUserRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
+      expect(mockUserRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  it('Get users returns valid filterList', async () => {
+
+    let storedUsers: UserEntity[] = [
+      {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'active', role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
+      {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'pending', role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
+      {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'pending', role: {ID: 2, role: 'admin'}, passwordToken: undefined, verificationCode: 'someToken'},
+    ]
+
+    let expectedTotalListSize: number = 3;
+    let expectedListSize: number = 3;
+
+    let expectedList: UserDTO[] = [
+      {ID: 1, username: 'Peter@gmail.com', status: 'active', role: {ID: 1, role: 'user'}},
+      {ID: 2, username: 'Hans@gmail.com', status: 'pending', role: {ID: 1, role: 'user'}},
+      {ID: 3, username: 'Lars@gmail.com', status: 'pending', role: {ID: 2, role: 'admin'}},
+    ]
+
+    let filter: Filter = {currentPage: 1, itemsPrPage: 2};
+    let offsetValue: number;
+    let limitValue: number;
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getMany')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(storedUsers);});});
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getCount')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(storedUsers.length);});});
+
+    let filterList: FilterList<UserDTO>;
+    await expect(filterList = await service.getUsers(filter)).resolves;
+    expect(filterList.list).toStrictEqual(expectedList);
+    expect(filterList.list.length).toBe(expectedListSize)
+    expect(filterList.totalItems).toBe(expectedTotalListSize);
+    expect(mockUserRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
+  it('Get users returns valid filterList when offset', async () => {
+
+    let storedUsers: UserEntity[] = [
+      {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'active', role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
+      {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'pending', role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
+      {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'pending', role: {ID: 2, role: 'admin'}, passwordToken: undefined, verificationCode: 'someToken'},
+    ]
+
+    let expectedTotalListSize: number = 3;
+    let expectedListSize: number = 1;
+
+    let expectedList: UserDTO[] = [
+      {ID: 3, username: 'Lars@gmail.com', status: 'pending', role: {ID: 2, role: 'admin'}},
+    ]
+
+    let filter: Filter = {currentPage: 3, itemsPrPage: 1};
+    let offsetValue: number;
+    let limitValue: number;
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'offset')
+      .mockImplementation((offset?: number) => {offsetValue = offset; return null;});
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'limit')
+      .mockImplementation((limit?: number) => {limitValue = limit; return null;});
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getMany')
+      .mockImplementation(() => {
+        let storedValue: UserEntity[] = [...storedUsers];
+        for(let i = 0; i < offsetValue; i++){storedValue.shift();}
+        let resizedValue = storedValue.slice(0, limitValue);
+        return new Promise(resolve => {resolve(resizedValue);});});
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getCount')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(storedUsers.length);});});
+
+
+    let filterList: FilterList<UserDTO>;
+    await expect(filterList = await service.getUsers(filter)).resolves;
+    expect(filterList.list).toStrictEqual(expectedList);
+    expect(filterList.list.length).toBe(expectedListSize)
+    expect(filterList.totalItems).toBe(expectedTotalListSize);
+    expect(mockUserRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
+  it('Get users returns valid filterList when limit', async () => {
+
+    let storedUsers: UserEntity[] = [
+      {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'active', role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
+      {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'pending', role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
+      {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: 'pending', role: {ID: 2, role: 'admin'}, passwordToken: undefined, verificationCode: 'someToken'},
+    ]
+
+    let expectedTotalListSize: number = 3;
+    let expectedListSize: number = 2;
+
+    let expectedList: UserDTO[] = [
+      {ID: 1, username: 'Peter@gmail.com', status: 'active', role: {ID: 1, role: 'user'}},
+      {ID: 2, username: 'Hans@gmail.com', status: 'pending', role: {ID: 1, role: 'user'}},
+    ]
+
+    let filter: Filter = {currentPage: 1, itemsPrPage: 2};
+    let offsetValue: number;
+    let limitValue: number;
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'offset')
+      .mockImplementation((offset?: number) => {offsetValue = offset; return null;});
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'limit')
+      .mockImplementation((limit?: number) => {limitValue = limit; return null;});
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getMany')
+      .mockImplementation(() => {
+        let storedValue: UserEntity[] = [...storedUsers];
+        for(let i = 0; i < offsetValue; i++){storedValue.shift();}
+        let resizedValue = storedValue.slice(0, limitValue);
+        return new Promise(resolve => {resolve(resizedValue);});});
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getCount')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(storedUsers.length);});});
+
+
+    let filterList: FilterList<UserDTO>;
+    await expect(filterList = await service.getUsers(filter)).resolves;
+    expect(filterList.list).toStrictEqual(expectedList);
+    expect(filterList.list.length).toBe(expectedListSize)
+    expect(filterList.totalItems).toBe(expectedTotalListSize);
+    expect(mockUserRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
+  //#endregion
+
+  //#region VerifyUser
 
  it('Verification of user with invalid username throws error', async () => {
 
@@ -343,7 +538,7 @@ describe('UserService', () => {
 
    jest
      .spyOn(service, 'getUserByUsername')
-     .mockImplementation((username: string) => {return new Promise(resolve => {resolve([storedUser, storedUser.status]);});});
+     .mockImplementation((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
 
    let username: string = "peter@gmail.com";
    let verificationCode = "X2TMM6";
@@ -377,7 +572,7 @@ describe('UserService', () => {
 
    jest
      .spyOn(service, 'getUserByUsername')
-     .mockImplementation((username: string) => {return new Promise(resolve => {resolve([storedUser, storedUser.status]);});});
+     .mockImplementation((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
 
    let username: string = "peter@gmail.com";
    let verificationCode = "2xY3b4";
@@ -409,7 +604,7 @@ describe('UserService', () => {
 
    jest
      .spyOn(service, 'getUserByUsername')
-     .mockImplementation((username: string) => {return new Promise(resolve => {resolve([storedUser, storedUser.status]);});});
+     .mockImplementation((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
 
    let username: string = "peter@gmail.com";
    let verificationCode = "2xY3b4";
@@ -422,9 +617,202 @@ describe('UserService', () => {
    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
  });
 
- //#endregion
+  //#endregion
 
- //#region GenerateSalt
+  //#region UpdateUser
+
+  it('Update invalid user throws error', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1,
+      username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: 'active',
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    let userDTO: UserDTO = {ID: 2, username: 'peter@gmail.com', status: 'active', role: {ID: 2, role: 'admin'}};
+    let expectedErrorMessage: string = 'User ID must be instantiated or valid'
+
+    jest
+      .spyOn(service, 'getUserByID')
+      .mockImplementation((ID: number) => {throw new Error('User ID must be instantiated or valid');});
+
+    await expect(service.updateUser(userDTO)).rejects.toThrow(expectedErrorMessage);
+    expect(service.getUserByID).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+
+    jest.spyOn(service, 'getUserByID').mockReset();
+  });
+
+  it('Update user with invalid data throws error', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1,
+      username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: 'active',
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    let userDTO: UserDTO = {ID: 1, username: null, status: 'active', role: {ID: 2, role: 'admin'}};
+
+    jest
+      .spyOn(service, 'getUserByID')
+      .mockImplementation((ID: number) => {return new Promise(resolve => {return resolve(storedUser);});});
+
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementation((user: UserEntity) => {throw new Error('User must have a valid Username')});
+
+    let expectedErrorMessage: string = 'User must have a valid Username'
+
+    await expect(service.updateUser(userDTO)).rejects.toThrow(expectedErrorMessage);
+    expect(service.getUserByID).toHaveBeenCalledTimes(1);
+    expect(service.getUserByID).toHaveBeenCalledWith(userDTO.ID);
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserEntity).toHaveBeenCalledWith(storedUser);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+
+    jest.spyOn(service, 'getUserByID').mockReset();
+    jest.spyOn(service, 'verifyUserEntity').mockReset();
+  });
+
+  it('Updating user with return value of null throws error', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1,
+      username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: 'active',
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    let userDTO: UserDTO = {ID: 1, username: null, status: 'active', role: {ID: 2, role: 'admin'}};
+
+    jest
+      .spyOn(service, 'getUserByID')
+      .mockImplementation((ID: number) => {return new Promise(resolve => {return resolve(storedUser);});});
+
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementation((user: UserEntity) => {});
+
+    jest
+      .spyOn(mockUserRepository, 'save')
+      .mockImplementation((user: UserEntity) => {return new Promise(resolve => {return resolve(null);});});
+
+    let expectedErrorMessage: string = 'Error updating user'
+
+    await expect(service.updateUser(userDTO)).rejects.toThrow(expectedErrorMessage);
+    expect(service.getUserByID).toHaveBeenCalledTimes(1);
+    expect(service.getUserByID).toHaveBeenCalledWith(userDTO.ID);
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserEntity).toHaveBeenCalledWith(storedUser);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledWith(storedUser);
+
+    jest.spyOn(service, 'getUserByID').mockReset();
+    jest.spyOn(service, 'verifyUserEntity').mockReset();
+    jest.spyOn(mockUserRepository, 'save').mockReset();
+  });
+
+  it('Error while updating user throws error', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1,
+      username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: 'active',
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    let userDTO: UserDTO = {ID: 1, username: null, status: 'active', role: {ID: 2, role: 'admin'}};
+
+    jest
+      .spyOn(service, 'getUserByID')
+      .mockImplementation((ID: number) => {return new Promise(resolve => {return resolve(storedUser);});});
+
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementation((user: UserEntity) => {});
+
+    jest
+      .spyOn(mockUserRepository, 'save')
+      .mockImplementation((user: UserEntity) => {return new Promise(resolve => {throw new Error()});});
+
+    let expectedErrorMessage: string = 'Internal server error'
+
+    await expect(service.updateUser(userDTO)).rejects.toThrow(expectedErrorMessage);
+    expect(service.getUserByID).toHaveBeenCalledTimes(1);
+    expect(service.getUserByID).toHaveBeenCalledWith(userDTO.ID);
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserEntity).toHaveBeenCalledWith(storedUser);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledWith(storedUser);
+
+    jest.spyOn(service, 'getUserByID').mockReset();
+    jest.spyOn(service, 'verifyUserEntity').mockReset();
+    jest.spyOn(mockUserRepository, 'save').mockReset();
+  });
+
+  it('Updating user with valid data resolves correctly', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1,
+      username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: 'active',
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    let expectedUser: UserEntity = {
+      ID: 1,
+      username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: 'active',
+      verificationCode: '2xY3b4',
+      role: {ID: 2, role: 'admin'}};
+
+
+    let userDTO: UserDTO = {ID: 1, username: 'peter@gmail.com', status: 'active', role: {ID: 2, role: 'admin'}};
+
+    jest
+      .spyOn(service, 'getUserByID')
+      .mockImplementation((ID: number) => {return new Promise(resolve => {return resolve(storedUser);});});
+
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementation((user: UserEntity) => {});
+
+    jest
+      .spyOn(mockUserRepository, 'save')
+      .mockImplementation((user: UserEntity) => {return new Promise(resolve => {return resolve(user);});});
+
+    await expect(service.updateUser(userDTO)).resolves;
+    expect(service.getUserByID).toHaveBeenCalledTimes(1);
+    expect(service.getUserByID).toHaveBeenCalledWith(userDTO.ID);
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserEntity).toHaveBeenCalledWith(storedUser);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledWith(storedUser);
+
+    expect(expectedUser).toStrictEqual(storedUser);
+
+    jest.spyOn(service, 'getUserByID').mockReset();
+    jest.spyOn(service, 'verifyUserEntity').mockReset();
+    jest.spyOn(mockUserRepository, 'save').mockReset();
+  });
+
+  //#endregion UpdateUser
+
+  //#region GenerateSalt
 
   it('Generate salt is called in authentication service', () => {
     service.generateSalt();
@@ -443,7 +831,7 @@ describe('UserService', () => {
 
  //#endregion
 
- //#region GenerateHash
+  //#region GenerateHash
 
  it('Generate hash is called in authenticationService', () => {
 
@@ -493,7 +881,7 @@ describe('UserService', () => {
 
  //#endregion
 
- //#region generateJWTToken
+  //#region generateJWTToken
 
  it('Generate JWT token AuthenticationService is called on valid user', () => {
 
@@ -518,7 +906,7 @@ describe('UserService', () => {
 
  //#endregion
 
- //#region GenerateNewVerificationToken
+  //#region GenerateNewVerificationToken
 
   it('Generation of new token with invalid user fails', async () => {
 
@@ -531,14 +919,14 @@ describe('UserService', () => {
       username: 'peter@gmail.com',
       password: 'somePassword',
       salt: 'someSalt',
+      status: 'active',
       verificationCode: 'verificationToken',
       role: {ID: 1, role: 'admin'},
     }
-    let userStatus: string = 'active';
 
     let expectedErrorMessage: string = 'This user has already been verified';
 
-    await expect(service.generateNewVerificationCode(user, userStatus)).rejects.toThrow(expectedErrorMessage);
+    await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
     expect(service.verifyUserEntity).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
@@ -558,14 +946,14 @@ describe('UserService', () => {
      username: '',
      password: 'somePassword',
      salt: 'someSalt',
+     status: 'pending',
      verificationCode: 'verificationToken',
      role: {ID: 1, role: 'admin'},
    }
-   let userStatus: string = 'pending';
 
    let expectedErrorMessage: string = 'User must have a valid username';
 
-   await expect(service.generateNewVerificationCode(user, userStatus)).rejects.toThrow(expectedErrorMessage);
+   await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
@@ -574,6 +962,39 @@ describe('UserService', () => {
 
    jest.spyOn(service, 'verifyUserEntity').mockReset();
  });
+
+  it('Generation of new token with error during save throws correct errorcode', async () => {
+
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementation((user: User) => {});
+
+    jest
+      .spyOn(mockUserRepository, 'save')
+      .mockImplementation((user: User) => {throw new Error()});
+
+    let user: User = {
+      ID: 0,
+      username: 'Username@gmail.com',
+      password: 'somePassword',
+      salt: 'someSalt',
+      status: 'pending',
+      role: {ID: 1, role: 'admin'},
+    }
+
+    let expectedErrorMessage: string = 'Internal server error';
+
+    await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(service, 'verifyUserEntity').mockReset();
+    jest.spyOn(mockUserRepository, 'save').mockReset();
+  });
 
  it('Generation of new token with valid data is successful', async () => {
 
@@ -586,13 +1007,13 @@ describe('UserService', () => {
      username: 'Username@gmail.com',
      password: 'somePassword',
      salt: 'someSalt',
+     status: 'pending',
      role: {ID: 1, role: 'admin'},
    }
-   let userStatus: string = 'pending';
 
    let verificationToken: string;
 
-   await expect(verificationToken = await service.generateNewVerificationCode(user, userStatus)).resolves;
+   await expect(verificationToken = await service.generateNewVerificationCode(user)).resolves;
    expect(verificationToken).toBeDefined();
    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
@@ -606,7 +1027,7 @@ describe('UserService', () => {
 
  //#endregion
 
- //#region Login
+  //#region Login
 
  it('Login with username of null results in error', async () => {
 
@@ -660,36 +1081,28 @@ describe('UserService', () => {
      verificationCode: '2xY3b4',
      role: {ID: 1, role: 'user'}};
 
-   let expectedUser: User = {
-     ID: 1,
-     username: 'Username@gmail.com',
-     password: 'Password',
-     salt: 'someSalt',
-     role: {ID: 1, role: 'user'}};
-
    jest
      .spyOn(service, 'getUserByUsername')
-     .mockImplementation((username: string) => {return new Promise(resolve => {resolve([expectedUser, storedUser.status]);});});
+     .mockImplementation((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
 
    let username: string = 'Username@gmail.com';
    let password: string = 'Password';
    let foundUser, status
 
-   await expect([foundUser, status] = await service.login(username, password)).resolves;
-   expect(foundUser).toStrictEqual(expectedUser);
-   expect(status).toBe(storedUser.status);
+   await expect(foundUser = await service.login(username, password)).resolves;
+   expect(foundUser).toStrictEqual(storedUser);
 
    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
    expect(service.getUserByUsername).toHaveBeenCalledWith(username);
    expect(authenticationMock.validateLogin).toHaveBeenCalledTimes(1);
-   expect(authenticationMock.validateLogin).toHaveBeenCalledWith(expectedUser, password);
+   expect(authenticationMock.validateLogin).toHaveBeenCalledWith(storedUser, password);
 
    jest.spyOn(service, 'getUserByUsername').mockReset();
  });
 
 //#endregion
 
- //#region VerifyJWTToken
+  //#region VerifyJWTToken
 
  it('Validate token with undefined, null or empty token results in error', () => {
    let token: string = '';
@@ -721,7 +1134,7 @@ describe('UserService', () => {
 
  //#endregion
 
- //#region verifyUser
+  //#region verifyUser
 
  describe('Error handling with invalid users', () => {
    let user: User;
@@ -779,16 +1192,15 @@ describe('UserService', () => {
 
     jest
       .spyOn(service, 'getUserByUsername')
-      .mockImplementation((username: string) => {return new Promise(resolve => {resolve([user, userStatus]);});});
+      .mockImplementation((username: string) => {return new Promise(resolve => {resolve(user);});});
 
     let user: User = {
       ID: 1,
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      status: 'active',
       role: {ID: 1, role: 'user'}};
-
-    let userStatus: string = 'active';
 
     let passwordResetString: string;
 
@@ -810,7 +1222,7 @@ describe('UserService', () => {
 
     jest
       .spyOn(service, 'getUserByUsername')
-      .mockImplementation((username: string) => {return new Promise(resolve => {resolve([user, userStatus]);});});
+      .mockImplementation((username: string) => {return new Promise(resolve => {resolve(user);});});
 
     jest
       .spyOn(mockPasswordTokenRepository, 'save')
@@ -821,9 +1233,9 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      status: 'active',
       role: {ID: 1, role: 'user'}};
 
-    let userStatus: string = 'active';
     let errorStringToExcept: string = 'Internal server error. Please try again later.';
 
     await expect(service.generatePasswordResetToken(user.username)).rejects.toThrow(errorStringToExcept);
@@ -971,17 +1383,17 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      status: 'active',
       role: {ID: 1, role: 'user'}};
 
     let passwordToken: string = 'somePasswordToken';
     let password: string = 'password';
 
-    let userStatus: string = 'active';
-    let errorStringToExcept: string = 'Internal server error. Please try again later.';
+    let errorStringToExcept: string = 'Internal server error';
 
     jest
       .spyOn(service, 'getUserByUsername')
-      .mockImplementation((username: string) => {return new Promise(resolve => {resolve([user, userStatus]);});});
+      .mockImplementation((username: string) => {return new Promise(resolve => {resolve(user);});});
 
     jest
       .spyOn(service, 'verifyPasswordToken')
@@ -989,7 +1401,7 @@ describe('UserService', () => {
 
     jest
       .spyOn(mockUserRepository, 'save')
-      .mockImplementation(() => {return new Promise(resolve => {resolve(null)})});
+      .mockImplementation(() => {return new Promise(resolve => {throw new Error()})});
 
     await expect(service.updatePassword(user.username, passwordToken, password)).rejects.toThrow(errorStringToExcept);
     expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
@@ -1015,16 +1427,15 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      status: 'active',
       role: {ID: 1, role: 'user'}};
 
     let passwordToken: string = 'somePasswordToken';
     let password: string = 'password';
 
-    let userStatus: string = 'active';
-
     jest
       .spyOn(service, 'getUserByUsername')
-      .mockImplementation((username: string) => {return new Promise(resolve => {resolve([user, userStatus]);});});
+      .mockImplementation((username: string) => {return new Promise(resolve => {resolve(user);});});
 
     jest
       .spyOn(service, 'verifyPasswordToken')
@@ -1051,27 +1462,6 @@ describe('UserService', () => {
   });
 
   //#endregion
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 });
 
