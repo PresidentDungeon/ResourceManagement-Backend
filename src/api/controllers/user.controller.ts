@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Query, UseGuards } from "@nestjs/common";
 import { IUserService, IUserServiceProvider } from "../../core/primary-ports/user.service.interface";
 import { User } from "../../core/models/user";
 import { Role } from "../../core/models/role";
@@ -9,6 +9,10 @@ import { LoginResponseDTO } from "../dtos/login.response.dto";
 import { VerificationDTO } from "../dtos/verification.dto";
 import { VerificationRequestDTO } from "../dtos/verification.request.dto";
 import { PasswordChangeRequestDTO } from "../dtos/password.change.request.dto";
+import { Filter } from "../../core/models/filter";
+import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
+import { Roles } from "../../auth/roles.decorator";
+import { UserDTO } from "../dtos/user.dto";
 
 @Controller('user')
 export class UserController {
@@ -37,8 +41,8 @@ export class UserController {
   async resendVerificationMail(@Query() verificationRequestDTO: VerificationRequestDTO){
 
     try{
-      let [foundUser, status] = await this.userService.getUserByUsername(verificationRequestDTO.email);
-      let verificationCode = await this.userService.generateNewVerificationCode(foundUser, status);
+      let foundUser = await this.userService.getUserByUsername(verificationRequestDTO.email);
+      let verificationCode = await this.userService.generateNewVerificationCode(foundUser);
       this.mailService.sendUserConfirmation(foundUser.username, verificationCode);
     }
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
@@ -48,11 +52,11 @@ export class UserController {
   @Post('login')
   async login(@Body() loginDto: LoginDTO){
 
-    let foundUser, status, tokenString;
+    let foundUser, tokenString;
 
     try
     {
-      [foundUser, status] = await this.userService.login(loginDto.username, loginDto.password);
+      foundUser = await this.userService.login(loginDto.username, loginDto.password);
       tokenString = this.userService.generateJWTToken(foundUser);
     }
     catch (e)
@@ -60,7 +64,7 @@ export class UserController {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
 
-    if(status == 'pending')
+    if(foundUser.status == 'pending')
     {
       throw new HttpException('Email has not been confirmed for this user. Please confirm this account before logging in.', 423)
     }
@@ -91,19 +95,17 @@ export class UserController {
     catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
-
   }
 
   @Post('verifyPasswordToken')
   async verifyPasswordToken(@Body() verificationDTO: VerificationDTO){
     try {
-      let [foundUser] = await this.userService.getUserByUsername(verificationDTO.username);
+      let foundUser = await this.userService.getUserByUsername(verificationDTO.username);
       await this.userService.verifyPasswordToken(foundUser, verificationDTO.verificationCode);
     }
     catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
-
   }
 
   @Post('requestPasswordChange')
@@ -113,6 +115,30 @@ export class UserController {
       this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
     }
     catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Get('getUsers')
+  async getAllUsers(@Query() filter: Filter){
+    try{
+      return await this.userService.getUsers(filter);
+    }
+    catch(e){
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Post('updateUser')
+  async updateUser(@Body() userDTO: UserDTO){
+    try{
+      return await this.userService.updateUser(userDTO);
+    }
+    catch(e){
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }
