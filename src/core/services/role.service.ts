@@ -22,4 +22,10 @@ export class RoleService implements IRoleService {
     if(foundRole == null || foundRole == undefined){throw 'The specified role could not be found'}
     return foundRole;
   }
+
+  async getRoles(): Promise<Role[]> {
+    let qb = this.roleRepository.createQueryBuilder("role");
+    const roles: Role[] = await qb.getMany();
+    return roles;
+  }
 }

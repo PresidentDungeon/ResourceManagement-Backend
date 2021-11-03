@@ -37,7 +37,7 @@ export class UserService implements IUserService{
     return {ID: 0, username: username, password: hashedPassword, salt: salt, role: null};
   }
 
-  async addUser(user: User): Promise<string> {
+  async addUser(user: User): Promise<[User, string]> {
 
     this.verifyUserEntity(user);
     const existingUsers = await this.userRepository.count({where: `"username" ILIKE '${user.username}'`});
@@ -53,9 +53,12 @@ export class UserService implements IUserService{
     user.verificationCode = hashedVerificationCode;
     const newUser = await this.userRepository.create(user);
 
-    try{await this.userRepository.save(newUser);}
+    try{
+      const savedUser = await this.userRepository.save(newUser);;
+      return [savedUser, verificationCode];
+    }
     catch (e) {throw new Error('Internal server error')}
-    return verificationCode;
+
   }
 
   async getUserByUsername(username: string): Promise<User>{
@@ -107,7 +110,7 @@ export class UserService implements IUserService{
       throw new Error('Invalid items pr. page entered');
     }
 
-    if(filter.currentPage == null || filter.currentPage == undefined || filter.currentPage <= 0){
+    if(filter.currentPage == null || filter.currentPage == undefined || filter.currentPage < 0){
       throw new Error('Invalid current page entered');
     }
 
@@ -124,7 +127,24 @@ export class UserService implements IUserService{
       qb.andWhere(`status = :status`, { status: `${filter.status}` });
     }
 
-    qb.offset((filter.currentPage - 1) * filter.itemsPrPage);
+    if(filter.roleID != null && filter.roleID > 0)
+    {
+      qb.andWhere(`role.ID = :roleID`, { roleID: `${filter.roleID}` });
+    }
+
+    if(filter.sorting != null && filter.sorting === 'ASC' || filter.sorting != null && filter.sorting === 'DESC')
+    {
+      if(filter.sortingType != null && filter.sortingType === 'ALF')
+      {
+        qb.orderBy('user.username', filter.sorting);
+      }
+      if(filter.sortingType != null && filter.sortingType === 'ADDED')
+      {
+        qb.orderBy('user.ID', filter.sorting);
+      }
+    }
+
+    qb.offset((filter.currentPage) * filter.itemsPrPage);
     qb.limit(filter.itemsPrPage);
 
     const result = await qb.getMany();
@@ -166,7 +186,7 @@ export class UserService implements IUserService{
       .execute();
   }
 
-  async updateUser(userDTO: UserDTO): Promise<UserDTO>{
+  async updateUser(userDTO: UserDTO): Promise<User>{
 
     const foundUser = await this.getUserByID(userDTO.ID);
     foundUser.ID = userDTO.ID;
@@ -182,7 +202,7 @@ export class UserService implements IUserService{
     catch (e) {throw new Error('Internal server error')}
 
     if(updatedUser == null || updatedUser == undefined){throw new Error('Error updating user')}
-    return userDTO;
+    return updatedUser;
   }
 
   generateSalt(): string {

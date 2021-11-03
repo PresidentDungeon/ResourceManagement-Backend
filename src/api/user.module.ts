@@ -8,9 +8,10 @@ import { UserEntity } from "../infrastructure/data-source/postgres/entities/user
 import { RoleModule } from './role.module';
 import { MailModule } from "../infrastructure/mail/mail.module";
 import { PasswordTokenEntity } from "../infrastructure/data-source/postgres/entities/password-token.entity";
+import { SocketModule } from "./socket.module";
 
 @Module({
-  imports: [AuthModule, RoleModule, MailModule, TypeOrmModule.forFeature([UserEntity, PasswordTokenEntity])],
+  imports: [TypeOrmModule.forFeature([UserEntity, PasswordTokenEntity]), AuthModule, RoleModule, MailModule, SocketModule],
   providers: [{provide: IUserServiceProvider, useClass: UserService}],
   controllers: [UserController],
   exports: [IUserServiceProvider]
