@@ -15,8 +15,16 @@ describe('RoleService', () => {
       provide: getRepositoryToken(RoleEntity),
       useFactory: () => ({
         findOne: jest.fn(() => {let roleEntity: RoleEntity = {ID: 1, role: 'Admin'}; return new Promise(resolve => {resolve(roleEntity);});}),
+        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
       })
     }
+
+    const createQueryBuilder: any = {
+      leftJoinAndSelect: () => createQueryBuilder,
+      andWhere: () => createQueryBuilder,
+      getOne: jest.fn(() => {}),
+      getMany: jest.fn(() => {}),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [RoleService, MockProvider],
@@ -68,6 +76,28 @@ describe('RoleService', () => {
 
     await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+  });
+
+  //#endregion
+
+  //#region GetRoles
+
+  it('Calling getRoles returns all stored roles', async () => {
+
+    const roles: Role[] = [
+      {ID: 1, role: 'user'},
+      {ID: 2, role: 'admin'},
+    ]
+
+    jest
+      .spyOn(mockRepository.createQueryBuilder(), 'getMany')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(roles);});});
+
+    let foundRoles: Role[];
+
+    await expect(foundRoles = await service.getRoles()).resolves;
+    expect(mockRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(foundRoles).toBe(roles);
   });
 
   //#endregion

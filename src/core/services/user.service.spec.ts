@@ -195,10 +195,10 @@ describe('UserService', () => {
      role: null
    }
 
+   let savedUser: User;
    let verificationCode: string;
 
-   await expect(verificationCode = await service.addUser(user)).resolves;
-
+   await expect([savedUser, verificationCode] = await service.addUser(user)).resolves;
    expect(verificationCode).toBeDefined();
    expect(mockUserRepository.count).toHaveBeenCalledTimes(1);
    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
@@ -334,7 +334,7 @@ describe('UserService', () => {
       { filter: filter = {itemsPrPage: Number.MIN_SAFE_INTEGER, currentPage: 1}, expectedError: 'Invalid items pr. page entered'},
       { filter: filter = {itemsPrPage: 1, currentPage: null}, expectedError: 'Invalid current page entered'},
       { filter: filter = {itemsPrPage: 1, currentPage: undefined}, expectedError: 'Invalid current page entered'},
-      { filter: filter = {itemsPrPage: 1, currentPage: 0}, expectedError: 'Invalid current page entered'},
+      { filter: filter = {itemsPrPage: 1, currentPage: -1}, expectedError: 'Invalid current page entered'},
       { filter: filter = {itemsPrPage: 1, currentPage: Number.MIN_SAFE_INTEGER}, expectedError: 'Invalid current page entered'},
     ];
 
@@ -400,7 +400,7 @@ describe('UserService', () => {
       {ID: 3, username: 'Lars@gmail.com', status: 'pending', role: {ID: 2, role: 'admin'}},
     ]
 
-    let filter: Filter = {currentPage: 3, itemsPrPage: 1};
+    let filter: Filter = {currentPage: 2, itemsPrPage: 1};
     let offsetValue: number;
     let limitValue: number;
 
@@ -451,7 +451,7 @@ describe('UserService', () => {
       {ID: 2, username: 'Hans@gmail.com', status: 'pending', role: {ID: 1, role: 'user'}},
     ]
 
-    let filter: Filter = {currentPage: 1, itemsPrPage: 2};
+    let filter: Filter = {currentPage: 0, itemsPrPage: 2};
     let offsetValue: number;
     let limitValue: number;
 

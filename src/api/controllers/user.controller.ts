@@ -13,12 +13,13 @@ import { Filter } from "../../core/models/filter";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 import { Roles } from "../../auth/roles.decorator";
 import { UserDTO } from "../dtos/user.dto";
+import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/socket.service.interface";
 
 @Controller('user')
 export class UserController {
 
   constructor(@Inject(IUserServiceProvider) private userService: IUserService, @Inject(IRoleServiceProvider) private roleService: IRoleService,
-              @Inject (IMailServiceProvider) private mailService: IMailService) {}
+              @Inject (IMailServiceProvider) private mailService: IMailService, @Inject(ISocketServiceProvider) private socketService: ISocketService) {}
 
   @Post('register')
   async register(@Body() loginDto: LoginDTO){
@@ -28,8 +29,8 @@ export class UserController {
       let foundRole: Role = await this.roleService.findRoleByName('user');
       createdUser.role = foundRole;
 
-      let verificationToken: string = await this.userService.addUser(createdUser);
-      this.mailService.sendUserConfirmation(loginDto.username, verificationToken);
+      let [savedUser, verificationCode] = await this.userService.addUser(createdUser);
+      this.mailService.sendUserConfirmation(savedUser.username, verificationCode);
     }
     catch (e)
     {
@@ -136,7 +137,8 @@ export class UserController {
   @Post('updateUser')
   async updateUser(@Body() userDTO: UserDTO){
     try{
-      return await this.userService.updateUser(userDTO);
+      const updatedUser = await this.userService.updateUser(userDTO);
+      return userDTO;
     }
     catch(e){
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);

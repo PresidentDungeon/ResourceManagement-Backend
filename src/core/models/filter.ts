@@ -4,6 +4,7 @@ export interface Filter{
 
   name?: string
   status?: string
+  roleID?: number
   sortingType?: string
   sorting?: string
 }

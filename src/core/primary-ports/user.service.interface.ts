@@ -7,11 +7,11 @@ export const IUserServiceProvider = 'IUserServiceProvider'
 export interface IUserService{
 
   createUser(username: string, password: string): User
-  addUser(user: User): Promise<string>
+  addUser(user: User): Promise<[User, string]>
   verifyUser(username: string, verificationCode: string)
   getUserByUsername(username: string): Promise<User>
   getUsers(filter: Filter): Promise<FilterList<UserDTO>>
-  updateUser(userDTO: UserDTO): Promise<UserDTO>
+  updateUser(userDTO: UserDTO): Promise<User>
 
   generateSalt(): string
   generateHash(password: string, salt: string): string

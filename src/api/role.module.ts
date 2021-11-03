@@ -3,14 +3,14 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { RoleEntity } from "../infrastructure/data-source/postgres/entities/role.entity";
 import { IRoleServiceProvider } from "../core/primary-ports/role.service.interface";
 import { RoleService } from "../core/services/role.service";
-import { AuthModule } from "../auth/auth.module";
-import { MailModule } from '../infrastructure/mail/mail.module';
-import { PasswordTokenEntity } from "../infrastructure/data-source/postgres/entities/password-token.entity";
+import { RoleController } from "./controllers/role.controller";
+import { ManagementGateway } from './gateways/management.gateway';
+import { SocketModule } from './socket.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([RoleEntity])],
-  providers: [{provide: IRoleServiceProvider, useClass: RoleService}],
-  controllers: [],
+  imports: [TypeOrmModule.forFeature([RoleEntity]), SocketModule],
+  providers: [{provide: IRoleServiceProvider, useClass: RoleService}, ManagementGateway],
+  controllers: [RoleController],
   exports: [IRoleServiceProvider]
 })
 
