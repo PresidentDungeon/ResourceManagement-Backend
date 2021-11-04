@@ -117,6 +117,7 @@ describe('AuthenticationService', () => {
        password: generatedHash,
        salt: generatedSalt,
        role: {ID: 1, role: 'admin'},
+       status: {ID: 1, status: 'active'},
        username: 'Hans'
      }
 
@@ -138,6 +139,7 @@ describe('AuthenticationService', () => {
        password: generatedHash,
        salt: generatedSalt,
        role: {ID: 1, role: 'admin'},
+       status: {ID: 1, status: 'active'},
        username: 'Hans'
      }
 
@@ -156,6 +158,7 @@ describe('AuthenticationService', () => {
        password: 'someHash',
        salt: 'someSalt',
        role: {ID: 1, role: 'admin'},
+       status: {ID: 1, status: 'active'},
        username: 'Hans'
      }
 
