@@ -1,8 +1,9 @@
 import { Role } from "../../core/models/role";
+import { Status } from "../../core/models/status";
 
 export interface UserDTO {
   ID: number
   username: string
-  status: string
+  status: Status
   role: Role
 }

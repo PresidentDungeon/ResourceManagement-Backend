@@ -1,11 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { RoleEntity } from "./role.entity";
 import { PasswordTokenEntity } from "./password-token.entity";
-
-  export enum UserStatus {
-    PENDING = "pending",
-    ACTIVE = "active"
-  }
+import { StatusEntity } from "./status.entity";
 
 @Entity()
 export class UserEntity {
@@ -22,15 +18,12 @@ export class UserEntity {
   @Column()
   public salt: string;
 
-  @Column({
-    type: "enum",
-    enum: UserStatus,
-    default: UserStatus.PENDING
-  })
-  public status: string;
-
   @Column()
   public verificationCode: string;
+
+  @Index()
+  @ManyToOne(() => StatusEntity, (statusEntity: StatusEntity) => statusEntity.users)
+  public status: StatusEntity;
 
   @Index()
   @ManyToOne(() => RoleEntity, (roleEntity: RoleEntity) => roleEntity.users)
