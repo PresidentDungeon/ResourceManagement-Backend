@@ -251,7 +251,6 @@ export class UserService implements IUserService{
     return verificationCode;
   }
 
-  //Status error is thrown if user is disabled
   async login(username: string, password: string): Promise<User> {
 
     if(username == null || password == null){
@@ -264,7 +263,6 @@ export class UserService implements IUserService{
     if(foundUser.status.status.toLowerCase() == 'disabled'){
       throw new Error('This user has been disabled');
     }
-
 
     return foundUser;
   }

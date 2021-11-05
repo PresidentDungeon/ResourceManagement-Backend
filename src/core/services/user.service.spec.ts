@@ -92,7 +92,7 @@ describe('UserService', () => {
       provide: IRoleServiceProvider,
       useFactory: () => ({
         findRoleByName: jest.fn((name: string) => {let roleEntity: RoleEntity = {ID: 1, role: name}; return roleEntity;}),
-        getRoles: jest.fn(() => {let roleEntity: RoleEntity = {ID: 1, role: 'user'}; return new Promise(resolve => {resolve([roleEntity]);});}),
+        getRoles: jest.fn(() => {let roleEntities: RoleEntity[] = [{ID: 1, role: 'user'}, {ID: 2, role: 'admin'},]; return new Promise(resolve => {resolve(roleEntities);});}),
       })
     }
 
@@ -100,7 +100,7 @@ describe('UserService', () => {
       provide: IStatusServiceProvider,
       useFactory: () => ({
         findStatusByName: jest.fn((name: string) => {let statusEntity: StatusEntity = {ID: 1, status: name}; return statusEntity;}),
-        getStatuses: jest.fn(() => {let statusEntity: StatusEntity = {ID: 1, status: 'pending'}; return new Promise(resolve => {resolve([statusEntity]);});}),
+        getStatuses: jest.fn(() => {let statusEntities: StatusEntity[] = [{ID: 1, status: 'pending'}, {ID: 2, status: 'active'}]; return new Promise(resolve => {resolve(statusEntities);});}),
       })
     }
 
