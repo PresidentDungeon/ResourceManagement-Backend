@@ -23,7 +23,6 @@ export class ManagementGateway implements OnGatewayInit, OnGatewayConnection{
   }
 
   handleConnection(client: Socket, ...args: any[]): any {
-    console.log('Ello');
   }
 
   handleDisconnect(client: Socket): any {

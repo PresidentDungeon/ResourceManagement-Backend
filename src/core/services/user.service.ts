@@ -1,15 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from "@nestjs/common";
 import { IUserService } from "../primary-ports/user.service.interface";
 import { User } from "../models/user";
 import { AuthenticationHelper } from "../../auth/authentication.helper";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserEntity, UserStatus } from "../../infrastructure/data-source/postgres/entities/user.entity";
+import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { Repository } from "typeorm";
 import { PasswordTokenEntity } from "../../infrastructure/data-source/postgres/entities/password-token.entity";
 import { PasswordToken } from "../models/password.token";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { UserDTO } from "../../api/dtos/user.dto";
+import { IRoleService, IRoleServiceProvider } from "../primary-ports/role.service.interface";
+import { IStatusService, IStatusServiceProvider } from "../primary-ports/status.service.interface";
+import { Role } from "../models/role";
+import { Status } from "../models/status";
 
 @Injectable()
 export class UserService implements IUserService{
@@ -19,10 +23,15 @@ export class UserService implements IUserService{
   passwordResetStringCount: number = 16;
   verificationTokenCount: number = 6;
 
-  constructor(private authenticationHelper: AuthenticationHelper, @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
-              @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>) {}
+  constructor(
+    private authenticationHelper: AuthenticationHelper,
+    @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
+    @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
+    @Inject(IRoleServiceProvider) private roleService: IRoleService,
+    @Inject(IStatusServiceProvider) private statusService: IStatusService
+  ) {}
 
-  createUser(username: string, password: string): User {
+  async createUser(username: string, password: string): Promise<User> {
 
     if(username == null || !this.emailRegex.test(username)){
       throw new Error('Username must be a valid email');
@@ -31,10 +40,13 @@ export class UserService implements IUserService{
       throw new Error('Password must be minimum 8 characters long');
     }
 
+    let userRole: Role = await this.roleService.findRoleByName('user');
+    let userStatus: Status = await this.statusService.findStatusByName('pending');
+
     let salt: string = this.generateSalt();
     let hashedPassword: string = this.generateHash(password, salt);
 
-    return {ID: 0, username: username, password: hashedPassword, salt: salt, role: null};
+    return {ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus};
   }
 
   async addUser(user: User): Promise<[User, string]> {
@@ -69,6 +81,7 @@ export class UserService implements IUserService{
 
     let qb = this.userRepository.createQueryBuilder("user");
     qb.leftJoinAndSelect('user.role', 'role');
+    qb.leftJoinAndSelect('user.status', 'status');
     qb.andWhere(`user.username = :Username`, { Username: `${username}`});
     const foundUser: UserEntity = await qb.getOne();
 
@@ -89,6 +102,7 @@ export class UserService implements IUserService{
 
     let qb = this.userRepository.createQueryBuilder("user");
     qb.leftJoinAndSelect('user.role', 'role');
+    qb.leftJoinAndSelect('user.status', 'status');
     qb.andWhere(`user.ID = :userID`, { userID: `${ID}`});
     const foundUser: UserEntity = await qb.getOne();
 
@@ -116,15 +130,16 @@ export class UserService implements IUserService{
 
     let qb = this.userRepository.createQueryBuilder("user");
     qb.leftJoinAndSelect('user.role', 'role');
+    qb.leftJoinAndSelect('user.status', 'status');
 
     if(filter.name != null && filter.name !== '')
     {
       qb.andWhere(`username ILIKE :name`, { name: `%${filter.name}%` });
     }
 
-    if(filter.status != null && filter.status !== '')
+    if(filter.statusID != null && filter.statusID > 0)
     {
-      qb.andWhere(`status = :status`, { status: `${filter.status}` });
+      qb.andWhere(`status.ID = :statusID`, { statusID: `${filter.statusID}` });
     }
 
     if(filter.roleID != null && filter.roleID > 0)
@@ -166,6 +181,7 @@ export class UserService implements IUserService{
     const hashedVerificationCode = this.generateHash(verificationCode, foundUser.salt);
 
     let qb = this.userRepository.createQueryBuilder("user");
+    qb.leftJoinAndSelect('user.status', 'status');
     qb.andWhere(`user.username = :username`, { username: `${username}`});
     qb.andWhere(`user.verificationCode = :verificationCode`, { verificationCode: `${hashedVerificationCode}`});
     foundUser = await qb.getOne();
@@ -174,16 +190,15 @@ export class UserService implements IUserService{
     {
       throw new Error('Wrong verification code entered');
     }
-    if(foundUser.status != UserStatus.PENDING)
+    if(foundUser.status.status.toLowerCase() != 'pending')
     {
       throw new Error('This user has already been verified');
     }
 
-    qb = this.userRepository.createQueryBuilder("user");
-    await qb.update()
-      .set({status: 'active'})
-      .where("ID = :ID", {ID: foundUser.ID})
-      .execute();
+    const activeStatus: Status = await this.statusService.findStatusByName('active');
+    foundUser.status = activeStatus;
+
+    await this.userRepository.save(foundUser);
   }
 
   async updateUser(userDTO: UserDTO): Promise<User>{
@@ -223,7 +238,7 @@ export class UserService implements IUserService{
 
   async generateNewVerificationCode(user: User): Promise<string>{
 
-    if(user.status != UserStatus.PENDING){
+    if(user.status.status.toLowerCase() != 'pending'){
       throw new Error('This user has already been verified');
     }
 
@@ -243,8 +258,12 @@ export class UserService implements IUserService{
     }
 
     let foundUser = await this.getUserByUsername(username);
-
     this.authenticationHelper.validateLogin(foundUser, password);
+
+    if(foundUser.status.status.toLowerCase() == 'disabled'){
+      throw new Error('This user has been disabled');
+    }
+
     return foundUser;
   }
 
@@ -256,9 +275,11 @@ export class UserService implements IUserService{
   verifyUserEntity(user: User) {
     if(user == undefined || user == null) {throw new Error('User must be instantiated');}
     if(user.ID == undefined || user.ID == null || user.ID < 0){throw new Error('User must have a valid ID')}
-    if(user.username == undefined || user.username == null || user.username.length <= 0){throw new Error('User must have a valid Username');}
+    if(user.username == undefined || user.username == null || !this.emailRegex.test(user.username)){throw new Error('User must have a valid Username');}
     if(user.password == undefined || user.password == null || user.password.length <= 0){throw new Error('User must have a valid Password');}
     if(user.salt == undefined || user.salt == null || user.salt.length <= 0){throw new Error('An error occurred with Salt');}
+    if(user.role == undefined || user.role == null || user.role.ID <= 0){throw new Error('An error occurred with user role');}
+    if(user.status == undefined || user.status == null || user.status.ID <= 0){throw new Error('An error occurred with user status');}
   }
 
   async generatePasswordResetToken(username: string): Promise<string>{
@@ -317,12 +338,20 @@ export class UserService implements IUserService{
     foundUser.salt = this.authenticationHelper.generateToken(this.saltLength);
     foundUser.password = this.authenticationHelper.generateHash(password, foundUser.salt);
 
-    let updatedUser: UserEntity;
-
     try{await this.userRepository.save(foundUser);}
     catch (e) {throw new Error('Internal server error')}
 
     return true;
+  }
+
+  //Missing test
+  async getAllUserRoles(): Promise<Role[]>{
+    return await this.roleService.getRoles();
+  }
+
+  //Missing test
+  async getAllStatuses(): Promise<Status[]>{
+    return await this.statusService.getStatuses();
   }
 
 }

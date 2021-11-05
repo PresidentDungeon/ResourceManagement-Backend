@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { IUserService, IUserServiceProvider } from "../../core/primary-ports/user.service.interface";
 import { User } from "../../core/models/user";
 import { Role } from "../../core/models/role";
@@ -18,17 +18,15 @@ import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports
 @Controller('user')
 export class UserController {
 
-  constructor(@Inject(IUserServiceProvider) private userService: IUserService, @Inject(IRoleServiceProvider) private roleService: IRoleService,
-              @Inject (IMailServiceProvider) private mailService: IMailService, @Inject(ISocketServiceProvider) private socketService: ISocketService) {}
+  constructor(@Inject(IUserServiceProvider) private userService: IUserService,
+              @Inject(IMailServiceProvider) private mailService: IMailService,
+              @Inject(ISocketServiceProvider) private socketService: ISocketService) {}
 
   @Post('register')
   async register(@Body() loginDto: LoginDTO){
     try
     {
-      let createdUser: User = this.userService.createUser(loginDto.username, loginDto.password);
-      let foundRole: Role = await this.roleService.findRoleByName('user');
-      createdUser.role = foundRole;
-
+      let createdUser: User = await this.userService.createUser(loginDto.username, loginDto.password);
       let [savedUser, verificationCode] = await this.userService.addUser(createdUser);
       this.mailService.sendUserConfirmation(savedUser.username, verificationCode);
     }
@@ -65,7 +63,7 @@ export class UserController {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
 
-    if(foundUser.status == 'pending')
+    if(foundUser.status.status.toLowerCase() == 'pending')
     {
       throw new HttpException('Email has not been confirmed for this user. Please confirm this account before logging in.', 423)
     }
@@ -134,7 +132,7 @@ export class UserController {
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
-  @Post('updateUser')
+  @Put('updateUser')
   async updateUser(@Body() userDTO: UserDTO){
     try{
       const updatedUser = await this.userService.updateUser(userDTO);
@@ -142,6 +140,30 @@ export class UserController {
     }
     catch(e){
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Get('getUserRoles')
+  async getAllRoles(){
+    try {
+      return await this.userService.getAllUserRoles();
+    }
+    catch(e){
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Get('getUserStatuses')
+  async getAllStatuses(){
+    try {
+      return await this.userService.getAllStatuses();
+    }
+    catch(e){
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

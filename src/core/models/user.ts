@@ -1,4 +1,5 @@
 import { Role } from "./role";
+import { Status } from "./status";
 
 export interface User {
   ID: number
@@ -6,6 +7,6 @@ export interface User {
   password: string
   salt: string
   role: Role
-  status?: string
+  status: Status
   verificationCode?: string
 }

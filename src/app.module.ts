@@ -1,14 +1,13 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './api/user.module';
-import { RoleModule } from "./api/role.module";
 import { MailModule } from "./infrastructure/mail/mail.module";
 import { DatabaseModule } from './infrastructure/data-source/postgres/database.module';
 import { ConfigModule } from "@nestjs/config";
 import { SocketModule } from "./api/socket.module";
 
 import { UserController } from './api/controllers/user.controller';
-import { RoleController } from './api/controllers/role.controller';
+import { StatusService } from './core/services/status.service';
 import * as Joi from '@hapi/joi';
 
 @Module({
@@ -26,8 +25,8 @@ import * as Joi from '@hapi/joi';
       EMAIL_USER: Joi.string().required(),
       EMAIL_PASS: Joi.string().required()
     })
-  }), DatabaseModule, AuthModule, RoleModule, MailModule, SocketModule],
-  controllers: [UserController, RoleController],
+  }), DatabaseModule, AuthModule, MailModule, SocketModule],
+  controllers: [],
   providers: [],
   exports: []
 })
