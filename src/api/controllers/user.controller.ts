@@ -1,8 +1,6 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { IUserService, IUserServiceProvider } from "../../core/primary-ports/user.service.interface";
 import { User } from "../../core/models/user";
-import { Role } from "../../core/models/role";
-import { IRoleService, IRoleServiceProvider } from "../../core/primary-ports/role.service.interface";
 import { IMailService, IMailServiceProvider } from "../../core/primary-ports/mail.service.interface";
 import { LoginDTO } from "../dtos/login.dto";
 import { LoginResponseDTO } from "../dtos/login.response.dto";
@@ -14,6 +12,7 @@ import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 import { Roles } from "../../auth/roles.decorator";
 import { UserDTO } from "../dtos/user.dto";
 import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/socket.service.interface";
+import { UserPasswordUpdateDTO } from "../dtos/user.password.update.dto";
 
 @Controller('user')
 export class UserController {
@@ -110,7 +109,7 @@ export class UserController {
   @Post('requestPasswordChange')
   async requestPasswordChange(@Body() passwordChangeRequestDTO: PasswordChangeRequestDTO){
     try {
-      await this.userService.updatePassword(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
+      await this.userService.updatePasswordWithToken(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
       this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
     }
     catch (e) {
@@ -135,12 +134,21 @@ export class UserController {
   @Put('updateUser')
   async updateUser(@Body() userDTO: UserDTO){
     try{
-      const updatedUser = await this.userService.updateUser(userDTO);
+      await this.userService.updateUser(userDTO);
       return userDTO;
     }
     catch(e){
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('updatePassword')
+  async updatePassword(@Body() userPasswordUpdateDTO: UserPasswordUpdateDTO){
+    try {
+      await this.userService.updatePasswordWithID(userPasswordUpdateDTO.userID, userPasswordUpdateDTO.password, userPasswordUpdateDTO.oldPassword);
+    }
+    catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
   }
 
   @Roles('Admin')

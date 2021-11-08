@@ -45,8 +45,6 @@ describe('AuthenticationService', () => {
   });
   //#endregion
 
-
-
   //#region GenerateRandomString
 
   describe('Generated token throws error on invalid token length', () => {
@@ -147,6 +145,7 @@ describe('AuthenticationService', () => {
 
      expect(() => { service.validateLogin(user, 'someDifferentPassword')}).toThrow(errorStringToExcept);
    });
+
    //#endregion
 
    //#region GenerateJWTToken
@@ -189,6 +188,7 @@ describe('AuthenticationService', () => {
 
      expect(() => { service.validateJWTToken(token); }).toThrow(errorStringToExcept);
      expect(jwtMock.verify).toHaveBeenCalledTimes(1);
+
    });
 
    //#endregion

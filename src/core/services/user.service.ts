@@ -36,7 +36,7 @@ export class UserService implements IUserService{
     if(username == null || !this.emailRegex.test(username)){
       throw new Error('Username must be a valid email');
     }
-    if(password == null || password.length < 8){
+    if(password == null || password.trim().length < 8){
       throw new Error('Password must be minimum 8 characters long');
     }
 
@@ -93,7 +93,6 @@ export class UserService implements IUserService{
     return foundUser;
   }
 
-  //Missing test
   async getUserByID(ID: number): Promise<User>{
 
     if(ID == null || ID == undefined || ID <= 0){
@@ -276,8 +275,8 @@ export class UserService implements IUserService{
     if(user == undefined || user == null) {throw new Error('User must be instantiated');}
     if(user.ID == undefined || user.ID == null || user.ID < 0){throw new Error('User must have a valid ID')}
     if(user.username == undefined || user.username == null || !this.emailRegex.test(user.username)){throw new Error('User must have a valid Username');}
-    if(user.password == undefined || user.password == null || user.password.length <= 0){throw new Error('User must have a valid Password');}
-    if(user.salt == undefined || user.salt == null || user.salt.length <= 0){throw new Error('An error occurred with Salt');}
+    if(user.password == undefined || user.password == null || user.password.trim().length <= 0){throw new Error('User must have a valid Password');}
+    if(user.salt == undefined || user.salt == null || user.salt.trim().length <= 0){throw new Error('An error occurred with Salt');}
     if(user.role == undefined || user.role == null || user.role.ID <= 0){throw new Error('An error occurred with user role');}
     if(user.status == undefined || user.status == null || user.status.ID <= 0){throw new Error('An error occurred with user status');}
   }
@@ -326,30 +325,41 @@ export class UserService implements IUserService{
     this.authenticationHelper.validatePasswordToken(foundPasswordToken);
   }
 
-  async updatePassword(username: string, passwordToken: string, password: string){
-
-    if(password == null || password == undefined || password.length < 8){
-      throw new Error('Password must be minimum 8 characters long');
-    }
+  async updatePasswordWithToken(username: string, passwordToken: string, password: string): Promise<boolean>{
 
     let foundUser = await this.getUserByUsername(username);
     await this.verifyPasswordToken(foundUser, passwordToken);
+    return await this.updatePassword(foundUser, password);
+  }
 
-    foundUser.salt = this.authenticationHelper.generateToken(this.saltLength);
-    foundUser.password = this.authenticationHelper.generateHash(password, foundUser.salt);
+  async updatePasswordWithID(userID: number, password: string, oldPassword: string): Promise<boolean>{
 
-    try{await this.userRepository.save(foundUser);}
+    let foundUser = await this.getUserByID(userID);
+    this.authenticationHelper.validateLogin(foundUser, oldPassword);
+    return await this.updatePassword(foundUser, password);
+  }
+
+  async updatePassword(user: User, password: string): Promise<boolean>{
+
+    this.verifyUserEntity(user);
+
+    if(password == null || password.length < 8){
+      throw new Error('Password must be minimum 8 characters long');
+    }
+
+    user.salt = this.authenticationHelper.generateToken(this.saltLength);
+    user.password = this.authenticationHelper.generateHash(password, user.salt);
+
+    try{await this.userRepository.save(user);}
     catch (e) {throw new Error('Internal server error')}
 
     return true;
   }
 
-  //Missing test
   async getAllUserRoles(): Promise<Role[]>{
     return await this.roleService.getRoles();
   }
 
-  //Missing test
   async getAllStatuses(): Promise<Status[]>{
     return await this.statusService.getStatuses();
   }

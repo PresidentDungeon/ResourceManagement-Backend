@@ -91,7 +91,7 @@ describe('RoleService', () => {
 
     jest
       .spyOn(mockRepository.createQueryBuilder(), 'getMany')
-      .mockImplementation(() => {return new Promise(resolve => {resolve(roles);});});
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(roles);});});
 
     let foundRoles: Role[];
 

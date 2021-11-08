@@ -91,7 +91,7 @@ describe('StatusService', () => {
 
     jest
       .spyOn(mockRepository.createQueryBuilder(), 'getMany')
-      .mockImplementation(() => {return new Promise(resolve => {resolve(statuses);});});
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(statuses);});});
 
     let foundStatuses: Status[];
 

@@ -24,7 +24,9 @@ export interface IUserService{
   login(username: string, password: string): Promise<User>
   verifyJWTToken(token: string): boolean
   verifyPasswordToken(user: User, passwordToken: string)
-  updatePassword(username: string, passwordToken: string, password: string)
+  updatePasswordWithToken(username: string, passwordToken: string, password: string): Promise<boolean>
+  updatePasswordWithID(userID: number, password: string, oldPassword: string): Promise<boolean>
+  updatePassword(user: User, password: string): Promise<boolean>
 
   verifyUserEntity(user: User): void
 
