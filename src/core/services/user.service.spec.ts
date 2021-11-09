@@ -370,6 +370,62 @@ describe('UserService', () => {
 
    //#endregion
 
+  //#region GetUserByID
+  it('Find user with invalid ID results in error', async () => {
+
+    let ID: number = 0;
+
+    let errorStringToExcept = 'User ID must be instantiated or valid';
+
+    await expect(service.getUserByID(null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getUserByID(undefined)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getUserByID(ID)).rejects.toThrow(errorStringToExcept);
+    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
+  });
+
+  it('Non-existing user results in error', async () => {
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(null)});});
+
+    let ID: number = 1234;
+    let errorStringToExcept = 'No user registered with such ID';
+
+    await expect(service.getUserByID(ID)).rejects.toThrow(errorStringToExcept);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
+  it('Find existing user returns valid user information', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1,
+      username: 'Username@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 1, status: 'Pending'},
+      verificationCode: '2xY3b4',
+      role: {ID: 1, role: 'user'}};
+
+    jest
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(storedUser);});});
+
+    let ID: number = 1;
+    let foundUser
+
+    await expect(foundUser = await service.getUserByID(ID)).resolves;
+
+    expect(foundUser).toStrictEqual(storedUser);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+
+    jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
+  });
+
+  //#endregion
+
   //#region GetUsers
 
 
