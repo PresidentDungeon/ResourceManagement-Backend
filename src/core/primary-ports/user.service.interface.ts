@@ -12,6 +12,7 @@ export interface IUserService{
   addUser(user: User): Promise<[User, string]>
   verifyUser(username: string, verificationCode: string)
   getUserByUsername(username: string): Promise<User>
+  getUserByID(ID: number): Promise<User>
   getUsers(filter: Filter): Promise<FilterList<UserDTO>>
   updateUser(userDTO: UserDTO): Promise<User>
 
