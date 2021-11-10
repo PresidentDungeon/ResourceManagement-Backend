@@ -114,6 +114,7 @@ describe('AuthenticationService', () => {
        ID: 1,
        password: generatedHash,
        salt: generatedSalt,
+       verificationCode: 'verificationCode',
        role: {ID: 1, role: 'admin'},
        status: {ID: 1, status: 'active'},
        username: 'Hans'
@@ -134,11 +135,13 @@ describe('AuthenticationService', () => {
 
      const user: User = {
        ID: 1,
+       username: 'Hans',
        password: generatedHash,
        salt: generatedSalt,
+       verificationCode: 'verificationCode',
        role: {ID: 1, role: 'admin'},
-       status: {ID: 1, status: 'active'},
-       username: 'Hans'
+       status: {ID: 1, status: 'active'}
+
      }
 
      let errorStringToExcept: string = 'Entered password is incorrect';
@@ -154,11 +157,12 @@ describe('AuthenticationService', () => {
 
      const user: User = {
        ID: 1,
+       username: 'Hans',
        password: 'someHash',
        salt: 'someSalt',
+       verificationCode: 'verificationCode',
        role: {ID: 1, role: 'admin'},
-       status: {ID: 1, status: 'active'},
-       username: 'Hans'
+       status: {ID: 1, status: 'active'}
      }
 
      const result = service.generateJWTToken(user);

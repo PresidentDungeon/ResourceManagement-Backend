@@ -219,6 +219,7 @@ describe('UserService', () => {
       username: '',
       password: 'Password',
       salt: 'SaltValue',
+      verificationCode: 'verificationCode',
       role: {ID: 1, role: 'User'},
       status: {ID: 1, status: 'Pending'}
     }
@@ -240,6 +241,7 @@ describe('UserService', () => {
       username: 'Peter@gmail.com',
       password: 'Password',
       salt: 'saltValue',
+      verificationCode: 'verificationCode',
       role: {ID: 1, role: 'User'},
       status: {ID: 1, status: 'Pending'}
     }
@@ -271,6 +273,7 @@ describe('UserService', () => {
       username: 'Peter@gmail.com',
       password: 'Password',
       salt: 'SaltValue',
+      verificationCode: 'verificationCode',
       role: {ID: 1, role: 'User'},
       status: {ID: 1, status: 'Pending'}
     }
@@ -294,6 +297,7 @@ describe('UserService', () => {
        username: 'Peter@gmail.com',
        password: 'Password',
        salt: 'SaltValue',
+       verificationCode: 'verificationCode',
        role: {ID: 1, role: 'User'},
        status: {ID: 1, status: 'Pending'}
      }
@@ -722,27 +726,17 @@ describe('UserService', () => {
 
   it('Update invalid user throws error', async () => {
 
-    let storedUser: UserEntity = {
-      ID: 1,
-      username: 'peter@gmail.com',
-      password: 'Password',
-      salt: 'someSalt',
-      status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
-      role: {ID: 1, role: 'user'}};
-
-    let userDTO: UserDTO = {ID: 2, username: 'peter@gmail.com', status: {ID: 2, status: 'active'}, role: {ID: 2, role: 'admin'}};
+    let userDTO: UserDTO = {ID: 0, username: 'peter@gmail.com', status: {ID: 2, status: 'active'}, role: {ID: 2, role: 'admin'}};
     let expectedErrorMessage: string = 'User ID must be instantiated or valid'
 
     jest
       .spyOn(service, 'getUserByID')
-      .mockImplementation((ID: number) => {throw new Error('User ID must be instantiated or valid');});
+      .mockImplementationOnce((ID: number) => {throw new Error('User ID must be instantiated or valid');});
 
     await expect(service.updateUser(userDTO)).rejects.toThrow(expectedErrorMessage);
     expect(service.getUserByID).toHaveBeenCalledTimes(1);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
 
-    jest.spyOn(service, 'getUserByID').mockReset();
   });
 
   it('Update user with invalid data throws error', async () => {
@@ -760,11 +754,11 @@ describe('UserService', () => {
 
     jest
       .spyOn(service, 'getUserByID')
-      .mockImplementation((ID: number) => {return new Promise(resolve => {return resolve(storedUser);});});
+      .mockImplementationOnce((ID: number) => {return new Promise(resolve => {return resolve(storedUser);});});
 
     jest
       .spyOn(service, 'verifyUserEntity')
-      .mockImplementation((user: UserEntity) => {throw new Error('User must have a valid Username')});
+      .mockImplementationOnce((user: UserEntity) => {throw new Error('User must have a valid Username')});
 
     let expectedErrorMessage: string = 'User must have a valid Username'
 
@@ -775,7 +769,6 @@ describe('UserService', () => {
     expect(service.verifyUserEntity).toHaveBeenCalledWith(storedUser);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
 
-    jest.restoreAllMocks();
   });
 
   it('Updating user with return value of null throws error', async () => {
@@ -976,6 +969,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'somePassword',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'admin'},
     }
@@ -1061,6 +1055,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'somePassword',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 1, status: 'pending'},
       role: {ID: 1, role: 'admin'},
     }
@@ -1087,6 +1082,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'somePassword',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 1, status: 'pending'},
       role: {ID: 1, role: 'admin'},
     }
@@ -1246,51 +1242,51 @@ describe('UserService', () => {
       { input: user = null, expected: "User must be instantiated" },
       { input: user = undefined, expected: "User must be instantiated" },
 
-      { input: user = {ID: undefined, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: undefined, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid ID" },
-      { input: user = {ID: null, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: null, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid ID" },
-      { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid ID" },
-      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Jensen', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen@@gmail', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Jensen@@gmail', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen@@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Jensen@@hotmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: undefined, salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: undefined, salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: null, salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: null, salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: '', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: '', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: ' ', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: ' ', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: '', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: '', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: ' ', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: ' ', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: null, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: null, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: undefined, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: undefined, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 0, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 0, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: null},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: null},
         expected: "An error occurred with user status" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: undefined},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: undefined},
         expected: "An error occurred with user status" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 0, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 0, status: 'pending'}},
         expected: "An error occurred with user status" },
     ];
 
@@ -1302,11 +1298,11 @@ describe('UserService', () => {
   describe('Validation of valid user does not throw error', () => {
     let user: User;
     const theories = [
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Jan@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: ''}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Petrud@hotmail.de', password: 'somePassword', salt: 'someSalt', role: {ID: 2, role: 'admin'}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: 'active'}}},
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: ''}}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Jan@hotmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: ''}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Petrud@hotmail.de', password: 'somePassword', salt: 'someSalt', verificationCode: '', role: {ID: 2, role: 'admin'}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 2, status: 'active'}}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 2, status: ''}}},
     ];
 
     theoretically('No error message is thrown on valid user', theories, theory => {
@@ -1329,6 +1325,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1362,6 +1359,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1389,6 +1387,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1416,6 +1415,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1437,6 +1437,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1460,6 +1461,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1488,6 +1490,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1517,6 +1520,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1551,6 +1555,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1588,6 +1593,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1617,6 +1623,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1651,6 +1658,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1684,6 +1692,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1713,6 +1722,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1740,6 +1750,7 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
+      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 

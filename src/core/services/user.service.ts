@@ -46,7 +46,7 @@ export class UserService implements IUserService{
     let salt: string = this.generateSalt();
     let hashedPassword: string = this.generateHash(password, salt);
 
-    return {ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus};
+    return {ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus, verificationCode: ''};
   }
 
   async addUser(user: User): Promise<[User, string]> {
@@ -333,7 +333,6 @@ export class UserService implements IUserService{
   }
 
   async updatePasswordWithID(userID: number, password: string, oldPassword: string): Promise<boolean>{
-
     let foundUser = await this.getUserByID(userID);
     this.authenticationHelper.validateLogin(foundUser, oldPassword);
     return await this.updatePassword(foundUser, password);
