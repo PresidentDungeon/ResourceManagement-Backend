@@ -5,7 +5,7 @@ import { Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 import { Contract } from "../models/contract";
 import { ContractorEntity } from "../../infrastructure/data-source/postgres/entities/contractor.entity";
-import { Contractor } from "../models/contracter";
+import { Contractor } from "../models/contractor";
 import { ContractorDTO } from "../../api/dtos/contractor.dto";
 
 @Injectable()

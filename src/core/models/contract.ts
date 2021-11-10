@@ -1,5 +1,5 @@
 import { User } from "./user";
-import { Contractor } from "./contracter";
+import { Contractor } from "./contractor";
 
 export interface Contract {
   ID: number

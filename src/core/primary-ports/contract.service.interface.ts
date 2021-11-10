@@ -1,6 +1,6 @@
 import { Contract } from "../models/contract";
 import { User } from "../models/user";
-import { Contractor } from "../models/contracter";
+import { Contractor } from "../models/contractor";
 
 export const IContractServiceProvider = 'IContractServiceProvider'
 export interface IContractService{

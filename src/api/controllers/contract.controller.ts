@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { IContractService, IContractServiceProvider } from "../../core/primary-ports/contract.service.interface";
 import { Contract } from "../../core/models/contract";
-import { Contractor } from "../../core/models/contracter";
+import { Contractor } from "../../core/models/contractor";
 
 @Controller('contract')
 export class ContractController {

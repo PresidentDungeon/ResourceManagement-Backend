@@ -8,7 +8,7 @@ import { ContractorEntity } from "../../infrastructure/data-source/postgres/enti
 import { User } from "../models/user";
 import theoretically from "jest-theories";
 import { Contract } from "../models/contract";
-import { Contractor } from "../models/contracter";
+import { Contractor } from "../models/contractor";
 import { UserDTO } from "../../api/dtos/user.dto";
 
 describe('ContractService', () => {
@@ -125,10 +125,10 @@ describe('ContractService', () => {
   it('Saving contract resolves correctly', async () => {
 
     let contract: Contract = {ID: 0, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
-    let contractToSave: Contract = {ID: 1, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
+    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
-    jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {return new Promise(resolve => {resolve(contractToSave)});});
+    jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {return new Promise(resolve => {resolve(contractSaveReturns)});});
 
     let savedContract: Contract;
 
