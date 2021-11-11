@@ -45,8 +45,12 @@ describe('ContractService', () => {
       leftJoinAndSelect: () => createQueryBuilder,
       leftJoin: () => createQueryBuilder,
       andWhere: () => createQueryBuilder,
+      select: () => createQueryBuilder,
+      addSelect: () => createQueryBuilder,
+      groupBy: () => createQueryBuilder,
       getOne: jest.fn(() => {}),
       getMany: jest.fn(() => {}),
+      getRawMany: jest.fn(() => {}),
       getCount: jest.fn(() => {}),
       offset: jest.fn(() => {}),
       limit: jest.fn(() => {}),
@@ -84,9 +88,6 @@ describe('ContractService', () => {
   it('Mock contractor repository should be defined', () => {
     expect(mockContractorRepository).toBeDefined();
   });
-
-
-
 
   //#region AddContract
 
@@ -358,6 +359,75 @@ describe('ContractService', () => {
       expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
     })
   });
+
+  //#endregion
+
+  //#region GetContractorsCount
+
+  it('Get contractors count returns empty array if empty array of contractors are inserted', async () => {
+
+    let contractors: Contractor[] = [];
+    let expectedResult: Contractor[] = [];
+    let queryResults: any[] = [];
+
+    jest.spyOn(mockContractorRepository.createQueryBuilder(), 'getRawMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
+
+    let result: Contractor[];
+
+    await expect(result = await service.getContractorsCount(contractors)).resolves;
+    expect(result).toStrictEqual(expectedResult);
+    expect(mockContractorRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('Get contractors count maps correctly with existing contractors', async () => {
+
+    let contractors: Contractor[] = [{ID: 1}, {ID: 3}, {ID: 4}];
+    let expectedResult: Contractor[] = [{ID: 1, count: 2}, {ID: 3, count: 1}, {ID: 4, count: 1}];
+    let queryResults: any[] = [{ID: 1, contracts: '2'}, {ID: 3, contracts: '1'}, {ID: 4, contracts: '1'}];
+
+    jest.spyOn(mockContractorRepository.createQueryBuilder(), 'getRawMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
+
+    let result: Contractor[];
+
+    await expect(result = await service.getContractorsCount(contractors)).resolves;
+    expect(result).toStrictEqual(expectedResult);
+    expect(mockContractorRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('Get contractors count maps correctly with non-contractors', async () => {
+
+    let contractors: Contractor[] = [{ID: 1}, {ID: 3}, {ID: 4}];
+    let expectedResult: Contractor[] = [{ID: 1, count: 2}, {ID: 3, count: 0}, {ID: 4, count: 1}];
+    let queryResults: any[] = [{ID: 1, contracts: '2'},  {ID: 4, contracts: '1'}];
+
+    jest.spyOn(mockContractorRepository.createQueryBuilder(), 'getRawMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
+
+    let result: Contractor[];
+
+    await expect(result = await service.getContractorsCount(contractors)).resolves;
+    expect(result).toStrictEqual(expectedResult);
+    expect(mockContractorRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
+  });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   //#endregion
 
