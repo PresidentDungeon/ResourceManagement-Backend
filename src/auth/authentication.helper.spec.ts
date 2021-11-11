@@ -114,7 +114,6 @@ describe('AuthenticationService', () => {
        ID: 1,
        password: generatedHash,
        salt: generatedSalt,
-       verificationCode: 'verificationCode',
        role: {ID: 1, role: 'admin'},
        status: {ID: 1, status: 'active'},
        username: 'Hans'
@@ -138,7 +137,6 @@ describe('AuthenticationService', () => {
        username: 'Hans',
        password: generatedHash,
        salt: generatedSalt,
-       verificationCode: 'verificationCode',
        role: {ID: 1, role: 'admin'},
        status: {ID: 1, status: 'active'}
 
@@ -160,7 +158,6 @@ describe('AuthenticationService', () => {
        username: 'Hans',
        password: 'someHash',
        salt: 'someSalt',
-       verificationCode: 'verificationCode',
        role: {ID: 1, role: 'admin'},
        status: {ID: 1, status: 'active'}
      }
