@@ -99,6 +99,8 @@ describe('UserService', () => {
     const deleteQueryBuilder: any = {
       set: () => deleteQueryBuilder,
       where: () => deleteQueryBuilder,
+      from: () => deleteQueryBuilder,
+      andWhere: () => deleteQueryBuilder,
       execute: jest.fn(() => {}),
     };
 
@@ -1620,6 +1622,7 @@ describe('UserService', () => {
     expect(service.getUserByUsername).toHaveBeenCalledWith(user.username);
     expect(service.verifyPasswordToken).toHaveBeenCalledTimes(0);
     expect(service.updatePassword).toHaveBeenCalledTimes(0);
+    expect(mockPasswordTokenRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(0);
   });
 
   it('Password with password token is not updated in case of wrong password token', async () => {
@@ -1654,6 +1657,48 @@ describe('UserService', () => {
     expect(service.verifyPasswordToken).toHaveBeenCalledTimes(1);
     expect(service.verifyPasswordToken).toHaveBeenCalledWith(user, passwordToken);
     expect(service.updatePassword).toHaveBeenCalledTimes(0);
+    expect(mockPasswordTokenRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(0);
+  });
+
+  it('Correct error code is thrown when deleting password token', async () => {
+
+    let user: User = {
+      ID: 1,
+      username: 'Username@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      verificationCode: 'verificationCode',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'user'}};
+
+    let passwordToken: string = 'somePasswordToken';
+    let password: string = 'password';
+
+    let errorStringToExcept: string = 'Internal server error';
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(user);});});
+
+    jest
+      .spyOn(service, 'verifyPasswordToken')
+      .mockImplementationOnce((user: User, passwordToken: string) => {return new Promise(resolve => {resolve(null);});});
+
+    jest.spyOn(service, 'updatePassword')
+      .mockImplementationOnce((user: User, password: string) => {return new Promise(resolve => {resolve(true);});});
+
+    jest
+      .spyOn(mockPasswordTokenRepository.createQueryBuilder().delete(), 'execute')
+      .mockImplementationOnce(() => {return new Promise(resolve => {throw new Error()})})
+
+    await expect(service.updatePasswordWithToken(user.username, passwordToken, password)).rejects.toThrow(errorStringToExcept);
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
+    expect(service.getUserByUsername).toHaveBeenCalledWith(user.username);
+    expect(service.verifyPasswordToken).toHaveBeenCalledTimes(1);
+    expect(service.verifyPasswordToken).toHaveBeenCalledWith(user, passwordToken);
+    expect(service.updatePassword).toHaveBeenCalledTimes(1);
+    expect(service.updatePassword).toHaveBeenCalledWith(user, password);
+    expect(mockPasswordTokenRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(1);
   });
 
   it('Update password with password token calls update password method if successful', async () => {
@@ -1687,6 +1732,7 @@ describe('UserService', () => {
     expect(service.verifyPasswordToken).toHaveBeenCalledWith(user, passwordToken);
     expect(service.updatePassword).toHaveBeenCalledTimes(1);
     expect(service.updatePassword).toHaveBeenCalledWith(user, password);
+    expect(mockPasswordTokenRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
@@ -1867,8 +1913,6 @@ describe('UserService', () => {
     expect(authenticationMock.generateHash).toHaveBeenCalledWith(newPassword, user.salt);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
     expect(mockUserRepository.save).toHaveBeenCalledWith(user);
-
-    jest.restoreAllMocks();
   });
 
   //#endregion
