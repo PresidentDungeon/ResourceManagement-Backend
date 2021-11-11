@@ -35,13 +35,22 @@ export class UserController {
     }
   }
 
-  @Roles('Admin')
-  @UseGuards(JwtAuthGuard)
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
   @Post('registerUsers')
   async registerUsers(@Body() unregisteredUsers: User[]){
     try
     {
+      let allUsers: User[];
+      let registeredUsers: User[];
+      let confirmationTokens: string[];
 
+      [allUsers, registeredUsers, confirmationTokens] = await this.userService.registerUsers(unregisteredUsers);
+
+      let allUsersConverted: UserDTO[] = allUsers.map(user => {return {ID: user.ID, username: user.username, status: user.status, role: user.role}});
+      let emails: string[] = registeredUsers.map(user => {return user.username});
+      this.mailService.sendUsersRegistrationInvite(emails, confirmationTokens);
+      return allUsersConverted;
     }
     catch (e)
     {
@@ -108,6 +117,14 @@ export class UserController {
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
   }
 
+  @Post('requestPasswordSignupChange')
+  async requestPasswordSignupChange(@Body() passwordChangeRequestDTO: PasswordChangeRequestDTO){
+    try{
+      await this.userService.updatePasswordConfirmationToken(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
+      this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
+    }
+    catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
+  }
 
   @Get('requestPasswordMail')
   async requestPasswordResetMail(@Query() verificationRequestDTO: VerificationRequestDTO){

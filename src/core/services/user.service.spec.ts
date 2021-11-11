@@ -229,6 +229,111 @@ describe('UserService', () => {
 
   //#endregion
 
+  //#region RegisterUsers
+
+  it('Registration of user throws error if username is invalid', async () => {
+
+    let user1: User = { ID: 0, username: 'Peter@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} }
+    let user2: User = { ID: 0, username: 'Hans@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} }
+    let user3: User = { ID: 0, username: 'Jens', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} }
+
+    let usersToRegister: User[] = [user1, user2, user3];
+    let expectedErrorMessage = 'Username must be a valid email';
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(null);});});
+
+
+    await expect(service.registerUsers(usersToRegister)).rejects.toThrow(expectedErrorMessage);
+    expect(mockRoleService.findRoleByName).toHaveBeenCalledTimes(1);
+    expect(mockRoleService.findRoleByName).toHaveBeenCalledWith('user');
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(0);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.create).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);
+  });
+
+  it('Registration of unregistered users saves all to database', async () => {
+
+    let user1: User = { ID: 0, username: 'Peter@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} }
+    let user2: User = { ID: 0, username: 'Hans@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} }
+    let user3: User = { ID: 0, username: 'Jens@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} }
+
+    let usersToRegister: User[] = [user1, user2, user3];
+    let allUsers: User[] = [];
+    let addedUsers: User[] = [];
+    let confirmationTokens: string[] = [];
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementation((username: string) => {throw new Error();});
+
+    await expect([allUsers, addedUsers, confirmationTokens] = await service.registerUsers(usersToRegister)).resolves;
+    expect(allUsers).toStrictEqual(usersToRegister);
+    expect(addedUsers).toStrictEqual(usersToRegister);
+    expect(confirmationTokens.length).toStrictEqual(allUsers.length);
+
+
+    expect(mockRoleService.findRoleByName).toHaveBeenCalledTimes(1);
+    expect(mockRoleService.findRoleByName).toHaveBeenCalledWith('user');
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(3);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(6);
+    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(3);
+    expect(mockUserRepository.create).toHaveBeenCalledTimes(3);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(3);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(3);
+
+    jest.restoreAllMocks();
+  });
+
+  it('Registration saves only unregistered users to database', async () => {
+
+    let user1: User = { ID: 1, username: 'Peter@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Active'} }
+    let user2: User = { ID: 0, username: 'Hans@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} }
+    let user3: User = { ID: 2, username: 'Jens@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Active'} }
+
+    let usersToRegister: User[] = [user1, user2, user3];
+    let expectedRegisteredUsers = [user2];
+
+    let allUsers: User[] = [];
+    let addedUsers: User[] = [];
+    let confirmationTokens: string[] = [];
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(user1);})})
+      .mockImplementationOnce((username: string) => {throw new Error();})
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(user3);})})
+
+    await expect([allUsers, addedUsers, confirmationTokens] = await service.registerUsers(usersToRegister)).resolves;
+    expect(allUsers).toStrictEqual(usersToRegister);
+    expect(addedUsers).toStrictEqual(expectedRegisteredUsers);
+    expect(confirmationTokens.length).toStrictEqual(addedUsers.length);
+
+
+    expect(mockRoleService.findRoleByName).toHaveBeenCalledTimes(1);
+    expect(mockRoleService.findRoleByName).toHaveBeenCalledWith('user');
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(3);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(2);
+    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.create).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
+  });
+
+  //#endregion
+
   //#region AddUser
 
   it('Saving user with invalid data fails', async () => {
@@ -634,142 +739,6 @@ describe('UserService', () => {
 
   //#endregion
 
-  //#region VerifyUser
-
-  it('Verification of user with invalid verification token throws error', async () => {
-
-    let username: string = 'someUser@gmail.com';
-    let verificationCode = "";
-
-    let errorStringToExcept: string = 'Invalid verification code entered';
-
-    jest
-      .spyOn(service, 'getUserByUsername')
-      .mockImplementationOnce((username: string) => {return null;});
-
-    await expect(service.verifyUser(username, null)).rejects.toThrow(errorStringToExcept);
-    await expect(service.verifyUser(username, undefined)).rejects.toThrow(errorStringToExcept);
-    await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
-
-    expect(service.getUserByUsername).toHaveBeenCalledTimes(0);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-    expect(mockConfirmationTokenRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
-  });
-
-  it('Verification of user with invalid verificationToken throws error', async () => {
-
-    let username: string = 'peter@gmail.com';
-    let verificationCode = "X2TMM";
-
-    let errorStringToExcept: string = 'Invalid verification code entered';
-
-    await expect(service.verifyUser(username, null)).rejects.toThrow(errorStringToExcept);
-    await expect(service.verifyUser(username, undefined)).rejects.toThrow(errorStringToExcept);
-    await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
-
-    expect(mockConfirmationTokenRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
-  });
-
-  it('Verification of user with wrong verificationCode throws error', async () => {
-
-    let storedUser: UserEntity = {
-      ID: 1, username: 'peter@gmail.com',
-      password: 'Password',
-      salt: 'someSalt',
-      status: {ID: 2, status: 'active'},
-      role: {ID: 1, role: 'user'}};
-
-    jest
-      .spyOn(mockConfirmationTokenRepository.createQueryBuilder(), 'getOne')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
-
-    jest
-      .spyOn(service, 'getUserByUsername')
-      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
-
-    let username: string = "peter@gmail.com";
-    let verificationCode = "X2TMM6";
-
-    let errorStringToExcept: string = 'Wrong verification code entered';
-
-    await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.generateHash).toHaveBeenCalledWith(verificationCode, storedUser.salt);
-    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
-  });
-
-  it('Verification of user with active status throws error', async () => {
-
-    let storedUser: UserEntity = {
-      ID: 1, username: 'peter@gmail.com',
-      password: 'Password',
-      salt: 'someSalt',
-      status: {ID: 2, status: 'active'},
-      role: {ID: 1, role: 'user'}};
-
-    let verificationCode = "2xY3b4";
-
-    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, hashedConfirmationToken: 'someHashedToken'};
-
-    jest
-      .spyOn(mockConfirmationTokenRepository.createQueryBuilder(), 'getOne')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedConfirmationToken);});});
-
-    jest
-      .spyOn(service, 'getUserByUsername')
-      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
-
-    let username: string = "peter@gmail.com";
-    let errorStringToExcept: string = 'This user has already been verified';
-
-    await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.generateHash).toHaveBeenCalledWith(verificationCode, storedUser.salt);
-    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
-  });
-
-  it('Verification of user with pending status and correct verification code is successful', async () => {
-
-    let storedUser: UserEntity = {
-      ID: 1, username: 'peter@gmail.com',
-      password: 'Password',
-      salt: 'someSalt',
-      status: {ID: 1, status: 'pending'},
-      role: {ID: 1, role: 'user'}};
-
-    let username: string = "peter@gmail.com";
-    let verificationCode = "2xY3b4";
-
-    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, hashedConfirmationToken: 'someHashedToken'};
-
-    jest
-      .spyOn(mockConfirmationTokenRepository.createQueryBuilder(), 'getOne')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedConfirmationToken);});});
-
-    jest
-      .spyOn(service, 'getUserByUsername')
-      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
-
-    await expect(await service.verifyUser(username, verificationCode)).resolves;
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.generateHash).toHaveBeenCalledWith(verificationCode, storedUser.salt);
-    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
-  });
-
-  //#endregion
-
   //#region UpdateUser
 
   it('Update invalid user throws error', async () => {
@@ -934,210 +903,7 @@ describe('UserService', () => {
 
   //#endregion UpdateUser
 
-  //#region GenerateSalt
 
-  it('Generate salt is called in authentication service', () => {
-    service.generateSalt();
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
-  });
-
-  it('Generate salt returns valid string', () => {
-    expect(service.generateSalt()).toBeDefined();
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
-  });
-
-  it('Generate salt returns string of ', () => {
-    expect(service.generateSalt()).toBeDefined();
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
-  });
-
-  //#endregion
-
-  //#region GenerateHash
-
-  it('Generate hash is called in authenticationService', () => {
-
-    let password: string = 'somePassword';
-    let salt: string = "someSalt";
-
-    service.generateHash(password, salt);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.generateHash).toHaveBeenCalledWith(password, salt);
-  });
-
-  it('Generate hash throws error if password is undefined, null or empty', () => {
-
-    let password: string = '';
-    let salt: string = "someSalt";
-
-    let errorStringToExcept: string = 'Value to hash must be instantiated';
-
-    expect(() => { service.generateHash(null, salt); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateHash(undefined, salt); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateHash(password, salt); }).toThrow(errorStringToExcept);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-  });
-
-  it('Generate hash throws error if salt is undefined, null or empty', () => {
-
-    let password: string = "somePassword";
-    let salt: string = '';
-
-    let errorStringToExcept = 'Salt must be instantiated';
-
-    expect(() => { service.generateHash(password, null); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateHash(password, undefined); }).toThrow(errorStringToExcept);
-    expect(() => { service.generateHash(password, salt); }).toThrow(errorStringToExcept);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-  });
-
-  it('Generate hash returns valid string', () => {
-
-    let password: string = 'somePassword';
-    let salt: string = "someSalt";
-
-    expect(service.generateHash(password, salt)).toBeDefined();
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.generateHash).toHaveBeenCalledWith(password, salt);
-  });
-
-  //#endregion
-
-  //#region GenerateJWTToken
-
-  it('Generate JWT token AuthenticationService is called on valid user', () => {
-
-    let user: User = {
-      ID: 1,
-      username: 'Username@gmail.com',
-      password: 'somePassword',
-      salt: 'someSalt',
-      status: {ID: 2, status: 'active'},
-      role: {ID: 1, role: 'admin'},
-    }
-
-    service.generateJWTToken(user);
-    expect(authenticationMock.generateJWTToken).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.generateJWTToken).toHaveBeenCalledWith(user);
-  });
-
-  it('Generate JWT token AuthenticationService is not called on invalid user', () => {
-    let user: User = null
-    expect(() => { service.generateJWTToken(user); }).toThrow();
-    expect(authenticationMock.generateJWTToken).toHaveBeenCalledTimes(0);
-  });
-
-  //#endregion
-
-  //#region GenerateNewVerificationToken
-
-  it('Generation of new token with invalid user fails', async () => {
-
-    jest
-      .spyOn(service, 'verifyUserEntity')
-      .mockImplementationOnce((user: User) => {});
-
-    let user: User = {
-      ID: 0,
-      username: 'peter@gmail.com',
-      password: 'somePassword',
-      salt: 'someSalt',
-      status: {ID: 2, status: 'active'},
-      role: {ID: 1, role: 'admin'},
-    }
-
-    let expectedErrorMessage: string = 'This user has already been verified';
-
-    await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
-    expect(service.verifyUserEntity).toHaveBeenCalledTimes(0);
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);;
-  });
-
-  it('Generation of new token with invalid user fails', async () => {
-
-    jest
-      .spyOn(service, 'verifyUserEntity')
-      .mockImplementationOnce((user: User) => {throw new Error('User must have a valid username');});
-
-    let user: User = {
-      ID: 0,
-      username: '',
-      password: 'somePassword',
-      salt: 'someSalt',
-      status: {ID: 1, status: 'pending'},
-      role: {ID: 1, role: 'admin'},
-    }
-
-    let expectedErrorMessage: string = 'User must have a valid username';
-
-    await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
-    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
-    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);
-  });
-
-  it('Generation of new token with error during save throws correct errorcode', async () => {
-
-    jest
-      .spyOn(service, 'verifyUserEntity')
-      .mockImplementationOnce((user: User) => {});
-
-    jest
-      .spyOn(mockConfirmationTokenRepository, 'save')
-      .mockImplementationOnce((confirmationToken: ConfirmationToken) => {throw new Error()});
-
-    let user: User = {
-      ID: 0,
-      username: 'Username@gmail.com',
-      password: 'somePassword',
-      salt: 'someSalt',
-      status: {ID: 1, status: 'pending'},
-      role: {ID: 1, role: 'admin'},
-    }
-
-    let expectedErrorMessage: string = 'Internal server error';
-
-    await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
-    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
-    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
-  });
-
-  it('Generation of new token with valid data is successful', async () => {
-
-    jest
-      .spyOn(service, 'verifyUserEntity')
-      .mockImplementationOnce((user: User) => {});
-
-    let user: User = {
-      ID: 0,
-      username: 'Username@gmail.com',
-      password: 'somePassword',
-      salt: 'someSalt',
-      status: {ID: 1, status: 'pending'},
-      role: {ID: 1, role: 'admin'},
-    }
-
-    let verificationToken: string;
-
-    await expect(verificationToken = await service.generateNewVerificationCode(user)).resolves;
-    expect(verificationToken).toBeDefined();
-    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
-    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
-  });
-
-  //#endregion
 
   //#region Login
 
@@ -1238,112 +1004,112 @@ describe('UserService', () => {
 
   //#endregion
 
-  //#region VerifyJWTToken
+  //#region GenerateNewVerificationToken
 
-  it('Validate token with undefined, null or empty token results in error', () => {
-    let token: string = '';
+  it('Generation of new token with for already active user fails', async () => {
 
-    let errorStringToExcept = 'Must enter a valid token';
+    let user: User = {
+      ID: 0,
+      username: 'peter@gmail.com',
+      password: 'somePassword',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'admin'},
+    }
 
-    expect(() => { service.verifyJWTToken(null); }).toThrow(errorStringToExcept);
-    expect(() => { service.verifyJWTToken(undefined); }).toThrow(errorStringToExcept);
-    expect(() => { service.verifyJWTToken(token); }).toThrow(errorStringToExcept);
-    expect(authenticationMock.validateJWTToken).toHaveBeenCalledTimes(0);
+    let expectedErrorMessage: string = 'This user has already been verified';
+
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementationOnce((user: User) => {});
+
+    await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(0);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);;
   });
 
-  it('Validation of valid token should return true', () => {
-    let validToken = 'token';
-    expect(service.verifyJWTToken(validToken)).toBe(true);
-    expect(authenticationMock.validateJWTToken).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.validateJWTToken).toHaveBeenCalledWith(validToken);
+  it('Generation of new token with invalid user fails', async () => {
+
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementationOnce((user: User) => {throw new Error('User must have a valid username');});
+
+    let user: User = {
+      ID: 0,
+      username: '',
+      password: 'somePassword',
+      salt: 'someSalt',
+      status: {ID: 1, status: 'pending'},
+      role: {ID: 1, role: 'admin'},
+    }
+
+    let expectedErrorMessage: string = 'User must have a valid username';
+
+    await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);
   });
 
-  it('Validation of invalid token should throw exception', () => {
+  it('Generation of new token with error during save throws correct error code', async () => {
 
-    jest.spyOn(authenticationMock, "validateJWTToken").mockImplementationOnce(() => {throw new UnauthorizedException()});
+    let user: User = {
+      ID: 0,
+      username: 'Username@gmail.com',
+      password: 'somePassword',
+      salt: 'someSalt',
+      status: {ID: 1, status: 'pending'},
+      role: {ID: 1, role: 'admin'},
+    }
 
-    let invalidToken = 'token';
-    expect(() => { service.verifyJWTToken(invalidToken); }).toThrow();
-    expect(authenticationMock.validateJWTToken).toHaveBeenCalledTimes(1);
-    expect(authenticationMock.validateJWTToken).toHaveBeenCalledWith(invalidToken);
+    let expectedErrorMessage: string = 'Internal server error';
+
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementationOnce((user: User) => {});
+
+    jest
+      .spyOn(mockConfirmationTokenRepository, 'save')
+      .mockImplementationOnce((confirmationToken: ConfirmationToken) => {throw new Error()});
+
+    await expect(service.generateNewVerificationCode(user)).rejects.toThrow(expectedErrorMessage);
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
   });
 
-  //#endregion
+  it('Generation of new token with valid data is successful', async () => {
 
-  //#region verifyUserEntity
+    let user: User = {
+      ID: 0,
+      username: 'Username@gmail.com',
+      password: 'somePassword',
+      salt: 'someSalt',
+      status: {ID: 1, status: 'pending'},
+      role: {ID: 1, role: 'admin'},
+    }
 
-  describe('Error handling with invalid users', () => {
-    let user: User;
-    const theories = [
-      { input: user = null, expected: "User must be instantiated" },
-      { input: user = undefined, expected: "User must be instantiated" },
+    let verificationToken: string;
 
-      { input: user = {ID: undefined, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid ID" },
-      { input: user = {ID: null, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid ID" },
-      { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid ID" },
-      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen@@gmail', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen@@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: undefined, salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: null, salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: '', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: ' ', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: '', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: ' ', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: null, status: {ID: 1, status: 'pending'}},
-        expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: undefined, status: {ID: 1, status: 'pending'}},
-        expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 0, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: null},
-        expected: "An error occurred with user status" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: undefined},
-        expected: "An error occurred with user status" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 0, status: 'pending'}},
-        expected: "An error occurred with user status" },
-    ];
+    jest
+      .spyOn(service, 'verifyUserEntity')
+      .mockImplementationOnce((user: User) => {});
 
-    theoretically('The right error message is thrown to the fitting error', theories, theory => {
-      expect(() => { service.verifyUserEntity(theory.input as User); }).toThrow(theory.expected);
-    })
-  });
-
-  describe('Validation of valid user does not throw error', () => {
-    let user: User;
-    const theories = [
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Jan@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: ''}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Petrud@hotmail.de', password: 'somePassword', salt: 'someSalt', role: {ID: 2, role: 'admin'}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: 'active'}}},
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: ''}}},
-    ];
-
-    theoretically('No error message is thrown on valid user', theories, theory => {
-      expect(() => { service.verifyUserEntity(theory.input as User);}).not.toThrow();
-    })
+    await expect(verificationToken = await service.generateNewVerificationCode(user)).resolves;
+    expect(verificationToken).toBeDefined();
+    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
@@ -1408,6 +1174,166 @@ describe('UserService', () => {
     expect(mockPasswordTokenRepository.createQueryBuilder().delete).toHaveBeenCalledTimes(1);
     expect(mockPasswordTokenRepository.save).toHaveBeenCalledTimes(1);
 
+  });
+
+  //#endregion
+
+  //#region VerifyUser
+
+  it('Verification of user with active status throws error', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1, username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'user'}};
+
+    let verificationCode = "2xY3b4";
+
+    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, hashedConfirmationToken: 'someHashedToken'};
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
+
+    jest
+      .spyOn(service, 'verifyUserConfirmationToken')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+
+    jest
+      .spyOn(service, 'deleteUserConfirmationToken')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+
+    let username: string = "peter@gmail.com";
+    let errorStringToExcept: string = 'This user has already been verified';
+
+    await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
+    expect(service.getUserByUsername).toHaveBeenCalledWith(username);
+    expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(0);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(0);
+  });
+
+  it('Verification of user with pending status and correct verification code is successful', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1, username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'pending'},
+      role: {ID: 1, role: 'user'}};
+
+    let verificationCode = "2xY3b4";
+
+    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, hashedConfirmationToken: 'someHashedToken'};
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
+
+    jest
+      .spyOn(service, 'verifyUserConfirmationToken')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+
+    jest
+      .spyOn(service, 'deleteUserConfirmationToken')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+
+    let username: string = "peter@gmail.com";
+
+    await expect(await service.verifyUser(username, verificationCode)).resolves;
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
+    expect(service.getUserByUsername).toHaveBeenCalledWith(username);
+    expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(1);
+  });
+
+  //#endregion
+
+  //#region VerifyUserConfirmationToken
+
+  it('Verification of user with invalid verification token throws error', async () => {
+
+    let user: User = { ID: 1, username: 'Peter@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} };
+    let verificationCode = "";
+
+    let errorStringToExcept: string = 'Invalid verification code entered';
+
+    await expect(service.verifyUserConfirmationToken(user, null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.verifyUserConfirmationToken(user, undefined)).rejects.toThrow(errorStringToExcept);
+    await expect(service.verifyUserConfirmationToken(user, verificationCode)).rejects.toThrow(errorStringToExcept);
+
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
+  });
+
+  it('Verification of user with invalid verificationToken throws error', async () => {
+
+    let user: User = { ID: 1, username: 'Peter@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} };
+    let verificationCode = "X2TMM";
+
+    let errorStringToExcept: string = 'Invalid verification code entered';
+
+    await expect(service.verifyUserConfirmationToken(user, verificationCode)).rejects.toThrow(errorStringToExcept);
+
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
+  });
+
+  it('Verification of user with wrong verificationCode throws error', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1, username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'user'}};
+
+    jest
+      .spyOn(mockConfirmationTokenRepository.createQueryBuilder(), 'getOne')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+
+    let user: User = { ID: 1, username: 'Peter@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} };
+    let verificationCode = "X2TMM6";
+
+    let errorStringToExcept: string = 'Invalid verification code entered';
+
+    await expect(service.verifyUserConfirmationToken(user, verificationCode)).rejects.toThrow(errorStringToExcept);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+  });
+
+  it('Verification of user confirm tooken with valid token resolves', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1, username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'user'}};
+
+    let user: User = { ID: 1, username: 'Peter@gmail.com', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} };
+    let verificationCode = "X2TMM6";
+
+    let confirmationToken: ConfirmationToken = {user: storedUser, hashedConfirmationToken: 'hashedValue'};
+
+    let errorStringToExcept: string = 'Invalid verification code entered';
+
+    jest
+      .spyOn(mockConfirmationTokenRepository.createQueryBuilder(), 'getOne')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(confirmationToken);});});
+
+    await expect(await service.verifyUserConfirmationToken(user, verificationCode)).resolves;
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
@@ -1511,6 +1437,160 @@ describe('UserService', () => {
 
   //#endregion
 
+  //#region DeleteUserConfirmationToken
+
+  it('Delete user confirmation token with invalid ID results in error', async () => {
+
+    let ID: number = 0;
+
+    let errorStringToExcept = 'User ID must be instantiated or valid';
+
+    await expect(service.deleteUserConfirmationToken(null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.deleteUserConfirmationToken(undefined)).rejects.toThrow(errorStringToExcept);
+    await expect(service.deleteUserConfirmationToken(ID)).rejects.toThrow(errorStringToExcept);
+    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(0);
+  });
+
+  it('Error during delete of user confirmation token results in correct error code', async () => {
+
+    let ID: number = 1;
+
+    let errorStringToExcept = 'Internal server error';
+
+    jest.spyOn(mockConfirmationTokenRepository.createQueryBuilder().delete(), 'execute')
+      .mockImplementationOnce(() => {return new Promise(resolve => {throw new Error();});})
+
+
+    await expect(service.deleteUserConfirmationToken(ID)).rejects.toThrow(errorStringToExcept);
+    expect(mockConfirmationTokenRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('Deletion of valid user confirmation token resolves correctly', async () => {
+
+    let ID: number = 1;
+
+    await expect(await service.deleteUserConfirmationToken(ID)).resolves;
+    expect(mockConfirmationTokenRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(1);
+  });
+
+  //#endregion
+
+
+
+  //#region UpdatePasswordWithConfirmationToken
+
+  it('Password with confirmation code is not updated in case of non-existing user', async () => {
+
+    let user: User = {
+      ID: 1,
+      username: 'Username@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'user'}};
+
+    let confirmationCode: string = 'someConfirmationCode';
+    let password: string = 'password';
+
+    let errorStringToExcept: string = 'No user registered with such a name';
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {throw new Error('No user registered with such a name');});
+
+    jest.spyOn(service, 'verifyUserConfirmationToken').mockImplementation();
+    jest.spyOn(service, 'updatePassword').mockImplementation();
+    jest.spyOn(service, 'deleteUserConfirmationToken').mockImplementation();
+
+    await expect(service.updatePasswordWithConfirmationToken(user.username, confirmationCode, password)).rejects.toThrow(errorStringToExcept);
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
+    expect(service.getUserByUsername).toHaveBeenCalledWith(user.username);
+    expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(0);
+    expect(service.updatePassword).toHaveBeenCalledTimes(0);
+    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(0);
+  });
+
+  it('Password with confirmation code is not updated in case of wrong confirmation token', async () => {
+
+    let user: User = {
+      ID: 1,
+      username: 'Username@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'user'}};
+
+    let confirmationCode: string = 'someConfirmationCode';
+    let password: string = 'password';
+
+    let errorStringToExcept: string = 'Invalid confirmation token entered';
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(user);});});
+
+    jest
+      .spyOn(service, 'verifyUserConfirmationToken')
+      .mockImplementationOnce((user: User, confirmationToken: string) => {throw new Error('Invalid confirmation token entered')});
+
+    jest.spyOn(service, 'updatePassword')
+      .mockImplementationOnce((user: User, password: string) => {return new Promise(resolve => {resolve(true);});});
+
+    jest.spyOn(service, 'deleteUserConfirmationToken').mockImplementation();
+
+    await expect(service.updatePasswordWithConfirmationToken(user.username, confirmationCode, password)).rejects.toThrow(errorStringToExcept);
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
+    expect(service.getUserByUsername).toHaveBeenCalledWith(user.username);
+    expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserConfirmationToken).toHaveBeenCalledWith(user, confirmationCode);
+    expect(service.updatePassword).toHaveBeenCalledTimes(0);
+    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(0);
+  });
+
+  it('Update password with confirmation token calls update password method if successful', async () => {
+
+    let user: User = {
+      ID: 1,
+      username: 'Username@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'user'}};
+
+    let confirmationCode: string = 'someConfirmationCode';
+    let password: string = 'Password';
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(user);});});
+
+    jest
+      .spyOn(service, 'verifyUserConfirmationToken')
+      .mockImplementationOnce((user: User, confirmationToken: string) => {return new Promise(resolve => {resolve(null);});});
+
+    jest.spyOn(service, 'updatePassword')
+      .mockImplementationOnce((user: User, password: string) => {return new Promise(resolve => {resolve(true);});});
+
+    jest.spyOn(service, 'deleteUserConfirmationToken').mockImplementation();
+
+    await expect(await service.updatePasswordWithConfirmationToken(user.username, confirmationCode, password)).resolves;
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
+    expect(service.getUserByUsername).toHaveBeenCalledWith(user.username);
+    expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserConfirmationToken).toHaveBeenCalledWith(user, confirmationCode);
+    expect(service.updatePassword).toHaveBeenCalledTimes(1);
+    expect(service.updatePassword).toHaveBeenCalledWith(user, password);
+    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(1);
+    expect(service.deleteUserConfirmationToken).toHaveBeenCalledWith(user.ID);
+  });
+
+
+
+
+
+  //#endregion
+
   //#region UpdatePasswordWithToken
 
   it('Password is not updated in case of non-existing user', async () => {
@@ -1542,7 +1622,7 @@ describe('UserService', () => {
     expect(service.updatePassword).toHaveBeenCalledTimes(0);
   });
 
-  it('Password is not updated in case of wrong password token', async () => {
+  it('Password with password token is not updated in case of wrong password token', async () => {
 
     let user: User = {
       ID: 1,
@@ -1576,7 +1656,7 @@ describe('UserService', () => {
     expect(service.updatePassword).toHaveBeenCalledTimes(0);
   });
 
-  it('Update password with token calls update password method if successful', async () => {
+  it('Update password with password token calls update password method if successful', async () => {
 
     let user: User = {
       ID: 1,
@@ -1792,6 +1872,217 @@ describe('UserService', () => {
   });
 
   //#endregion
+
+
+
+  //#region GenerateSalt
+
+  it('Generate salt is called in authentication service', () => {
+    service.generateSalt();
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('Generate salt returns valid string', () => {
+    expect(service.generateSalt()).toBeDefined();
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('Generate salt returns string of ', () => {
+    expect(service.generateSalt()).toBeDefined();
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+  });
+
+  //#endregion
+
+  //#region GenerateHash
+
+  it('Generate hash is called in authenticationService', () => {
+
+    let password: string = 'somePassword';
+    let salt: string = "someSalt";
+
+    service.generateHash(password, salt);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateHash).toHaveBeenCalledWith(password, salt);
+  });
+
+  it('Generate hash throws error if password is undefined, null or empty', () => {
+
+    let password: string = '';
+    let salt: string = "someSalt";
+
+    let errorStringToExcept: string = 'Value to hash must be instantiated';
+
+    expect(() => { service.generateHash(null, salt); }).toThrow(errorStringToExcept);
+    expect(() => { service.generateHash(undefined, salt); }).toThrow(errorStringToExcept);
+    expect(() => { service.generateHash(password, salt); }).toThrow(errorStringToExcept);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+  });
+
+  it('Generate hash throws error if salt is undefined, null or empty', () => {
+
+    let password: string = "somePassword";
+    let salt: string = '';
+
+    let errorStringToExcept = 'Salt must be instantiated';
+
+    expect(() => { service.generateHash(password, null); }).toThrow(errorStringToExcept);
+    expect(() => { service.generateHash(password, undefined); }).toThrow(errorStringToExcept);
+    expect(() => { service.generateHash(password, salt); }).toThrow(errorStringToExcept);
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+  });
+
+  it('Generate hash returns valid string', () => {
+
+    let password: string = 'somePassword';
+    let salt: string = "someSalt";
+
+    expect(service.generateHash(password, salt)).toBeDefined();
+    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateHash).toHaveBeenCalledWith(password, salt);
+  });
+
+  //#endregion
+
+  //#region GenerateJWTToken
+
+  it('Generate JWT token AuthenticationService is called on valid user', () => {
+
+    let user: User = {
+      ID: 1,
+      username: 'Username@gmail.com',
+      password: 'somePassword',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'active'},
+      role: {ID: 1, role: 'admin'},
+    }
+
+    service.generateJWTToken(user);
+    expect(authenticationMock.generateJWTToken).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateJWTToken).toHaveBeenCalledWith(user);
+  });
+
+  it('Generate JWT token AuthenticationService is not called on invalid user', () => {
+    let user: User = null
+    expect(() => { service.generateJWTToken(user); }).toThrow();
+    expect(authenticationMock.generateJWTToken).toHaveBeenCalledTimes(0);
+  });
+
+  //#endregion
+
+  //#region VerifyJWTToken
+
+  it('Validate token with undefined, null or empty token results in error', () => {
+    let token: string = '';
+
+    let errorStringToExcept = 'Must enter a valid token';
+
+    expect(() => { service.verifyJWTToken(null); }).toThrow(errorStringToExcept);
+    expect(() => { service.verifyJWTToken(undefined); }).toThrow(errorStringToExcept);
+    expect(() => { service.verifyJWTToken(token); }).toThrow(errorStringToExcept);
+    expect(authenticationMock.validateJWTToken).toHaveBeenCalledTimes(0);
+  });
+
+  it('Validation of valid token should return true', () => {
+    let validToken = 'token';
+    expect(service.verifyJWTToken(validToken)).toBe(true);
+    expect(authenticationMock.validateJWTToken).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.validateJWTToken).toHaveBeenCalledWith(validToken);
+  });
+
+  it('Validation of invalid token should throw exception', () => {
+
+    jest.spyOn(authenticationMock, "validateJWTToken").mockImplementationOnce(() => {throw new UnauthorizedException()});
+
+    let invalidToken = 'token';
+    expect(() => { service.verifyJWTToken(invalidToken); }).toThrow();
+    expect(authenticationMock.validateJWTToken).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.validateJWTToken).toHaveBeenCalledWith(invalidToken);
+  });
+
+  //#endregion
+
+
+
+  //#region verifyUserEntity
+
+  describe('Error handling with invalid users', () => {
+    let user: User;
+    const theories = [
+      { input: user = null, expected: "User must be instantiated" },
+      { input: user = undefined, expected: "User must be instantiated" },
+
+      { input: user = {ID: undefined, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid ID" },
+      { input: user = {ID: null, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid ID" },
+      { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid ID" },
+      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: 'Jensen', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: 'Jensen@@gmail', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: 'Jensen@@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Username" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: undefined, salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Password" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: null, salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Password" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: '', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Password" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: ' ', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "User must have a valid Password" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "An error occurred with Salt" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "An error occurred with Salt" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: '', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "An error occurred with Salt" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: ' ', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "An error occurred with Salt" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: null, status: {ID: 1, status: 'pending'}},
+        expected: "An error occurred with user role" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: undefined, status: {ID: 1, status: 'pending'}},
+        expected: "An error occurred with user role" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 0, role: 'user'}, status: {ID: 1, status: 'pending'}},
+        expected: "An error occurred with user role" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: null},
+        expected: "An error occurred with user status" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: undefined},
+        expected: "An error occurred with user status" },
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 0, status: 'pending'}},
+        expected: "An error occurred with user status" },
+    ];
+
+    theoretically('The right error message is thrown to the fitting error', theories, theory => {
+      expect(() => { service.verifyUserEntity(theory.input as User); }).toThrow(theory.expected);
+    })
+  });
+
+  describe('Validation of valid user does not throw error', () => {
+    let user: User;
+    const theories = [
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Jan@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: ''}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Petrud@hotmail.de', password: 'somePassword', salt: 'someSalt', role: {ID: 2, role: 'admin'}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: 'active'}}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: ''}}},
+    ];
+
+    theoretically('No error message is thrown on valid user', theories, theory => {
+      expect(() => { service.verifyUserEntity(theory.input as User);}).not.toThrow();
+    })
+  });
+
+  //#endregion
+
+
 
   //#region GetAllUserRoles
 

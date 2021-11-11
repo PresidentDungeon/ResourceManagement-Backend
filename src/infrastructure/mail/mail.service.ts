@@ -25,6 +25,24 @@ export class MailService implements IMailService{
     });
   }
 
+  async sendUsersRegistrationInvite(emails: string[], confirmationCodes: string[]){
+
+    for (let i = 0; i < emails.length; i++){
+
+      const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
+      const verificationLink = `${frontendRoute}/verifyLink?type=setup&email=${emails[i]}&verificationCode=${confirmationCodes[i]}`;
+
+      await this.mailerService.sendMail({
+        to: emails[i],
+        subject: 'Semco Maritime Resource Management Invitation Link',
+        template: './invitation',
+        context: {
+          url: verificationLink
+        }
+      });
+    }
+  }
+
   async sendUserPasswordReset(email: string, passwordResetToken: string){
 
     const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
