@@ -28,7 +28,7 @@ export class ContractService implements IContractService{
       const savedContract = await this.contractRepository.save(newContract);
       return savedContract;
     }
-    catch (e) {console.log(e);throw new Error('Internal server error')}
+    catch (e) {throw new Error('Internal server error')}
   }
 
   async getContractByID(ID: number): Promise<Contract>{
@@ -90,30 +90,23 @@ export class ContractService implements IContractService{
     return amount;
   }
 
-  //Missing test - should not be seen as implementation but general idea. Contractor layout is still unknown.
   async getContractorsCount(contracts: Contractor[]) {
 
-    let contractorDTOArray: ContractorDTO[] = [{ID: 1, count: 0}, {ID: 2, count: 0}, {ID: 3, count: 0}, {ID: 4, count: 0}];
-    const IDs = [1, 2, 3, 4];
-
+    let contractIDs: number[] = [];
+    contracts.map((contract) => {contractIDs.push(contract.ID); contract.count = 0});
 
     let qb = this.contractorRepository.createQueryBuilder('contractor');
     qb.leftJoin('contractor.contracts', 'contracts');
-    qb.andWhere('contractor.ID IN (:...contractorIDs)', {contractorIDs: IDs});
+    qb.andWhere('contractor.ID IN (:...contractorIDs)', {contractorIDs: contractIDs});
     qb.select('contractor.ID', 'ID');
     qb.addSelect('COUNT(DISTINCT(contracts.ID)) as contracts');
     qb.groupBy('contractor.ID');
 
-    console.log(await qb.getRawMany());
-
     const result = await qb.getRawMany();
     let convertedValues: ContractorDTO[] = result.map((value) => {return {ID: value.ID as number, count: Number.parseInt(value.contracts)}})
-    console.log(convertedValues);
 
-    contractorDTOArray.map((contractValue) => {const foundValue = convertedValues.find(item => item.ID == contractValue.ID); if(foundValue){contractValue.count = foundValue.count}});
-
-    console.log(contractorDTOArray);
-    return contractorDTOArray;
+    contracts.map((contractValue) => {const foundValue = convertedValues.find(item => item.ID == contractValue.ID); if(foundValue){contractValue.count = foundValue.count}});
+    return contracts;
   }
 
   verifyContractEntity(contract: Contract) {
@@ -125,16 +118,5 @@ export class ContractService implements IContractService{
     if(contract.endDate == null ){throw new Error('Contract must contain a valid end date');}
     if(contract.endDate.getTime() - contract.startDate.getTime() < 0 ){throw new Error('Start date cannot be after end date');}
   }
-
-
-
-
-
-
-
-
-
-
-
 
 }
