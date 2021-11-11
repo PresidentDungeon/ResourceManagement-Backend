@@ -14,6 +14,7 @@ import { IRoleService, IRoleServiceProvider } from "../primary-ports/role.servic
 import { IStatusService, IStatusServiceProvider } from "../primary-ports/status.service.interface";
 import { Role } from "../models/role";
 import { Status } from "../models/status";
+import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 
 @Injectable()
 export class UserService implements IUserService{
@@ -329,7 +330,10 @@ export class UserService implements IUserService{
 
     let foundUser = await this.getUserByUsername(username);
     await this.verifyPasswordToken(foundUser, passwordToken);
-    return await this.updatePassword(foundUser, password);
+    const success = await this.updatePassword(foundUser, password);
+    try{await this.passwordTokenRepository.createQueryBuilder().delete().from(PasswordTokenEntity).andWhere(`userID = :ID`, { ID: `${foundUser.ID}`}).execute();}
+    catch (e) {throw new Error('Internal server error')}
+    return success;
   }
 
   async updatePasswordWithID(userID: number, password: string, oldPassword: string): Promise<boolean>{
@@ -341,8 +345,6 @@ export class UserService implements IUserService{
 
   async updatePassword(user: User, password: string): Promise<boolean>{
 
-    this.verifyUserEntity(user);
-
     if(password == null || password.length < 8){
       throw new Error('Password must be minimum 8 characters long');
     }
@@ -350,7 +352,9 @@ export class UserService implements IUserService{
     user.salt = this.authenticationHelper.generateToken(this.saltLength);
     user.password = this.authenticationHelper.generateHash(password, user.salt);
 
-    try{await this.userRepository.save(user);}
+    try{
+      await this.userRepository.save(user);
+    }
     catch (e) {throw new Error('Internal server error')}
 
     return true;
