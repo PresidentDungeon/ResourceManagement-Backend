@@ -1667,7 +1667,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
