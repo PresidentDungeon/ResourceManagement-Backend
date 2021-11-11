@@ -10,6 +10,7 @@ export interface IUserService{
 
   createUser(username: string, password: string): Promise<User>
   addUser(user: User): Promise<[User, string]>
+  registerUsers(users: User[]): Promise<[User[], User[]]>
   verifyUser(username: string, verificationCode: string)
   getUserByUsername(username: string): Promise<User>
   getUserByID(ID: number): Promise<User>

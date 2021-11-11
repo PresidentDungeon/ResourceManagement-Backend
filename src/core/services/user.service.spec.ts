@@ -18,12 +18,15 @@ import { IStatusServiceProvider } from "../primary-ports/status.service.interfac
 import { RoleEntity } from "../../infrastructure/data-source/postgres/entities/role.entity";
 import { StatusService } from "./status.service";
 import { StatusEntity } from "../../infrastructure/data-source/postgres/entities/status.entity";
+import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
+import { ConfirmationToken } from "../models/confirmation.token";
 
 describe('UserService', () => {
   let service: UserService;
   let authenticationMock: AuthenticationHelper;
   let mockUserRepository: Repository<UserEntity>;
   let mockPasswordTokenRepository: Repository<PasswordTokenEntity>
+  let mockConfirmationTokenRepository: Repository<ConfirmationTokenEntity>
   let mockRoleService: RoleService
   let mockStatusService: StatusService
 
@@ -59,6 +62,17 @@ describe('UserService', () => {
         count: jest.fn((options: FindManyOptions<PasswordTokenEntity>) => {}),
         save: jest.fn((passwordTokenEntity: PasswordTokenEntity) => { return new Promise(resolve => {resolve(PasswordTokenEntity);});}),
         create: jest.fn((passwordTokenEntity: PasswordTokenEntity) => {return new Promise(resolve => {resolve(PasswordTokenEntity);});}),
+        execute: jest.fn(() => {}),
+        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
+      })
+    }
+
+    const MockConfirmationTokenRepository = {
+      provide: getRepositoryToken(ConfirmationTokenEntity),
+      useFactory: () => ({
+        count: jest.fn((options: FindManyOptions<ConfirmationTokenEntity>) => {}),
+        save: jest.fn((confirmationTokenEntity: ConfirmationTokenEntity) => { return new Promise(resolve => {resolve(ConfirmationTokenEntity);});}),
+        create: jest.fn((confirmationTokenEntity: ConfirmationTokenEntity) => {return new Promise(resolve => {resolve(ConfirmationTokenEntity);});}),
         execute: jest.fn(() => {}),
         createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
       })
@@ -105,13 +119,14 @@ describe('UserService', () => {
     }
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService, AuthenticationMock, MockUserRepository, MockPasswordTokenRepository, RoleServiceMock, StatusServiceMock],
+      providers: [UserService, AuthenticationMock, MockUserRepository, MockConfirmationTokenRepository, MockPasswordTokenRepository, RoleServiceMock, StatusServiceMock],
     }).compile();
 
     service = module.get<UserService>(UserService);
     authenticationMock = module.get<AuthenticationHelper>(AuthenticationHelper);
     mockUserRepository = module.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
     mockPasswordTokenRepository = module.get<Repository<PasswordTokenEntity>>(getRepositoryToken(PasswordTokenEntity));
+    mockConfirmationTokenRepository = module.get<Repository<ConfirmationTokenEntity>>(getRepositoryToken(ConfirmationTokenEntity));
     mockRoleService = module.get<RoleService>(IRoleServiceProvider);
     mockStatusService = module.get<StatusService>(IStatusServiceProvider);
   });
@@ -126,6 +141,10 @@ describe('UserService', () => {
 
     it('Mock user repository Should be defined', () => {
       expect(mockUserRepository).toBeDefined();
+    });
+
+    it('Mock confirmation token repository Should be defined', () => {
+      expect(mockConfirmationTokenRepository).toBeDefined();
     });
 
     it('Mock password token repository Should be defined', () => {
@@ -219,7 +238,6 @@ describe('UserService', () => {
       username: '',
       password: 'Password',
       salt: 'SaltValue',
-      verificationCode: 'verificationCode',
       role: {ID: 1, role: 'User'},
       status: {ID: 1, status: 'Pending'}
     }
@@ -230,6 +248,7 @@ describe('UserService', () => {
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.create).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);
   });
 
   it('Saving user is successful on valid data', async () => {
@@ -241,7 +260,6 @@ describe('UserService', () => {
       username: 'Peter@gmail.com',
       password: 'Password',
       salt: 'saltValue',
-      verificationCode: 'verificationCode',
       role: {ID: 1, role: 'User'},
       status: {ID: 1, status: 'Pending'}
     }
@@ -260,6 +278,7 @@ describe('UserService', () => {
     expect(mockUserRepository.create).toHaveBeenCalledTimes(1);
     expect(mockUserRepository.create).toHaveBeenCalledWith(user);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
   });
 
   it('Saving user throws error when registering with same username', async () => {
@@ -273,7 +292,6 @@ describe('UserService', () => {
       username: 'Peter@gmail.com',
       password: 'Password',
       salt: 'SaltValue',
-      verificationCode: 'verificationCode',
       role: {ID: 1, role: 'User'},
       status: {ID: 1, status: 'Pending'}
     }
@@ -284,6 +302,7 @@ describe('UserService', () => {
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.create).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);
   });
 
    it('Error during saving of user throws correct error', async () => {
@@ -297,7 +316,6 @@ describe('UserService', () => {
        username: 'Peter@gmail.com',
        password: 'Password',
        salt: 'SaltValue',
-       verificationCode: 'verificationCode',
        role: {ID: 1, role: 'User'},
        status: {ID: 1, status: 'Pending'}
      }
@@ -310,8 +328,34 @@ describe('UserService', () => {
      expect(mockUserRepository.create).toHaveBeenCalledTimes(1);
      expect(mockUserRepository.create).toHaveBeenCalledWith(user);
      expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+     expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);
    });
 
+    it('Error during saving of user confirmation throws correct error', async () => {
+
+      jest.spyOn(mockConfirmationTokenRepository, "save").mockImplementationOnce(resolve => {throw new Error()});
+
+      let errorStringToExcept: string = 'Internal server error';
+
+      let user: User = {
+        ID: 0,
+        username: 'Peter@gmail.com',
+        password: 'Password',
+        salt: 'SaltValue',
+        role: {ID: 1, role: 'User'},
+        status: {ID: 1, status: 'Pending'}
+      }
+
+      await expect(service.addUser(user)).rejects.toThrow(errorStringToExcept);
+      expect(mockUserRepository.count).toHaveBeenCalledTimes(1);
+      expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+      expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
+      expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
+      expect(mockUserRepository.create).toHaveBeenCalledTimes(1);
+      expect(mockUserRepository.create).toHaveBeenCalledWith(user);
+      expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+      expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
+    });
   //#endregion
 
   //#region GetUserByUsername
@@ -349,7 +393,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 1, status: 'Pending'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     jest
@@ -402,7 +445,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 1, status: 'Pending'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     jest
@@ -452,9 +494,9 @@ describe('UserService', () => {
    it('Get users returns valid filterList', async () => {
 
      let storedUsers: UserEntity[] = [
-       {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 2, status: 'active'}, role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
-       {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
-       {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 2, role: 'admin'}, passwordToken: undefined, verificationCode: 'someToken'},
+       {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 2, status: 'active'}, role: {ID: 1, role: 'user'}, passwordToken: undefined},
+       {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 1, role: 'user'}, passwordToken: undefined},
+       {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 2, role: 'admin'}, passwordToken: undefined},
      ]
 
      let expectedTotalListSize: number = 3;
@@ -490,9 +532,9 @@ describe('UserService', () => {
    it('Get users returns valid filterList when offset', async () => {
 
      let storedUsers: UserEntity[] = [
-       {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 2, status: 'active'}, role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
-       {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
-       {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 2, role: 'admin'}, passwordToken: undefined, verificationCode: 'someToken'},
+       {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 2, status: 'active'}, role: {ID: 1, role: 'user'}, passwordToken: undefined},
+       {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 1, role: 'user'}, passwordToken: undefined},
+       {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 2, role: 'admin'}, passwordToken: undefined},
      ]
 
      let expectedTotalListSize: number = 3;
@@ -541,9 +583,9 @@ describe('UserService', () => {
    it('Get users returns valid filterList when limit', async () => {
 
      let storedUsers: UserEntity[] = [
-       {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 2, status: 'active'}, role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
-       {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 1, role: 'user'}, passwordToken: undefined, verificationCode: 'someToken'},
-       {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 2, role: 'admin'}, passwordToken: undefined, verificationCode: 'someToken'},
+       {ID: 1, username: 'Peter@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 2, status: 'active'}, role: {ID: 1, role: 'user'}, passwordToken: undefined},
+       {ID: 2, username: 'Hans@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 1, role: 'user'}, passwordToken: undefined},
+       {ID: 3, username: 'Lars@gmail.com', password: 'somePassword', salt: 'someSalt', status: {ID: 1, status: 'pending'}, role: {ID: 2, role: 'admin'}, passwordToken: undefined},
      ]
 
      let expectedTotalListSize: number = 3;
@@ -594,19 +636,24 @@ describe('UserService', () => {
 
   //#region VerifyUser
 
-  it('Verification of user with invalid username throws error', async () => {
+  it('Verification of user with invalid verification token throws error', async () => {
 
-    let username: string = '';
-    let verificationCode = "X2TMM6";
+    let username: string = 'someUser@gmail.com';
+    let verificationCode = "";
 
-    let errorStringToExcept: string = 'Username must be instantiated or valid';
+    let errorStringToExcept: string = 'Invalid verification code entered';
 
-    await expect(service.verifyUser(null, verificationCode)).rejects.toThrow(errorStringToExcept);
-    await expect(service.verifyUser(undefined, verificationCode)).rejects.toThrow(errorStringToExcept);
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return null;});
+
+    await expect(service.verifyUser(username, null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.verifyUser(username, undefined)).rejects.toThrow(errorStringToExcept);
     await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
 
-    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
   });
@@ -622,7 +669,7 @@ describe('UserService', () => {
     await expect(service.verifyUser(username, undefined)).rejects.toThrow(errorStringToExcept);
     await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
 
-    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
@@ -635,11 +682,10 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     jest
-      .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
+      .spyOn(mockConfirmationTokenRepository.createQueryBuilder(), 'getOne')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
 
     jest
@@ -654,7 +700,7 @@ describe('UserService', () => {
     await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
     expect(authenticationMock.generateHash).toHaveBeenCalledWith(verificationCode, storedUser.salt);
-    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
   });
@@ -666,26 +712,27 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
+    let verificationCode = "2xY3b4";
+
+    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, hashedConfirmationToken: 'someHashedToken'};
+
     jest
-      .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedUser);});});
+      .spyOn(mockConfirmationTokenRepository.createQueryBuilder(), 'getOne')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedConfirmationToken);});});
 
     jest
       .spyOn(service, 'getUserByUsername')
       .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
 
     let username: string = "peter@gmail.com";
-    let verificationCode = "2xY3b4";
-
     let errorStringToExcept: string = 'This user has already been verified';
 
     await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
     expect(authenticationMock.generateHash).toHaveBeenCalledWith(verificationCode, storedUser.salt);
-    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
   });
@@ -697,24 +744,25 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 1, status: 'pending'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
+    let username: string = "peter@gmail.com";
+    let verificationCode = "2xY3b4";
+
+    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, hashedConfirmationToken: 'someHashedToken'};
+
     jest
-      .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedUser);});});
+      .spyOn(mockConfirmationTokenRepository.createQueryBuilder(), 'getOne')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedConfirmationToken);});});
 
     jest
       .spyOn(service, 'getUserByUsername')
       .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
 
-    let username: string = "peter@gmail.com";
-    let verificationCode = "2xY3b4";
-
     await expect(await service.verifyUser(username, verificationCode)).resolves;
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
     expect(authenticationMock.generateHash).toHaveBeenCalledWith(verificationCode, storedUser.salt);
-    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
     expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
@@ -747,7 +795,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     let userDTO: UserDTO = {ID: 1, username: null, status: {ID: 2, status: 'active'}, role: {ID: 2, role: 'admin'}};
@@ -779,7 +826,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     let userDTO: UserDTO = {ID: 1, username: null, status: {ID: 2, status: 'active'}, role: {ID: 2, role: 'admin'}};
@@ -815,7 +861,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     let userDTO: UserDTO = {ID: 1, username: null, status: {ID: 2, status: 'active'}, role: {ID: 2, role: 'admin'}};
@@ -851,7 +896,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     let expectedUser: UserEntity = {
@@ -860,7 +904,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
       role: {ID: 2, role: 'admin'}};
 
 
@@ -969,7 +1012,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'somePassword',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'admin'},
     }
@@ -1001,7 +1043,6 @@ describe('UserService', () => {
       password: 'somePassword',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: 'verificationToken',
       role: {ID: 1, role: 'admin'},
     }
 
@@ -1011,7 +1052,7 @@ describe('UserService', () => {
     expect(service.verifyUserEntity).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);;
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);;
   });
 
   it('Generation of new token with invalid user fails', async () => {
@@ -1026,7 +1067,6 @@ describe('UserService', () => {
       password: 'somePassword',
       salt: 'someSalt',
       status: {ID: 1, status: 'pending'},
-      verificationCode: 'verificationToken',
       role: {ID: 1, role: 'admin'},
     }
 
@@ -1037,7 +1077,7 @@ describe('UserService', () => {
     expect(service.verifyUserEntity).toHaveBeenCalledWith(user);
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);
   });
 
   it('Generation of new token with error during save throws correct errorcode', async () => {
@@ -1047,15 +1087,14 @@ describe('UserService', () => {
       .mockImplementationOnce((user: User) => {});
 
     jest
-      .spyOn(mockUserRepository, 'save')
-      .mockImplementationOnce((user: User) => {throw new Error()});
+      .spyOn(mockConfirmationTokenRepository, 'save')
+      .mockImplementationOnce((confirmationToken: ConfirmationToken) => {throw new Error()});
 
     let user: User = {
       ID: 0,
       username: 'Username@gmail.com',
       password: 'somePassword',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 1, status: 'pending'},
       role: {ID: 1, role: 'admin'},
     }
@@ -1068,7 +1107,7 @@ describe('UserService', () => {
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
     expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
   });
 
   it('Generation of new token with valid data is successful', async () => {
@@ -1082,7 +1121,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'somePassword',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 1, status: 'pending'},
       role: {ID: 1, role: 'admin'},
     }
@@ -1096,7 +1134,7 @@ describe('UserService', () => {
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
     expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
@@ -1151,7 +1189,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 3, status: 'disabled'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     jest
@@ -1179,7 +1216,6 @@ describe('UserService', () => {
       password: 'Password',
       salt: 'someSalt',
       status: {ID: 2, status: 'active'},
-      verificationCode: '2xY3b4',
       role: {ID: 1, role: 'user'}};
 
     jest
@@ -1242,51 +1278,51 @@ describe('UserService', () => {
       { input: user = null, expected: "User must be instantiated" },
       { input: user = undefined, expected: "User must be instantiated" },
 
-      { input: user = {ID: undefined, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: undefined, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid ID" },
-      { input: user = {ID: null, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: null, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid ID" },
-      { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid ID" },
-      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Jensen', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen@@gmail', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Jensen@@gmail', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Jensen@@hotmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Jensen@@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Username" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: undefined, salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: undefined, salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: null, salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: null, salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: '', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: '', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: ' ', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: ' ', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid Password" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: '', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: '', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: ' ', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: ' ', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: null, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: null, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: undefined, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: undefined, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 0, role: 'user'}, status: {ID: 1, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 0, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with user role" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: null},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: null},
         expected: "An error occurred with user status" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: undefined},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: undefined},
         expected: "An error occurred with user status" },
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 0, status: 'pending'}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 0, status: 'pending'}},
         expected: "An error occurred with user status" },
     ];
 
@@ -1298,11 +1334,11 @@ describe('UserService', () => {
   describe('Validation of valid user does not throw error', () => {
     let user: User;
     const theories = [
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Jan@hotmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: ''}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Petrud@hotmail.de', password: 'somePassword', salt: 'someSalt', verificationCode: '', role: {ID: 2, role: 'admin'}, status: {ID: 1, status: 'pending'}}},
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 2, status: 'active'}}},
-      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', verificationCode: 'verificationCode', role: {ID: 1, role: 'user'}, status: {ID: 2, status: ''}}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Jan@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: ''}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Petrud@hotmail.de', password: 'somePassword', salt: 'someSalt', role: {ID: 2, role: 'admin'}, status: {ID: 1, status: 'pending'}}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: 'active'}}},
+      { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: ''}}},
     ];
 
     theoretically('No error message is thrown on valid user', theories, theory => {
@@ -1325,7 +1361,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1359,7 +1394,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1387,7 +1421,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1415,7 +1448,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1437,7 +1469,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1461,7 +1492,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1490,7 +1520,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1520,7 +1549,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1555,7 +1583,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1593,7 +1620,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1623,7 +1649,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1658,7 +1683,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1692,7 +1716,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1722,7 +1745,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
@@ -1750,7 +1772,6 @@ describe('UserService', () => {
       username: 'Username@gmail.com',
       password: 'Password',
       salt: 'someSalt',
-      verificationCode: 'verificationCode',
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 

@@ -35,6 +35,20 @@ export class UserController {
     }
   }
 
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Post('registerUsers')
+  async registerUsers(@Body() unregisteredUsers: User[]){
+    try
+    {
+
+    }
+    catch (e)
+    {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Get('resendVerificationMail')
   async resendVerificationMail(@Query() verificationRequestDTO: VerificationRequestDTO){
 
@@ -49,7 +63,7 @@ export class UserController {
 
   @Get('getUserByID')
   async getUserByID(@Query() userID: any){
-    
+
     try{
       let foundUser = await this.userService.getUserByID(userID.ID);
       let userDTO: UserDTO = {ID: foundUser.ID, role: foundUser.role, username: foundUser.username, status: foundUser.status};

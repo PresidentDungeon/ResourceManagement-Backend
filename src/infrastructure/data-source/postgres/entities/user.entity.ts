@@ -2,6 +2,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, Prim
 import { RoleEntity } from "./role.entity";
 import { PasswordTokenEntity } from "./password-token.entity";
 import { StatusEntity } from "./status.entity";
+import { ConfirmationTokenEntity } from "./confirmation-token.entity";
 
 @Entity()
 export class UserEntity {
@@ -18,9 +19,6 @@ export class UserEntity {
   @Column()
   public salt: string;
 
-  @Column()
-  public verificationCode: string;
-
   @Index()
   @ManyToOne(() => StatusEntity, (statusEntity: StatusEntity) => statusEntity.users)
   public status: StatusEntity;
@@ -31,6 +29,9 @@ export class UserEntity {
 
   @OneToOne(() => PasswordTokenEntity,{cascade: true})
   public passwordToken?: PasswordTokenEntity
+
+  @OneToOne(() => ConfirmationTokenEntity,{cascade: true})
+  public confirmationToken?: ConfirmationTokenEntity
 
 }
 

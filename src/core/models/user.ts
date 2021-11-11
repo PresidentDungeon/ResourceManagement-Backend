@@ -8,5 +8,4 @@ export interface User {
   salt: string
   role: Role
   status: Status
-  verificationCode: string
 }
