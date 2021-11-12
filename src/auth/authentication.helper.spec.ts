@@ -45,7 +45,7 @@ describe('AuthenticationService', () => {
   });
   //#endregion
 
-  //#region GenerateRandomString
+  //#region GenerateToken
 
   describe('Generated token throws error on invalid token length', () => {
     let tokenLength: Number;
@@ -70,6 +70,8 @@ describe('AuthenticationService', () => {
 
      const theories = [
        { input: tokenLength = 1},
+       { input: tokenLength = 10},
+       { input: tokenLength = 20},
      ];
 
      theoretically('The token is of expected length', theories, theory => {
@@ -80,7 +82,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region GenerateHash
+  //#region GenerateHash
 
    it('Generated hash value should be defined', () => {
      let password: string = "somePassword";
@@ -100,7 +102,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region validateLogin
+  //#region validateLogin
 
    it('Valid login for user', () => {
 
@@ -149,7 +151,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region GenerateJWTToken
+  //#region GenerateJWTToken
 
    it('Generation of JWT token is successful on valid user', () => {
 
@@ -171,7 +173,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region validateJWTToken
+  //#region validateJWTToken
 
    it('Validate valid token should return true', () => {
      let token: string = 'SomeToken';
@@ -194,7 +196,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region ValidatePasswordToken
+  //#region ValidatePasswordToken
 
    it('Validation of expired password token throws error',  () => {
 

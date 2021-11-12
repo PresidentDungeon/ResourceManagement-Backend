@@ -22,9 +22,9 @@ describe('ContractService', () => {
     const MockContractRepository = {
       provide: getRepositoryToken(ContractEntity),
       useFactory: () => ({
-        count: jest.fn((options: FindManyOptions<UserEntity>) => {}),
-        save: jest.fn((userEntity: UserEntity) => { return new Promise(resolve => {resolve(userEntity);});}),
-        create: jest.fn((userEntity: UserEntity) => {return new Promise(resolve => {resolve(userEntity);});}),
+        count: jest.fn((options: FindManyOptions<ContractEntity>) => {}),
+        save: jest.fn((contractEntity: ContractEntity) => { return new Promise(resolve => {resolve(contractEntity);});}),
+        create: jest.fn((contractEntity: ContractEntity) => {return new Promise(resolve => {resolve(contractEntity);});}),
         execute: jest.fn(() => {}),
         createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
       })
@@ -33,9 +33,9 @@ describe('ContractService', () => {
     const MockContractorRepository = {
       provide: getRepositoryToken(ContractorEntity),
       useFactory: () => ({
-        count: jest.fn((options: FindManyOptions<UserEntity>) => {}),
-        save: jest.fn((userEntity: UserEntity) => { return new Promise(resolve => {resolve(userEntity);});}),
-        create: jest.fn((userEntity: UserEntity) => {return new Promise(resolve => {resolve(userEntity);});}),
+        count: jest.fn((options: FindManyOptions<ContractorEntity>) => {}),
+        save: jest.fn((contractorEntity: ContractorEntity) => { return new Promise(resolve => {resolve(contractorEntity);});}),
+        create: jest.fn((contractorEntity: ContractorEntity) => {return new Promise(resolve => {resolve(contractorEntity);});}),
         execute: jest.fn(() => {}),
         createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
       })
@@ -271,7 +271,10 @@ describe('ContractService', () => {
       .spyOn(service, 'verifyContractEntity')
       .mockImplementationOnce((contract: Contract) => {});
 
-    await expect(await service.update(contractToUpdate)).resolves;
+    let updatedContract: Contract;
+
+    await expect(updatedContract = await service.update(contractToUpdate)).resolves;
+    expect(updatedContract).toStrictEqual(contractToUpdate);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contractToUpdate.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
@@ -347,7 +350,7 @@ describe('ContractService', () => {
       { contractorID: 8, expectedAmount: 0 },
     ];
 
-    theoretically('The right error message is thrown to the fitting error', theories, async theory => {
+    theoretically('The right contract count is calculated', theories, async theory => {
 
       jest.spyOn(mockContractRepository.createQueryBuilder(), 'getCount').mockImplementationOnce(() => {
         let count: number = 0;
@@ -411,23 +414,6 @@ describe('ContractService', () => {
     expect(result).toStrictEqual(expectedResult);
     expect(mockContractorRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
   });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   //#endregion
 

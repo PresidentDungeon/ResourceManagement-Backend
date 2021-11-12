@@ -9,8 +9,8 @@ export interface IContractService{
   getContractByID(ID: number): Promise<Contract>
   update(contract: Contract): Promise<Contract>
   delete(ID: number)
-  getContractorCount(ID: number)
-  verifyContractEntity(contract: Contract)
+  getContractorCount(ID: number): Promise<number>
+  getContractorsCount(contractors: Contractor[]): Promise<Contractor[]>
 
-  getContractorsCount(contractors: Contractor[])
+  verifyContractEntity(contract: Contract)
 }

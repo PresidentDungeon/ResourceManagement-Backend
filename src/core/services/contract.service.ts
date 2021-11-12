@@ -76,7 +76,7 @@ export class ContractService implements IContractService{
     }
   }
 
-  async getContractorCount(ID: number) {
+  async getContractorCount(ID: number): Promise<number> {
 
     if(ID == null || ID <= 0){
       throw new Error('Contract ID must be instantiated or valid');
@@ -90,7 +90,7 @@ export class ContractService implements IContractService{
     return amount;
   }
 
-  async getContractorsCount(contracts: Contractor[]) {
+  async getContractorsCount(contracts: Contractor[]): Promise<Contractor[]> {
 
     let contractIDs: number[] = [];
     contracts.map((contract) => {contractIDs.push(contract.ID); contract.count = 0});

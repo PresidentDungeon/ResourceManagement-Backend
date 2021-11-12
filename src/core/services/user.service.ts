@@ -16,7 +16,6 @@ import { Role } from "../models/role";
 import { Status } from "../models/status";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
-import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 
 @Injectable()
 export class UserService implements IUserService{
@@ -60,7 +59,7 @@ export class UserService implements IUserService{
     let confirmationTokens: string[] = [];
 
     let userRole: Role = await this.roleService.findRoleByName('user');
-    let userStatus: Status = await this.statusService.findStatusByName('active');
+    let userStatus: Status = await this.statusService.findStatusByName('pending');
 
     for (let user of users) {
       if(user == null || !this.emailRegex.test(user.username)){
@@ -80,12 +79,14 @@ export class UserService implements IUserService{
         user.password = '';
         user.salt = this.generateSalt();
 
+        const tokenSalt = this.authenticationHelper.generateToken(this.saltLength);
         const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
-        const hashedVerificationCode = this.generateHash(verificationCode, user.salt);
+        const hashedVerificationCode = this.generateHash(verificationCode, tokenSalt);
+
         const newUser = await this.userRepository.create(user);
         try{
           const savedUser = await this.userRepository.save(newUser);
-          const confirmationToken: ConfirmationToken = {user: JSON.parse(JSON.stringify({ID: savedUser.ID})), hashedConfirmationToken: hashedVerificationCode};
+          const confirmationToken: ConfirmationToken = {user: JSON.parse(JSON.stringify({ID: savedUser.ID})), salt: tokenSalt, hashedConfirmationToken: hashedVerificationCode};
           await this.confirmationTokenRepository.save(confirmationToken);
 
           allUsers.push(savedUser);
@@ -109,12 +110,13 @@ export class UserService implements IUserService{
     }
 
     const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
-    const hashedVerificationCode = this.generateHash(verificationCode, user.salt);
+    const tokenSalt = this.authenticationHelper.generateToken(this.saltLength);
+    const hashedVerificationCode = this.generateHash(verificationCode, tokenSalt);
 
     const newUser = await this.userRepository.create(user);
     try{
       const savedUser = await this.userRepository.save(newUser);
-      const confirmationToken: ConfirmationToken = {user: JSON.parse(JSON.stringify({ID: savedUser.ID})), hashedConfirmationToken: hashedVerificationCode};
+      const confirmationToken: ConfirmationToken = {user: JSON.parse(JSON.stringify({ID: savedUser.ID})), salt: tokenSalt, hashedConfirmationToken: hashedVerificationCode};
       await this.confirmationTokenRepository.save(confirmationToken);
       return [savedUser, verificationCode];
     }
@@ -262,8 +264,9 @@ export class UserService implements IUserService{
 
     this.verifyUserEntity(user);
     const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
-    const hashedVerificationCode = this.authenticationHelper.generateHash(verificationCode, user.salt);
-    const confirmationToken: ConfirmationToken = {user: user, hashedConfirmationToken: hashedVerificationCode};
+    const saltValue = this.authenticationHelper.generateToken(this.saltLength);
+    const hashedVerificationCode = this.authenticationHelper.generateHash(verificationCode, saltValue);
+    const confirmationToken: ConfirmationToken = {user: user, salt: saltValue, hashedConfirmationToken: hashedVerificationCode};
     try{await this.confirmationTokenRepository.save(confirmationToken);}
     catch (e) {throw new Error('Internal server error')}
     return verificationCode;
@@ -295,7 +298,7 @@ export class UserService implements IUserService{
 
     let foundUser = await this.getUserByUsername(username);
 
-    if(foundUser.status.status != 'pending')
+    if(foundUser.status.status.toLowerCase() != 'pending')
     {
       throw new Error('This user has already been verified');
     }
@@ -316,16 +319,19 @@ export class UserService implements IUserService{
       throw new Error('Invalid verification code entered');
     }
 
-    const hashedVerificationCode = this.generateHash(confirmationCode, user.salt);
-
     let qb = this.confirmationTokenRepository.createQueryBuilder("token");
     qb.leftJoinAndSelect('token.user', 'user');
-    qb.leftJoinAndSelect('user.status', 'status');
-    qb.andWhere(`user.username = :username`, { username: `${user.username}`});
-    qb.andWhere(`token.hashedConfirmationToken = :confirmationCode`, { confirmationCode: `${hashedVerificationCode}`});
+    qb.andWhere(`user.ID = :userID`, { userID: `${user.ID}`});
+
     const foundToken = await qb.getOne();
 
     if(foundToken == null) {
+      throw new Error('Invalid verification code entered');
+    }
+
+    const hashedVerificationCode = this.generateHash(confirmationCode, foundToken.salt);
+
+    if(foundToken.hashedConfirmationToken != hashedVerificationCode) {
       throw new Error('Invalid verification code entered');
     }
   }
@@ -378,7 +384,7 @@ export class UserService implements IUserService{
     let foundUser = await this.getUserByUsername(username);
     await this.verifyUserConfirmationToken(foundUser, confirmationToken);
     let result = await this.updatePassword(foundUser, password);
-    await this.deleteUserConfirmationToken(foundUser.ID);
+    await this.verifyUser(username, confirmationToken);
     return result;
   }
 

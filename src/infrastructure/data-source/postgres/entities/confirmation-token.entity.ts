@@ -9,5 +9,8 @@ export class ConfirmationTokenEntity {
   public user: UserEntity;
 
   @Column()
+  public salt: string;
+
+  @Column()
   public hashedConfirmationToken: string;
 }

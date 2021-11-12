@@ -120,7 +120,7 @@ export class UserController {
   @Post('requestPasswordSignupChange')
   async requestPasswordSignupChange(@Body() passwordChangeRequestDTO: PasswordChangeRequestDTO){
     try{
-      await this.userService.updatePasswordConfirmationToken(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
+      await this.userService.updatePasswordWithConfirmationToken(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
       this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
     }
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
@@ -131,6 +131,17 @@ export class UserController {
     try{
       const passwordResetToken: string = await this.userService.generatePasswordResetToken(verificationRequestDTO.email);
       this.mailService.sendUserPasswordReset(verificationRequestDTO.email, passwordResetToken);
+    }
+    catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Post('verifyConfirmationToken')
+  async verifyConfirmationToken(@Body() verificationDTO: VerificationDTO){
+    try {
+      let foundUser = await this.userService.getUserByUsername(verificationDTO.username);
+      await this.userService.verifyUserConfirmationToken(foundUser, verificationDTO.verificationCode);
     }
     catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
