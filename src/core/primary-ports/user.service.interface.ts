@@ -9,28 +9,35 @@ export const IUserServiceProvider = 'IUserServiceProvider'
 export interface IUserService{
 
   createUser(username: string, password: string): Promise<User>
+  registerUsers(users: User[]): Promise<[User[], User[], string[]]>
   addUser(user: User): Promise<[User, string]>
-  verifyUser(username: string, verificationCode: string)
   getUserByUsername(username: string): Promise<User>
   getUserByID(ID: number): Promise<User>
   getUsers(filter: Filter): Promise<FilterList<UserDTO>>
   updateUser(userDTO: UserDTO): Promise<User>
 
-  generateSalt(): string
-  generateHash(password: string, salt: string): string
-  generateJWTToken(user: User): string
+  login(username: string, password: string): Promise<User>
   generateNewVerificationCode(user: User): Promise<string>
   generatePasswordResetToken(username: string): Promise<string>
-
-  login(username: string, password: string): Promise<User>
-  verifyJWTToken(token: string): boolean
+  verifyUser(username: string, verificationCode: string)
+  verifyUserConfirmationToken(user: User, confirmationCode: string)
   verifyPasswordToken(user: User, passwordToken: string)
+  deleteUserConfirmationToken(userID: number): Promise<void>
+
+  updatePasswordWithConfirmationToken(username: string, confirmationToken: string, password: string): Promise<boolean>
   updatePasswordWithToken(username: string, passwordToken: string, password: string): Promise<boolean>
   updatePasswordWithID(userID: number, password: string, oldPassword: string): Promise<boolean>
   updatePassword(user: User, password: string): Promise<boolean>
+
+  generateSalt(): string
+  generateHash(password: string, salt: string): string
+  generateJWTToken(user: User): string
+  verifyJWTToken(token: string): boolean
 
   verifyUserEntity(user: User): void
 
   getAllUserRoles(): Promise<Role[]>
   getAllStatuses(): Promise<Status[]>
 }
+
+

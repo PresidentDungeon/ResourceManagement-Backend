@@ -31,7 +31,7 @@ export class AuthenticationHelper {
     return value;
   }
 
-  validateLogin(userToValidate: User, password: string): void{
+  validateLogin(userToValidate: User, password: string){
 
     let hashedPassword: string = this.generateHash(password, userToValidate.salt);
     let storedPassword: string = userToValidate.password;

@@ -14,9 +14,10 @@ import { IStatusServiceProvider } from "../core/primary-ports/status.service.int
 import { StatusService } from "../core/services/status.service";
 import { RoleEntity } from "../infrastructure/data-source/postgres/entities/role.entity";
 import { StatusEntity } from "../infrastructure/data-source/postgres/entities/status.entity";
+import { ConfirmationTokenEntity } from "../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity, PasswordTokenEntity, RoleEntity, StatusEntity]), AuthModule, MailModule, SocketModule],
+  imports: [TypeOrmModule.forFeature([UserEntity, ConfirmationTokenEntity, PasswordTokenEntity, RoleEntity, StatusEntity]), AuthModule, MailModule, SocketModule],
   providers: [
     {provide: IUserServiceProvider, useClass: UserService},
     {provide: IRoleServiceProvider, useClass: RoleService},

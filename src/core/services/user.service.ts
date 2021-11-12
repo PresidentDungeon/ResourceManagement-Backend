@@ -14,7 +14,8 @@ import { IRoleService, IRoleServiceProvider } from "../primary-ports/role.servic
 import { IStatusService, IStatusServiceProvider } from "../primary-ports/status.service.interface";
 import { Role } from "../models/role";
 import { Status } from "../models/status";
-import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
+import { ConfirmationToken } from "../models/confirmation.token";
+import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 
 @Injectable()
 export class UserService implements IUserService{
@@ -28,6 +29,7 @@ export class UserService implements IUserService{
     private authenticationHelper: AuthenticationHelper,
     @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
+    @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
     @Inject(IStatusServiceProvider) private statusService: IStatusService
   ) {}
@@ -47,7 +49,54 @@ export class UserService implements IUserService{
     let salt: string = this.generateSalt();
     let hashedPassword: string = this.generateHash(password, salt);
 
-    return {ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus, verificationCode: ''};
+    return {ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus};
+  }
+
+  async registerUsers(users: User[]): Promise<[User[], User[], string[]]>{
+
+    let allUsers: User[] = [];
+    let addedUsers: User[] = [];
+    let confirmationTokens: string[] = [];
+
+    let userRole: Role = await this.roleService.findRoleByName('user');
+    let userStatus: Status = await this.statusService.findStatusByName('pending');
+
+    for (let user of users) {
+      if(user == null || !this.emailRegex.test(user.username)){
+        throw new Error('Username must be a valid email');
+      }
+    }
+
+    for (let user of users) {
+      try {
+        const foundUser = await this.getUserByUsername(user.username);
+        allUsers.push(foundUser);
+      }
+      catch (e) {
+        //User doesn't exist which is why error code is thrown
+        user.role = userRole;
+        user.status = userStatus;
+        user.password = '';
+        user.salt = this.generateSalt();
+
+        const tokenSalt = this.authenticationHelper.generateToken(this.saltLength);
+        const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
+        const hashedVerificationCode = this.generateHash(verificationCode, tokenSalt);
+
+        const newUser = await this.userRepository.create(user);
+        try{
+          const savedUser = await this.userRepository.save(newUser);
+          const confirmationToken: ConfirmationToken = {user: JSON.parse(JSON.stringify({ID: savedUser.ID})), salt: tokenSalt, hashedConfirmationToken: hashedVerificationCode};
+          await this.confirmationTokenRepository.save(confirmationToken);
+
+          allUsers.push(savedUser);
+          addedUsers.push(savedUser);
+          confirmationTokens.push(verificationCode);
+        }
+        catch (e) {throw new Error('Internal server error')}
+      }
+    }
+    return [allUsers, addedUsers, confirmationTokens];
   }
 
   async addUser(user: User): Promise<[User, string]> {
@@ -61,17 +110,17 @@ export class UserService implements IUserService{
     }
 
     const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
-    const hashedVerificationCode = this.generateHash(verificationCode, user.salt);
+    const tokenSalt = this.authenticationHelper.generateToken(this.saltLength);
+    const hashedVerificationCode = this.generateHash(verificationCode, tokenSalt);
 
-    user.verificationCode = hashedVerificationCode;
     const newUser = await this.userRepository.create(user);
-
     try{
-      const savedUser = await this.userRepository.save(newUser);;
+      const savedUser = await this.userRepository.save(newUser);
+      const confirmationToken: ConfirmationToken = {user: JSON.parse(JSON.stringify({ID: savedUser.ID})), salt: tokenSalt, hashedConfirmationToken: hashedVerificationCode};
+      await this.confirmationTokenRepository.save(confirmationToken);
       return [savedUser, verificationCode];
     }
     catch (e) {throw new Error('Internal server error')}
-
   }
 
   async getUserByUsername(username: string): Promise<User>{
@@ -170,37 +219,6 @@ export class UserService implements IUserService{
     return filterList;
   }
 
-  async verifyUser(username: string, verificationCode: string) {
-
-    if(verificationCode == null || verificationCode == undefined || verificationCode.length < this.verificationTokenCount)
-    {
-      throw new Error('Invalid verification code entered');
-    }
-
-    let foundUser = await this.getUserByUsername(username);
-    const hashedVerificationCode = this.generateHash(verificationCode, foundUser.salt);
-
-    let qb = this.userRepository.createQueryBuilder("user");
-    qb.leftJoinAndSelect('user.status', 'status');
-    qb.andWhere(`user.username = :username`, { username: `${username}`});
-    qb.andWhere(`user.verificationCode = :verificationCode`, { verificationCode: `${hashedVerificationCode}`});
-    foundUser = await qb.getOne();
-
-    if(foundUser == null)
-    {
-      throw new Error('Wrong verification code entered');
-    }
-    if(foundUser.status.status.toLowerCase() != 'pending')
-    {
-      throw new Error('This user has already been verified');
-    }
-
-    const activeStatus: Status = await this.statusService.findStatusByName('active');
-    foundUser.status = activeStatus;
-
-    await this.userRepository.save(foundUser);
-  }
-
   async updateUser(userDTO: UserDTO): Promise<User>{
 
     const foundUser = await this.getUserByID(userDTO.ID);
@@ -220,36 +238,7 @@ export class UserService implements IUserService{
     return updatedUser;
   }
 
-  generateSalt(): string {
-    return this.authenticationHelper.generateToken(this.saltLength);
-  }
 
-  generateHash(value: string, salt: string): string {
-    if(value == undefined || value == null || value.length == 0) {throw new Error('Value to hash must be instantiated');}
-    else if(salt == undefined || salt == null ||salt.length == 0) {throw new Error('Salt must be instantiated');}
-
-    return this.authenticationHelper.generateHash(value, salt);
-  }
-
-  generateJWTToken(user: User): string {
-    this.verifyUserEntity(user);
-    return this.authenticationHelper.generateJWTToken(user);
-  }
-
-  async generateNewVerificationCode(user: User): Promise<string>{
-
-    if(user.status.status.toLowerCase() != 'pending'){
-      throw new Error('This user has already been verified');
-    }
-
-    this.verifyUserEntity(user);
-    const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
-    const hashedVerificationCode = this.authenticationHelper.generateHash(verificationCode, user.salt);
-    user.verificationCode = hashedVerificationCode;
-    try{await this.userRepository.save(user);}
-    catch (e) {throw new Error('Internal server error')}
-    return verificationCode;
-  }
 
   async login(username: string, password: string): Promise<User> {
 
@@ -267,19 +256,20 @@ export class UserService implements IUserService{
     return foundUser;
   }
 
-  verifyJWTToken(token: string): boolean {
-    if(token == undefined || token == null || token.length == 0) {throw new Error('Must enter a valid token');}
-    return this.authenticationHelper.validateJWTToken(token);
-  }
+  async generateNewVerificationCode(user: User): Promise<string>{
 
-  verifyUserEntity(user: User) {
-    if(user == undefined || user == null) {throw new Error('User must be instantiated');}
-    if(user.ID == undefined || user.ID == null || user.ID < 0){throw new Error('User must have a valid ID')}
-    if(user.username == undefined || user.username == null || !this.emailRegex.test(user.username)){throw new Error('User must have a valid Username');}
-    if(user.password == undefined || user.password == null || user.password.trim().length <= 0){throw new Error('User must have a valid Password');}
-    if(user.salt == undefined || user.salt == null || user.salt.trim().length <= 0){throw new Error('An error occurred with Salt');}
-    if(user.role == undefined || user.role == null || user.role.ID <= 0){throw new Error('An error occurred with user role');}
-    if(user.status == undefined || user.status == null || user.status.ID <= 0){throw new Error('An error occurred with user status');}
+    if(user.status.status.toLowerCase() != 'pending'){
+      throw new Error('This user has already been verified');
+    }
+
+    this.verifyUserEntity(user);
+    const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
+    const saltValue = this.authenticationHelper.generateToken(this.saltLength);
+    const hashedVerificationCode = this.authenticationHelper.generateHash(verificationCode, saltValue);
+    const confirmationToken: ConfirmationToken = {user: user, salt: saltValue, hashedConfirmationToken: hashedVerificationCode};
+    try{await this.confirmationTokenRepository.save(confirmationToken);}
+    catch (e) {throw new Error('Internal server error')}
+    return verificationCode;
   }
 
   async generatePasswordResetToken(username: string): Promise<string>{
@@ -304,6 +294,48 @@ export class UserService implements IUserService{
     return passwordResetString;
   }
 
+  async verifyUser(username: string, verificationCode: string) {
+
+    let foundUser = await this.getUserByUsername(username);
+
+    if(foundUser.status.status.toLowerCase() != 'pending')
+    {
+      throw new Error('This user has already been verified');
+    }
+
+    await this.verifyUserConfirmationToken(foundUser, verificationCode);
+
+    const activeStatus: Status = await this.statusService.findStatusByName('active');
+    foundUser.status = activeStatus;
+
+    await this.userRepository.save(foundUser);
+    await this.deleteUserConfirmationToken(foundUser.ID);
+  }
+
+  async verifyUserConfirmationToken(user: User, confirmationCode: string){
+
+    if(confirmationCode == null || confirmationCode == undefined || confirmationCode.length < this.verificationTokenCount)
+    {
+      throw new Error('Invalid verification code entered');
+    }
+
+    let qb = this.confirmationTokenRepository.createQueryBuilder("token");
+    qb.leftJoinAndSelect('token.user', 'user');
+    qb.andWhere(`user.ID = :userID`, { userID: `${user.ID}`});
+
+    const foundToken = await qb.getOne();
+
+    if(foundToken == null) {
+      throw new Error('Invalid verification code entered');
+    }
+
+    const hashedVerificationCode = this.generateHash(confirmationCode, foundToken.salt);
+
+    if(foundToken.hashedConfirmationToken != hashedVerificationCode) {
+      throw new Error('Invalid verification code entered');
+    }
+  }
+
   async verifyPasswordToken(user: User, passwordToken: string){
 
     if(passwordToken == null || passwordToken == undefined || passwordToken.length < this.passwordResetStringCount)
@@ -324,6 +356,36 @@ export class UserService implements IUserService{
     }
 
     this.authenticationHelper.validatePasswordToken(foundPasswordToken);
+  }
+
+  async deleteUserConfirmationToken(userID: number){
+
+    if(userID == null || userID == undefined || userID <= 0){
+      throw new Error('User ID must be instantiated or valid');
+    }
+
+    try{
+      await this.confirmationTokenRepository.createQueryBuilder()
+        .delete()
+        .where("userID = :userID", { userID: `${userID}`})
+        .execute();
+    }
+    catch (e) {
+      throw new Error('Internal server error');
+    }
+
+  }
+
+
+
+
+  async updatePasswordWithConfirmationToken(username: string, confirmationToken: string, password: string): Promise<boolean>{
+
+    let foundUser = await this.getUserByUsername(username);
+    await this.verifyUserConfirmationToken(foundUser, confirmationToken);
+    let result = await this.updatePassword(foundUser, password);
+    await this.verifyUser(username, confirmationToken);
+    return result;
   }
 
   async updatePasswordWithToken(username: string, passwordToken: string, password: string): Promise<boolean>{
@@ -358,6 +420,42 @@ export class UserService implements IUserService{
 
     return true;
   }
+
+
+
+  generateSalt(): string {
+    return this.authenticationHelper.generateToken(this.saltLength);
+  }
+
+  generateHash(value: string, salt: string): string {
+    if(value == undefined || value == null || value.length == 0) {throw new Error('Value to hash must be instantiated');}
+    else if(salt == undefined || salt == null ||salt.length == 0) {throw new Error('Salt must be instantiated');}
+    return this.authenticationHelper.generateHash(value, salt);
+  }
+
+  generateJWTToken(user: User): string {
+    this.verifyUserEntity(user);
+    return this.authenticationHelper.generateJWTToken(user);
+  }
+
+  verifyJWTToken(token: string): boolean {
+    if(token == undefined || token == null || token.length == 0) {throw new Error('Must enter a valid token');}
+    return this.authenticationHelper.validateJWTToken(token);
+  }
+
+
+
+  verifyUserEntity(user: User) {
+    if(user == undefined || user == null) {throw new Error('User must be instantiated');}
+    if(user.ID == undefined || user.ID == null || user.ID < 0){throw new Error('User must have a valid ID')}
+    if(user.username == undefined || user.username == null || !this.emailRegex.test(user.username)){throw new Error('User must have a valid Username');}
+    if(user.password == undefined || user.password == null || user.password.trim().length <= 0){throw new Error('User must have a valid Password');}
+    if(user.salt == undefined || user.salt == null || user.salt.trim().length <= 0){throw new Error('An error occurred with Salt');}
+    if(user.role == undefined || user.role == null || user.role.ID <= 0){throw new Error('An error occurred with user role');}
+    if(user.status == undefined || user.status == null || user.status.ID <= 0){throw new Error('An error occurred with user status');}
+  }
+
+
 
   async getAllUserRoles(): Promise<Role[]>{
     return await this.roleService.getRoles();

@@ -35,6 +35,29 @@ export class UserController {
     }
   }
 
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
+  @Post('registerUsers')
+  async registerUsers(@Body() unregisteredUsers: User[]){
+    try
+    {
+      let allUsers: User[];
+      let registeredUsers: User[];
+      let confirmationTokens: string[];
+
+      [allUsers, registeredUsers, confirmationTokens] = await this.userService.registerUsers(unregisteredUsers);
+
+      let allUsersConverted: UserDTO[] = allUsers.map(user => {return {ID: user.ID, username: user.username, status: user.status, role: user.role}});
+      let emails: string[] = registeredUsers.map(user => {return user.username});
+      this.mailService.sendUsersRegistrationInvite(emails, confirmationTokens);
+      return allUsersConverted;
+    }
+    catch (e)
+    {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Get('resendVerificationMail')
   async resendVerificationMail(@Query() verificationRequestDTO: VerificationRequestDTO){
 
@@ -49,7 +72,7 @@ export class UserController {
 
   @Get('getUserByID')
   async getUserByID(@Query() userID: any){
-    
+
     try{
       let foundUser = await this.userService.getUserByID(userID.ID);
       let userDTO: UserDTO = {ID: foundUser.ID, role: foundUser.role, username: foundUser.username, status: foundUser.status};
@@ -94,12 +117,31 @@ export class UserController {
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
   }
 
+  @Post('requestPasswordSignupChange')
+  async requestPasswordSignupChange(@Body() passwordChangeRequestDTO: PasswordChangeRequestDTO){
+    try{
+      await this.userService.updatePasswordWithConfirmationToken(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
+      this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
+    }
+    catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
+  }
 
   @Get('requestPasswordMail')
   async requestPasswordResetMail(@Query() verificationRequestDTO: VerificationRequestDTO){
     try{
       const passwordResetToken: string = await this.userService.generatePasswordResetToken(verificationRequestDTO.email);
       this.mailService.sendUserPasswordReset(verificationRequestDTO.email, passwordResetToken);
+    }
+    catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Post('verifyConfirmationToken')
+  async verifyConfirmationToken(@Body() verificationDTO: VerificationDTO){
+    try {
+      let foundUser = await this.userService.getUserByUsername(verificationDTO.username);
+      await this.userService.verifyUserConfirmationToken(foundUser, verificationDTO.verificationCode);
     }
     catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
