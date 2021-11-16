@@ -4,16 +4,15 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 import { Contract } from "../models/contract";
-import { ContractorEntity } from "../../infrastructure/data-source/postgres/entities/contractor.entity";
-import { Contractor } from "../models/contractor";
-import { ContractorDTO } from "../../api/dtos/contractor.dto";
+import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
+import { Resume } from "../models/resume";
 
 @Injectable()
 export class ContractService implements IContractService{
 
   constructor(
     @InjectRepository(ContractEntity) private contractRepository: Repository<ContractEntity>,
-    @InjectRepository(ContractorEntity) private contractorRepository: Repository<ContractorEntity>,
+    @InjectRepository(ResumeEntity) private contractorRepository: Repository<ResumeEntity>,
   ) {}
 
   async addContract(contract: Contract): Promise<Contract> {
@@ -76,37 +75,37 @@ export class ContractService implements IContractService{
     }
   }
 
-  async getContractorCount(ID: number): Promise<number> {
+  async getResumeCount(ID: number): Promise<number> {
 
     if(ID == null || ID <= 0){
-      throw new Error('Contract ID must be instantiated or valid');
+      throw new Error('Resume ID must be instantiated or valid');
     }
 
     let qb = this.contractRepository.createQueryBuilder('contract');
-    qb.leftJoin('contract.contractors', 'contractors');
-    qb.andWhere('contractors.ID = :contractorID', {contractorID: `${ID}`});
+    qb.leftJoin('contract.resumes', 'resumes');
+    qb.andWhere('resumes.ID = :resumeID', {resumeID: `${ID}`});
     const amount = await qb.getCount();
 
     return amount;
   }
 
-  async getContractorsCount(contracts: Contractor[]): Promise<Contractor[]> {
+  async getResumesCount(resumes: Resume[]): Promise<Resume[]> {
 
-    let contractIDs: number[] = [];
-    contracts.map((contract) => {contractIDs.push(contract.ID); contract.count = 0});
+    let resumeIDs: number[] = [];
+    resumes.map((resume) => {resumeIDs.push(resume.ID); resume.count = 0});
 
-    let qb = this.contractorRepository.createQueryBuilder('contractor');
-    qb.leftJoin('contractor.contracts', 'contracts');
-    qb.andWhere('contractor.ID IN (:...contractorIDs)', {contractorIDs: contractIDs});
-    qb.select('contractor.ID', 'ID');
+    let qb = this.contractorRepository.createQueryBuilder('resume');
+    qb.leftJoin('resume.contracts', 'contracts');
+    qb.andWhere('resume.ID IN (:...resumeIDs)', {resumeIDs: resumeIDs});
+    qb.select('resume.ID', 'ID');
     qb.addSelect('COUNT(DISTINCT(contracts.ID)) as contracts');
-    qb.groupBy('contractor.ID');
+    qb.groupBy('resume.ID');
 
     const result = await qb.getRawMany();
-    let convertedValues: ContractorDTO[] = result.map((value) => {return {ID: value.ID as number, count: Number.parseInt(value.contracts)}})
+    let convertedValues: Resume[] = result.map((value) => {return {ID: value.ID as number, count: Number.parseInt(value.contracts)}})
 
-    contracts.map((contractValue) => {const foundValue = convertedValues.find(item => item.ID == contractValue.ID); if(foundValue){contractValue.count = foundValue.count}});
-    return contracts;
+    resumes.map((resumeValue) => {const foundValue = convertedValues.find(item => item.ID == resumeValue.ID); if(foundValue){resumeValue.count = foundValue.count}});
+    return resumes;
   }
 
   verifyContractEntity(contract: Contract) {

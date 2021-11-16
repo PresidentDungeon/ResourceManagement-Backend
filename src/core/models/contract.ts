@@ -1,5 +1,5 @@
 import { User } from "./user";
-import { Contractor } from "./contractor";
+import { Resume } from "./resume";
 
 export interface Contract {
   ID: number
@@ -8,5 +8,5 @@ export interface Contract {
   startDate: Date
   endDate: Date
   users: User[]
-  contractors: Contractor[]
+  resumes: Resume[]
 }

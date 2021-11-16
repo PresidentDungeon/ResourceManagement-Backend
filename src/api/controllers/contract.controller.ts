@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { IContractService, IContractServiceProvider } from "../../core/primary-ports/contract.service.interface";
 import { Contract } from "../../core/models/contract";
-import { Contractor } from "../../core/models/contractor";
+import { Resume } from "../../core/models/resume";
 
 @Controller('contract')
 export class ContractController {
@@ -34,10 +34,20 @@ export class ContractController {
     }
   }
 
-  @Get('getContractorAmount')
-  async getContractorAmount(@Query() contractorID: any){
+  @Get('getResumeAmount')
+  async getResumeAmount(@Query() resumeID: any){
     try{
-      return await this.contractService.getContractorCount(contractorID.ID);
+      return await this.contractService.getResumeCount(resumeID.ID);
+    }
+    catch(e){
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('getResumesAmount')
+  async getResumesAmount(@Body() resumes: Resume[]){
+    try{
+      return await this.contractService.getResumesCount(resumes);
     }
     catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -67,27 +77,5 @@ export class ContractController {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }
-
-
-
-
-  @Get('getContractorsAmount')
-  async getContractorsAmount(@Body() contractors: Contractor[]){
-    try{
-      return await this.contractService.getContractorsCount(contractors);
-    }
-    catch(e){
-      console.log(e);
-      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-
-
-
-
-
-
-
 
 }
