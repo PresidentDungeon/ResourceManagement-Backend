@@ -4,17 +4,17 @@ import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { DeleteQueryBuilder, FindManyOptions, Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
-import { ContractorEntity } from "../../infrastructure/data-source/postgres/entities/contractor.entity";
+import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
 import { User } from "../models/user";
 import theoretically from "jest-theories";
 import { Contract } from "../models/contract";
-import { Contractor } from "../models/contractor";
+import { Resume } from "../models/resume";
 import { UserDTO } from "../../api/dtos/user.dto";
 
 describe('ContractService', () => {
   let service: ContractService;
   let mockContractRepository: Repository<ContractEntity>;
-  let mockContractorRepository: Repository<ContractorEntity>;
+  let mockContractorRepository: Repository<ResumeEntity>;
   let mockDeleteQueryBuilder: DeleteQueryBuilder<ContractEntity>;
 
   beforeEach(async () => {
@@ -31,11 +31,11 @@ describe('ContractService', () => {
     }
 
     const MockContractorRepository = {
-      provide: getRepositoryToken(ContractorEntity),
+      provide: getRepositoryToken(ResumeEntity),
       useFactory: () => ({
-        count: jest.fn((options: FindManyOptions<ContractorEntity>) => {}),
-        save: jest.fn((contractorEntity: ContractorEntity) => { return new Promise(resolve => {resolve(contractorEntity);});}),
-        create: jest.fn((contractorEntity: ContractorEntity) => {return new Promise(resolve => {resolve(contractorEntity);});}),
+        count: jest.fn((options: FindManyOptions<ResumeEntity>) => {}),
+        save: jest.fn((contractorEntity: ResumeEntity) => { return new Promise(resolve => {resolve(contractorEntity);});}),
+        create: jest.fn((contractorEntity: ResumeEntity) => {return new Promise(resolve => {resolve(contractorEntity);});}),
         execute: jest.fn(() => {}),
         createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
       })
@@ -73,7 +73,7 @@ describe('ContractService', () => {
 
     service = module.get<ContractService>(ContractService);
     mockContractRepository = module.get<Repository<ContractEntity>>(getRepositoryToken(ContractEntity));
-    mockContractorRepository = module.get<Repository<ContractorEntity>>(getRepositoryToken(ContractorEntity));
+    mockContractorRepository = module.get<Repository<ResumeEntity>>(getRepositoryToken(ResumeEntity));
     mockDeleteQueryBuilder = deleteQueryBuilder;
   });
 
@@ -93,7 +93,7 @@ describe('ContractService', () => {
 
   it('Add invalid contract doesnt save contract to database', async () => {
 
-    let contract: Contract = {ID: 0, title: '', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
+    let contract: Contract = {ID: 0, title: '', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [], users: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {throw new Error('Contract must have a valid title')})
 
@@ -108,7 +108,7 @@ describe('ContractService', () => {
 
   it('Error during save throws correct error message', async () => {
 
-    let contract: Contract = {ID: 0, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
+    let contract: Contract = {ID: 0, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [], users: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {throw new Error()});
@@ -125,8 +125,8 @@ describe('ContractService', () => {
 
   it('Saving contract resolves correctly', async () => {
 
-    let contract: Contract = {ID: 0, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
-    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
+    let contract: Contract = {ID: 0, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [], users: []};
+    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [], users: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {return new Promise(resolve => {resolve(contractSaveReturns)});});
@@ -171,7 +171,7 @@ describe('ContractService', () => {
 
   it('Find existing contract returns valid contract information', async () => {
 
-    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
+    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [], users: []};
     let contractID: number = 1;
 
     jest
@@ -191,7 +191,7 @@ describe('ContractService', () => {
 
   it('Update contract with invalid ID throws error', async () => {
 
-    let contract: Contract = {ID: 0, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
+    let contract: Contract = {ID: 0, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [], users: []};
     let expectedErrorMessage: string = 'Contract ID must be instantiated or valid'
 
     jest
@@ -209,8 +209,8 @@ describe('ContractService', () => {
 
   it('Update contract with invalid data throws error', async () => {
 
-    let storedContract: Contract = {ID: 1, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [{ID: 1}, {ID: 3}], users: []};
-    let contractToUpdate: Contract = {ID: 1, title: '', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [{ID: 1}, {ID: 3}], users: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
+    let contractToUpdate: Contract = {ID: 1, title: '', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
 
     jest
       .spyOn(service, 'getContractByID')
@@ -232,8 +232,8 @@ describe('ContractService', () => {
 
   it('Error while updating user throws error', async () => {
 
-    let storedContract: Contract = {ID: 1, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
-    let contractToUpdate: Contract = {ID: 1, title: 'New contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [], users: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [], users: []};
+    let contractToUpdate: Contract = {ID: 1, title: 'New contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [], users: []};
 
     jest
       .spyOn(service, 'getContractByID')
@@ -260,8 +260,8 @@ describe('ContractService', () => {
 
   it('Updating user with valid data resolves correctly', async () => {
 
-    let storedContract: Contract = {ID: 1, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [{ID: 1}, {ID: 3}], users: []};
-    let contractToUpdate: Contract = {ID: 1, title: 'New contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [{ID: 1}, {ID: 3}], users: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
+    let contractToUpdate: Contract = {ID: 1, title: 'New contract title', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
 
     jest
       .spyOn(service, 'getContractByID')
@@ -321,44 +321,44 @@ describe('ContractService', () => {
 
   //#endregion
 
-  //#region GetContractCount
+  //#region GetResumeCount
 
-  it('Get contract by ID fails on invalid ID', async () => {
+  it('Get resume count by ID fails on invalid ID', async () => {
 
     let ID: number = 0;
-    let expectedErrorMessage: string = 'Contract ID must be instantiated or valid';
+    let expectedErrorMessage: string = 'Resume ID must be instantiated or valid';
 
-    await expect(service.getContractorCount(null)).rejects.toThrow(expectedErrorMessage);
-    await expect(service.getContractorCount(ID)).rejects.toThrow(expectedErrorMessage);
+    await expect(service.getResumeCount(null)).rejects.toThrow(expectedErrorMessage);
+    await expect(service.getResumeCount(ID)).rejects.toThrow(expectedErrorMessage);
     expect(mockContractRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(0);
   });
 
   describe('Get contract count amount', () => {
 
-    let contract: Contract = {ID: 1, title: 'Contract one', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [{ID: 1}, {ID: 3}], users: []};
-    let contract2: Contract = {ID: 2, title: 'Contract two', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [{ID: 2}, {ID: 1}], users: []};
-    let contract3: Contract = {ID: 3, title: 'Contract three', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [{ID: 5}, {ID: 7}, {ID: 2}, {ID: 9}], users: []};
-    let contract4: Contract = {ID: 4, title: 'Contract four', status: 'Draft', startDate: new Date(), endDate: new Date(), contractors: [{ID: 1}], users: []};
+    let contract: Contract = {ID: 1, title: 'Contract one', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
+    let contract2: Contract = {ID: 2, title: 'Contract two', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [{ID: 2}, {ID: 1}], users: []};
+    let contract3: Contract = {ID: 3, title: 'Contract three', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [{ID: 5}, {ID: 7}, {ID: 2}, {ID: 9}], users: []};
+    let contract4: Contract = {ID: 4, title: 'Contract four', status: 'Draft', startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}], users: []};
 
     let contracts: Contract[] = [contract, contract2, contract3, contract4];
 
     const theories = [
-      { contractorID: 1, expectedAmount: 3 },
-      { contractorID: 2, expectedAmount: 2 },
-      { contractorID: 9, expectedAmount: 1 },
-      { contractorID: 8, expectedAmount: 0 },
+      { resumeID: 1, expectedAmount: 3 },
+      { resumeID: 2, expectedAmount: 2 },
+      { resumeID: 9, expectedAmount: 1 },
+      { resumeID: 8, expectedAmount: 0 },
     ];
 
     theoretically('The right contract count is calculated', theories, async theory => {
 
       jest.spyOn(mockContractRepository.createQueryBuilder(), 'getCount').mockImplementationOnce(() => {
         let count: number = 0;
-        contracts.forEach((contract) => {contract.contractors.forEach((contractor) => {if(contractor.ID == theory.contractorID){count++;}})})
+        contracts.forEach((contract) => {contract.resumes.forEach((resume) => {if(resume.ID == theory.resumeID){count++;}})})
         return new Promise(resolve => {resolve(count)});
       });
 
-      await expect(await service.getContractorCount(theory.contractorID)).toBe(theory.expectedAmount);
+      await expect(await service.getResumeCount(theory.resumeID)).toBe(theory.expectedAmount);
       expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
     })
   });
@@ -369,48 +369,48 @@ describe('ContractService', () => {
 
   it('Get contractors count returns empty array if empty array of contractors are inserted', async () => {
 
-    let contractors: Contractor[] = [];
-    let expectedResult: Contractor[] = [];
+    let resumes: Resume[] = [];
+    let expectedResult: Resume[] = [];
     let queryResults: any[] = [];
 
     jest.spyOn(mockContractorRepository.createQueryBuilder(), 'getRawMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
 
-    let result: Contractor[];
+    let result: Resume[];
 
-    await expect(result = await service.getContractorsCount(contractors)).resolves;
+    await expect(result = await service.getResumesCount(resumes)).resolves;
     expect(result).toStrictEqual(expectedResult);
     expect(mockContractorRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
   });
 
   it('Get contractors count maps correctly with existing contractors', async () => {
 
-    let contractors: Contractor[] = [{ID: 1}, {ID: 3}, {ID: 4}];
-    let expectedResult: Contractor[] = [{ID: 1, count: 2}, {ID: 3, count: 1}, {ID: 4, count: 1}];
+    let resumes: Resume[] = [{ID: 1}, {ID: 3}, {ID: 4}];
+    let expectedResult: Resume[] = [{ID: 1, count: 2}, {ID: 3, count: 1}, {ID: 4, count: 1}];
     let queryResults: any[] = [{ID: 1, contracts: '2'}, {ID: 3, contracts: '1'}, {ID: 4, contracts: '1'}];
 
     jest.spyOn(mockContractorRepository.createQueryBuilder(), 'getRawMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
 
-    let result: Contractor[];
+    let result: Resume[];
 
-    await expect(result = await service.getContractorsCount(contractors)).resolves;
+    await expect(result = await service.getResumesCount(resumes)).resolves;
     expect(result).toStrictEqual(expectedResult);
     expect(mockContractorRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
   });
 
   it('Get contractors count maps correctly with non-contractors', async () => {
 
-    let contractors: Contractor[] = [{ID: 1}, {ID: 3}, {ID: 4}];
-    let expectedResult: Contractor[] = [{ID: 1, count: 2}, {ID: 3, count: 0}, {ID: 4, count: 1}];
+    let resumes: Resume[] = [{ID: 1}, {ID: 3}, {ID: 4}];
+    let expectedResult: Resume[] = [{ID: 1, count: 2}, {ID: 3, count: 0}, {ID: 4, count: 1}];
     let queryResults: any[] = [{ID: 1, contracts: '2'},  {ID: 4, contracts: '1'}];
 
     jest.spyOn(mockContractorRepository.createQueryBuilder(), 'getRawMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
 
-    let result: Contractor[];
+    let result: Resume[];
 
-    await expect(result = await service.getContractorsCount(contractors)).resolves;
+    await expect(result = await service.getResumesCount(resumes)).resolves;
     expect(result).toStrictEqual(expectedResult);
     expect(mockContractorRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
   });
@@ -424,27 +424,27 @@ describe('ContractService', () => {
     const theories = [
       { input: contract = null, expected: "Contract must be instantiated" },
 
-      { input: contract = {ID: null, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: null, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must have a valid ID" },
-      { input: contract = {ID: -1, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: -1, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must have a valid ID" },
-      { input: contract = {ID: 0, title: null, status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: 0, title: null, status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must have a valid title" },
-      { input: contract = {ID: 0, title: '', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: 0, title: '', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must have a valid title" },
-      { input: contract = {ID: 0, title: ' ', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: 0, title: ' ', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must have a valid title" },
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: null, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: null, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must have a valid status" },
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: '', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: '', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must have a valid status" },
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must have a valid status" },
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', status: 'Draft', startDate: null, endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', status: 'Draft', startDate: null, endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []},
         expected: "Contract must contain a valid start date" },
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: null, users: [], contractors: []},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: null, users: [], resumes: []},
         expected: "Contract must contain a valid end date" },
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-11-08T20:00:00'), users: [], contractors: []},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-11-08T20:00:00'), users: [], resumes: []},
         expected: "Start date cannot be after end date" },
     ];
 
@@ -456,16 +456,16 @@ describe('ContractService', () => {
   describe('Validation of valid contract does not throw errors', () => {
     let contract: Contract;
     const theories = [
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []}},
-      { input: contract = {ID: 1, title: ' Mærsk Offshore ', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' Accepted ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' Accepted ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], contractors: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' Accepted ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [{ID: 1, username: 'User@gmail.com', salt: 'saltValue', password: 'passwordValue', status: {ID: 1, status: 'Pending'}, role: {ID: 1, role: 'User'}}], contractors: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' Accepted ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [{ID: 1, username: 'User@gmail.com', salt: 'saltValue', password: 'passwordValue', status: {ID: 1, status: 'Pending'}, role: {ID: 1, role: 'User'}}], contractors: [{ID: 1}]}},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []}},
+      { input: contract = {ID: 1, title: ' Mærsk Offshore ', status: 'Draft', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' Accepted ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' Accepted ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' Accepted ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [{ID: 1, username: 'User@gmail.com', salt: 'saltValue', password: 'passwordValue', status: {ID: 1, status: 'Pending'}, role: {ID: 1, role: 'User'}}], resumes: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', status: ' Accepted ', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [{ID: 1, username: 'User@gmail.com', salt: 'saltValue', password: 'passwordValue', status: {ID: 1, status: 'Pending'}, role: {ID: 1, role: 'User'}}], resumes: [{ID: 1}]}},
     ];
 
-    theoretically('No error message is thrown uding contract validation', theories, theory => {
+    theoretically('No error message is thrown using contract validation', theories, theory => {
       expect(service.verifyContractEntity(theory.input)).resolves;
     })
   });

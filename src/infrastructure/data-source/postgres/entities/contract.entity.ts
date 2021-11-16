@@ -10,7 +10,7 @@ import {
   PrimaryGeneratedColumn
 } from "typeorm";
 import { UserEntity } from "./user.entity";
-import { ContractorEntity } from "./contractor.entity";
+import { ResumeEntity } from "./resume.entity";
 
 export enum contractStatus {
   PLANNING = "planning",
@@ -40,7 +40,7 @@ export class ContractEntity {
   @JoinTable()
   users: UserEntity[];
 
-  @ManyToMany(() => ContractorEntity, contractorEntity => contractorEntity.contracts, {cascade: ['insert']})
+  @ManyToMany(() => ResumeEntity, contractorEntity => contractorEntity.contracts, {cascade: ['insert']})
   @JoinTable()
-  contractors: ContractorEntity[];
+  resumes: ResumeEntity[];
 }

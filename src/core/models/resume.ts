@@ -1,4 +1,4 @@
-export interface Contractor {
+export interface Resume {
   ID: number
   count?: number
 }
