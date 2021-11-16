@@ -70,6 +70,7 @@ export class UserController {
 
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('getUserByID')
   async getUserByID(@Query() userID: any){
 
@@ -121,7 +122,6 @@ export class UserController {
   async requestPasswordSignupChange(@Body() passwordChangeRequestDTO: PasswordChangeRequestDTO){
     try{
       await this.userService.updatePasswordWithConfirmationToken(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
-      this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
     }
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
   }
