@@ -51,7 +51,8 @@ export class ContractService implements IContractService{
   }
 
   async update(contract: Contract): Promise<Contract> {
-
+    contract.startDate = new Date(contract.startDate);
+    contract.endDate = new Date(contract.endDate);
     await this.getContractByID(contract.ID);
     this.verifyContractEntity(contract);
 
