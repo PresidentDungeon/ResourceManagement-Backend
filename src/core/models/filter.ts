@@ -3,6 +3,7 @@ export interface Filter{
   itemsPrPage: number
 
   name?: string
+  contractUser?: string
   statusID?: number
   roleID?: number
   sortingType?: string

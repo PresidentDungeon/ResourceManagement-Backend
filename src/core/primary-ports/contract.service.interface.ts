@@ -1,12 +1,16 @@
 import { Contract } from "../models/contract";
 import { User } from "../models/user";
 import { Resume } from "../models/resume";
+import { Status } from "../models/status";
+import { Filter } from "../models/filter";
+import { FilterList } from "../models/filterList";
 
 export const IContractServiceProvider = 'IContractServiceProvider'
 export interface IContractService{
 
   addContract(contract: Contract): Promise<Contract>
   getContractByID(ID: number): Promise<Contract>
+  getContracts(filter: Filter): Promise<FilterList<Contract>>
   update(contract: Contract): Promise<Contract>
   delete(ID: number)
   getResumeCount(ID: number): Promise<number>
