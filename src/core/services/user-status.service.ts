@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { IStatusService } from "../primary-ports/status.service.interface";
 import { Status } from "../models/status";
-import { StatusEntity } from "../../infrastructure/data-source/postgres/entities/status.entity";
+import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
+import { IUserStatusService } from "../primary-ports/user-status.service.interface";
 
 @Injectable()
-export class StatusService implements IStatusService {
+export class UserStatusService implements IUserStatusService {
 
-  constructor(@InjectRepository(StatusEntity) private statusRepository: Repository<StatusEntity>) {}
+  constructor(@InjectRepository(UserStatusEntity) private statusRepository: Repository<UserStatusEntity>) {}
 
   async findStatusByName(status: string): Promise<Status> {
 

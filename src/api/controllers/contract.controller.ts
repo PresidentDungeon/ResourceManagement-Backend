@@ -1,4 +1,16 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Post,
+  Put,
+  Query,
+  UseGuards
+} from "@nestjs/common";
 import { IContractService, IContractServiceProvider } from "../../core/primary-ports/contract.service.interface";
 import { Contract } from "../../core/models/contract";
 import { Resume } from "../../core/models/resume";
@@ -59,7 +71,7 @@ export class ContractController {
     }
   }
 
-  @Get('getResumesAmount')
+  @Post('getResumesAmount')
   async getResumesAmount(@Body() resumes: Resume[]){
     try{
       return await this.contractService.getResumesCount(resumes);
@@ -82,7 +94,7 @@ export class ContractController {
     }
   }
 
-  @Put('delete')
+  @Delete('delete')
   async deleteContract(@Body() contract: Contract){
     try{
       const updatedContract = await this.contractService.delete(contract.ID);
@@ -90,6 +102,18 @@ export class ContractController {
     }
     catch(e){
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Get('getContractStatuses')
+  async getAllStatuses(){
+    try {
+      return await this.contractService.getAllStatuses();
+    }
+    catch(e){
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

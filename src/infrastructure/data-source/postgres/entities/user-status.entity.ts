@@ -2,14 +2,12 @@ import { Column, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn } f
 import { UserEntity } from "./user.entity";
 
 @Entity()
-export class StatusEntity {
+export class UserStatusEntity {
 
   @PrimaryGeneratedColumn()
   public ID: number;
 
-  @Column({
-    unique: true
-  })
+  @Column({ unique: true })
   public status: string;
 
   @OneToMany(() => UserEntity, (user: UserEntity) => user.status)
