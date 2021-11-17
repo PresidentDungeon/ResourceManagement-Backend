@@ -1,20 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Repository } from "typeorm";
 import { getRepositoryToken } from "@nestjs/typeorm";
-import { StatusService } from "./status.service";
-import { StatusEntity } from "../../infrastructure/data-source/postgres/entities/status.entity";
+import { UserStatusService } from "./user-status.service";
+import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
 import { Status } from "../models/status";
+import { ContractStatusService } from "./contract-status.service";
+import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
 
-describe('StatusService', () => {
-  let service: StatusService;
-  let mockRepository: Repository<StatusEntity>;
+describe('UserStatusService', () => {
+  let service: ContractStatusService;
+  let mockRepository: Repository<ContractStatusEntity>;
 
   beforeEach(async () => {
 
     const MockProvider = {
-      provide: getRepositoryToken(StatusEntity),
+      provide: getRepositoryToken(ContractStatusEntity),
       useFactory: () => ({
-        findOne: jest.fn(() => {let statusEntity: StatusEntity = {ID: 1, status: 'Pending'}; return new Promise(resolve => {resolve(statusEntity);});}),
+        findOne: jest.fn(() => {let contractStatusEntity: ContractStatusEntity = {ID: 1, status: 'Draft'}; return new Promise(resolve => {resolve(contractStatusEntity);});}),
         createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
       })
     }
@@ -27,11 +29,11 @@ describe('StatusService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [StatusService, MockProvider],
+      providers: [ContractStatusService, MockProvider],
     }).compile();
 
-    service = module.get<StatusService>(StatusService);
-    mockRepository = module.get<Repository<StatusEntity>>(getRepositoryToken(StatusEntity));
+    service = module.get<ContractStatusService>(ContractStatusService);
+    mockRepository = module.get<Repository<ContractStatusEntity>>(getRepositoryToken(ContractStatusEntity));
   });
 
   it('service should be defined', () => {
@@ -57,8 +59,8 @@ describe('StatusService', () => {
 
   it('Calling findStatusByName with valid name returns role', async () => {
 
-    let status: string = 'Pending';
-    let mockstatus: Status = {ID: 1, status: 'Pending'};
+    let status: string = 'Draft';
+    let mockstatus: Status = {ID: 1, status: 'Draft'};
 
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(mockstatus);
 
@@ -68,8 +70,7 @@ describe('StatusService', () => {
 
   it('Calling findStatusByName with valid name but without any results throws error', async () => {
 
-    let status: string = 'Pending';
-    let mockStatus: Status = {ID: 1, status: 'Active'};
+    let status: string = 'Draft';
     let errorStringToExcept: string = 'The specified status could not be found';
 
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
@@ -85,8 +86,8 @@ describe('StatusService', () => {
   it('Calling getStatuses returns all stored statuses', async () => {
 
     const statuses: Status[] = [
-      {ID: 1, status: 'Pending'},
-      {ID: 2, status: 'Active'},
+      {ID: 1, status: 'Draft'},
+      {ID: 2, status: 'Pending review'},
     ]
 
     jest

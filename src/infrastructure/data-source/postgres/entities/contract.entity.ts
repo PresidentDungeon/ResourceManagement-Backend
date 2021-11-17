@@ -11,12 +11,8 @@ import {
 } from "typeorm";
 import { UserEntity } from "./user.entity";
 import { ResumeEntity } from "./resume.entity";
-
-export enum contractStatus {
-  PLANNING = "planning",
-  ACTIVE = "active",
-  COMPLETED = "completed"
-}
+import { UserStatusEntity } from "./user-status.entity";
+import { ContractStatusEntity } from "./contract-status.entity";
 
 @Entity()
 export class ContractEntity {
@@ -27,8 +23,9 @@ export class ContractEntity {
   @Column()
   public title: string;
 
-  @Column({ type: "enum", enum: contractStatus, default: contractStatus.PLANNING })
-  public status: string;
+  @Index()
+  @ManyToOne(() => ContractStatusEntity, (contractStatusEntity: ContractStatusEntity) => contractStatusEntity.contracts)
+  public status: ContractStatusEntity;
 
   @Column({ type: 'timestamptz'})
   startDate: Date;
