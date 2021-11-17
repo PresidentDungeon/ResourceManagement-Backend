@@ -132,7 +132,7 @@ export class UserService implements IUserService{
     let qb = this.userRepository.createQueryBuilder("user");
     qb.leftJoinAndSelect('user.role', 'role');
     qb.leftJoinAndSelect('user.status', 'status');
-    qb.andWhere(`user.username = :Username`, { Username: `${username}`});
+    qb.andWhere(`user.username ILIKE :Username`, { Username: `${username}`});
     const foundUser: UserEntity = await qb.getOne();
 
     if(foundUser == null)
