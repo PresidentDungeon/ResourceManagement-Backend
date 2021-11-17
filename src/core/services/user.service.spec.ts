@@ -3,23 +3,22 @@ import { UserService } from './user.service';
 import { AuthenticationHelper } from "../../auth/authentication.helper";
 import { User } from "../models/user";
 import theoretically from "jest-theories";
-import { FindManyOptions, Repository, SelectQueryBuilder } from "typeorm";
+import { FindManyOptions, Repository } from "typeorm";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
-import exp from "constants";
 import { UnauthorizedException } from "@nestjs/common";
 import { PasswordTokenEntity } from "../../infrastructure/data-source/postgres/entities/password-token.entity";
 import { Filter } from "../models/filter";
 import { UserDTO } from "../../api/dtos/user.dto";
 import { FilterList } from "../models/filterList";
 import { RoleService } from "./role.service";
-import { IRoleService, IRoleServiceProvider } from "../primary-ports/role.service.interface";
-import { IStatusServiceProvider } from "../primary-ports/status.service.interface";
+import { IRoleServiceProvider } from "../primary-ports/role.service.interface";
 import { RoleEntity } from "../../infrastructure/data-source/postgres/entities/role.entity";
-import { StatusService } from "./status.service";
-import { StatusEntity } from "../../infrastructure/data-source/postgres/entities/status.entity";
+import { UserStatusService } from "./user-status.service";
+import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { ConfirmationToken } from "../models/confirmation.token";
+import { IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
 
 describe('UserService', () => {
   let service: UserService;
@@ -28,7 +27,7 @@ describe('UserService', () => {
   let mockPasswordTokenRepository: Repository<PasswordTokenEntity>
   let mockConfirmationTokenRepository: Repository<ConfirmationTokenEntity>
   let mockRoleService: RoleService
-  let mockStatusService: StatusService
+  let mockStatusService: UserStatusService
 
   beforeEach(async () => {
 
@@ -113,10 +112,10 @@ describe('UserService', () => {
     }
 
     const StatusServiceMock = {
-      provide: IStatusServiceProvider,
+      provide: IUserStatusServiceProvider,
       useFactory: () => ({
-        findStatusByName: jest.fn((name: string) => {let statusEntity: StatusEntity = {ID: 1, status: name}; return statusEntity;}),
-        getStatuses: jest.fn(() => {let statusEntities: StatusEntity[] = [{ID: 1, status: 'pending'}, {ID: 2, status: 'active'}]; return new Promise(resolve => {resolve(statusEntities);});}),
+        findStatusByName: jest.fn((name: string) => {let statusEntity: UserStatusEntity = {ID: 1, status: name}; return statusEntity;}),
+        getStatuses: jest.fn(() => {let statusEntities: UserStatusEntity[] = [{ID: 1, status: 'pending'}, {ID: 2, status: 'active'}]; return new Promise(resolve => {resolve(statusEntities);});}),
       })
     }
 
@@ -130,7 +129,7 @@ describe('UserService', () => {
     mockPasswordTokenRepository = module.get<Repository<PasswordTokenEntity>>(getRepositoryToken(PasswordTokenEntity));
     mockConfirmationTokenRepository = module.get<Repository<ConfirmationTokenEntity>>(getRepositoryToken(ConfirmationTokenEntity));
     mockRoleService = module.get<RoleService>(IRoleServiceProvider);
-    mockStatusService = module.get<StatusService>(IStatusServiceProvider);
+    mockStatusService = module.get<UserStatusService>(IUserStatusServiceProvider);
   });
 
     it('User service Should be defined', () => {
@@ -198,7 +197,7 @@ describe('UserService', () => {
      let expectedStatusSearchName: string = 'pending';
 
      let expectedRole: RoleEntity = {ID: 1, role: 'user'};
-     let expectedStatus: StatusEntity = {ID: 1, status: 'pending'};
+     let expectedStatus: UserStatusEntity = {ID: 1, status: 'pending'};
 
      const theories = [
        { username: username = 'Jensen@hotmail.com', password: password = 'password'},

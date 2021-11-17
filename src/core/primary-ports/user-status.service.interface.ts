@@ -1,7 +1,7 @@
 import { Status } from "../models/status";
 
-export const IStatusServiceProvider = 'IStatusServiceProvider'
-export interface IStatusService{
+export const IUserStatusServiceProvider = 'IUserStatusServiceProvider'
+export interface IUserStatusService{
 
   findStatusByName(role: String): Promise<Status>
   getStatuses(): Promise<Status[]>

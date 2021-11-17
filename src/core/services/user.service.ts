@@ -11,11 +11,11 @@ import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { UserDTO } from "../../api/dtos/user.dto";
 import { IRoleService, IRoleServiceProvider } from "../primary-ports/role.service.interface";
-import { IStatusService, IStatusServiceProvider } from "../primary-ports/status.service.interface";
 import { Role } from "../models/role";
 import { Status } from "../models/status";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
+import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
 
 @Injectable()
 export class UserService implements IUserService{
@@ -31,7 +31,7 @@ export class UserService implements IUserService{
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
     @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
-    @Inject(IStatusServiceProvider) private statusService: IStatusService
+    @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService
   ) {}
 
   async createUser(username: string, password: string): Promise<User> {

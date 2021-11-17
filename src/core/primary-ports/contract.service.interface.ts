@@ -1,6 +1,6 @@
 import { Contract } from "../models/contract";
-import { User } from "../models/user";
 import { Resume } from "../models/resume";
+import { Status } from "../models/status";
 
 export const IContractServiceProvider = 'IContractServiceProvider'
 export interface IContractService{
@@ -13,4 +13,6 @@ export interface IContractService{
   getResumesCount(contractors: Resume[]): Promise<Resume[]>
 
   verifyContractEntity(contract: Contract)
+
+  getAllStatuses(): Promise<Status[]>
 }

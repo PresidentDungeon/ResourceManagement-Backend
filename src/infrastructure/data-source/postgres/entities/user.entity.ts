@@ -1,7 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { RoleEntity } from "./role.entity";
 import { PasswordTokenEntity } from "./password-token.entity";
-import { StatusEntity } from "./status.entity";
+import { UserStatusEntity } from "./user-status.entity";
 import { ConfirmationTokenEntity } from "./confirmation-token.entity";
 
 @Entity()
@@ -20,8 +20,8 @@ export class UserEntity {
   public salt: string;
 
   @Index()
-  @ManyToOne(() => StatusEntity, (statusEntity: StatusEntity) => statusEntity.users)
-  public status: StatusEntity;
+  @ManyToOne(() => UserStatusEntity, (userStatusEntity: UserStatusEntity) => userStatusEntity.users)
+  public status: UserStatusEntity;
 
   @Index()
   @ManyToOne(() => RoleEntity, (roleEntity: RoleEntity) => roleEntity.users)
