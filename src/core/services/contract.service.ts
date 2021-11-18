@@ -13,6 +13,9 @@ import {
 } from "../primary-ports/contract-status.service.interface";
 import { Role } from "../models/role";
 import { Status } from "../models/status";
+import { Filter } from "../models/filter";
+import { FilterList } from "../models/filterList";
+import { UserDTO } from "../../api/dtos/user.dto";
 
 @Injectable()
 export class ContractService implements IContractService{
@@ -55,6 +58,61 @@ export class ContractService implements IContractService{
       throw new Error('No contracts registered with such ID');
     }
     return foundContract;
+  }
+
+  async getContracts(filter: Filter): Promise<FilterList<Contract>> {
+
+    if(filter == null || filter == undefined){
+      throw new Error('Invalid filter entered');
+    }
+
+    if(filter.itemsPrPage == null || filter.itemsPrPage == undefined || filter.itemsPrPage <= 0){
+      throw new Error('Invalid items pr. page entered');
+    }
+
+    if(filter.currentPage == null || filter.currentPage == undefined || filter.currentPage < 0){
+      throw new Error('Invalid current page entered');
+    }
+
+    let qb = this.contractRepository.createQueryBuilder("contract");
+    qb.leftJoinAndSelect('contract.status', 'status');
+    qb.leftJoin('contract.users', 'users');
+
+    if(filter.name != null && filter.name !== '')
+    {
+      qb.andWhere(`contract.title ILIKE :title`, { title: `%${filter.name}%` });
+    }
+
+    if(filter.contractUser != null && filter.contractUser !== '')
+    {
+      qb.andWhere(`users.username ILIKE :contractUser`, { contractUser: `%${filter.contractUser}%` });
+    }
+
+    if(filter.statusID != null && filter.statusID > 0)
+    {
+      qb.andWhere(`status.ID = :statusID`, { statusID: `${filter.statusID}` });
+    }
+
+    if(filter.sorting != null && filter.sorting === 'ASC' || filter.sorting != null && filter.sorting === 'DESC')
+    {
+      if(filter.sortingType != null && filter.sortingType === 'ALF')
+      {
+        qb.orderBy('contract.title', filter.sorting);
+      }
+      if(filter.sortingType != null && filter.sortingType === 'ADDED')
+      {
+        qb.orderBy('contract.ID', filter.sorting);
+      }
+    }
+
+    qb.offset((filter.currentPage) * filter.itemsPrPage);
+    qb.limit(filter.itemsPrPage);
+
+    const result = await qb.getMany();
+    const count = await qb.getCount();
+
+    const filterList: FilterList<Contract> = {list: result, totalItems: count};
+    return filterList;
   }
 
   async update(contract: Contract): Promise<Contract> {

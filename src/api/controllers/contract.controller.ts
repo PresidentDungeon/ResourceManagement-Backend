@@ -16,6 +16,7 @@ import { Contract } from "../../core/models/contract";
 import { Resume } from "../../core/models/resume";
 import { Roles } from "../../auth/roles.decorator";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
+import { Filter } from "../../core/models/filter";
 
 @Controller('contract')
 export class ContractController {
@@ -44,6 +45,18 @@ export class ContractController {
       return await this.contractService.getContractByID(contractID.ID);
     }
     catch(e){
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
+  @Get('getContracts')
+  async getAllContracts(@Query() filter: Filter){
+    try{
+      return await this.contractService.getContracts(filter);
+    }
+    catch(e){console.log(e);
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
