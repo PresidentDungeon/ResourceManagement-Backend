@@ -20,6 +20,9 @@ import { HandlebarsAdapter } from "@nestjs-modules/mailer/dist/adapters/handleba
           user: configService.get('EMAIL_USER'),
           pass: configService.get('EMAIL_PASS')
         },
+        tls: {
+          rejectUnauthorized: false
+        },
       },
       defaults: {
         from: '"No Reply" <noreply@example.com>',
