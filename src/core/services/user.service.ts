@@ -449,7 +449,6 @@ export class UserService implements IUserService{
     if(user == undefined || user == null) {throw new Error('User must be instantiated');}
     if(user.ID == undefined || user.ID == null || user.ID < 0){throw new Error('User must have a valid ID')}
     if(user.username == undefined || user.username == null || !this.emailRegex.test(user.username)){throw new Error('User must have a valid Username');}
-    if(user.password == undefined || user.password == null || user.password.trim().length <= 0){throw new Error('User must have a valid Password');}
     if(user.salt == undefined || user.salt == null || user.salt.trim().length <= 0){throw new Error('An error occurred with Salt');}
     if(user.role == undefined || user.role == null || user.role.ID <= 0){throw new Error('An error occurred with user role');}
     if(user.status == undefined || user.status == null || user.status.ID <= 0){throw new Error('An error occurred with user status');}
