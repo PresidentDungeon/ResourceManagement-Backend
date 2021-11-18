@@ -6,16 +6,13 @@ import { ContractEntity } from "../../infrastructure/data-source/postgres/entiti
 import { Contract } from "../models/contract";
 import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
 import { Resume } from "../models/resume";
-import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
 import {
   IContractStatusService,
   IContractStatusServiceProvider
 } from "../primary-ports/contract-status.service.interface";
-import { Role } from "../models/role";
 import { Status } from "../models/status";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
-import { UserDTO } from "../../api/dtos/user.dto";
 
 @Injectable()
 export class ContractService implements IContractService{
