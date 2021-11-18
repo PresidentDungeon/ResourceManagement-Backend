@@ -228,4 +228,10 @@ export class UserController {
     }
   }
 
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Get('verifyAdmin')
+  async verifyAdmin(){
+    // Used to verify admin.
+  }
 }

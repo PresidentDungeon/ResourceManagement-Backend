@@ -9,6 +9,7 @@ export interface IContractService{
 
   addContract(contract: Contract): Promise<Contract>
   getContractByID(ID: number): Promise<Contract>
+  getContractByUserID(ID: number): Promise<Contract[]>
   getContracts(filter: Filter): Promise<FilterList<Contract>>
   update(contract: Contract): Promise<Contract>
   delete(ID: number)
