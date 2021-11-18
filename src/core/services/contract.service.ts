@@ -58,6 +58,20 @@ export class ContractService implements IContractService{
     return foundContract;
   }
 
+  async getContractByUserID(ID: number) {
+
+    if(ID == null || ID <= 0){
+      throw new Error('User ID must be instantiated or valid');
+    }
+
+    let qb = this.contractRepository.createQueryBuilder("contract");
+    qb.leftJoin('contract.users', 'users');
+    qb.andWhere(`users.ID = :userID`, { userID: `${ID}`});
+    const foundContract: ContractEntity[] = await qb.getMany();
+
+    return foundContract;
+  }
+
   async getContracts(filter: Filter): Promise<FilterList<Contract>> {
 
     if(filter == null || filter == undefined){
