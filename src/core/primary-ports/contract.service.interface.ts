@@ -13,7 +13,7 @@ export interface IContractService{
   update(contract: Contract): Promise<Contract>
   delete(ID: number)
   getResumeCount(ID: number): Promise<number>
-  getResumesCount(contractors: Resume[]): Promise<Resume[]>
+  getResumesCount(contractors: Resume[], excludeContract?: number): Promise<Resume[]>
 
   verifyContractEntity(contract: Contract)
 

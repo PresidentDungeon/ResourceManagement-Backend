@@ -17,6 +17,7 @@ import { Resume } from "../../core/models/resume";
 import { Roles } from "../../auth/roles.decorator";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 import { Filter } from "../../core/models/filter";
+import { ResumeAmountRequestDTO } from "../dtos/resume.amount.request.dto";
 
 @Controller('contract')
 export class ContractController {
@@ -61,6 +62,8 @@ export class ContractController {
     }
   }
 
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
   @Get('getResumeAmount')
   async getResumeAmount(@Query() resumeID: any){
     try{
@@ -71,10 +74,12 @@ export class ContractController {
     }
   }
 
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
   @Post('getResumesAmount')
-  async getResumesAmount(@Body() resumes: Resume[]){
+  async getResumesAmount(@Body() resumeAmountRequest: ResumeAmountRequestDTO){
     try{
-      return await this.contractService.getResumesCount(resumes);
+      return await this.contractService.getResumesCount(resumeAmountRequest.resumes, resumeAmountRequest.excludeContract);
     }
     catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
