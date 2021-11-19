@@ -13,6 +13,7 @@ import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/
 import { ContractStatusService } from "./contract-status.service";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
+import { Status } from "../models/status";
 
 describe('ContractService', () => {
   let service: ContractService;
@@ -368,6 +369,50 @@ describe('ContractService', () => {
     expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
 
     jest.spyOn(mockContractRepository, 'createQueryBuilder').mockReset();
+  });
+
+  //#endregion
+
+  //#region ConfirmContract
+
+  it('Updating contract with isAccepted status calls find status by name of type accepted', async () => {
+
+    let contract: Contract = {ID: 1, title: 'Contract', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
+    let storedStatus: Status = {ID: 3, status: 'Accepted'}
+    let isAccepted: boolean = true;
+
+    jest.spyOn(service, 'update').mockImplementationOnce((contract) => {return new Promise(resolve => {resolve(contract);});});
+    jest.spyOn(mockStatusService, 'findStatusByName').mockImplementationOnce((status) => {return new Promise(resolve => {resolve(storedStatus);});});
+
+    let updatedContract: Contract;
+
+    await expect(updatedContract = await service.confirmContract(contract, isAccepted)).resolves;
+    expect(updatedContract).toBeDefined();
+    expect(updatedContract.status).toBe(storedStatus);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
+    expect(service.update).toHaveBeenCalledTimes(1);
+    expect(service.update).toHaveBeenCalledWith(contract);
+  });
+
+  it('Updating contract with isAccepted status of false calls find status by name of type Declined', async () => {
+
+    let contract: Contract = {ID: 1, title: 'Contract', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
+    let storedStatus: Status = {ID: 3, status: 'Declined'}
+    let isAccepted: boolean = false;
+
+    jest.spyOn(service, 'update').mockImplementationOnce((contract) => {return new Promise(resolve => {resolve(contract);});});
+    jest.spyOn(mockStatusService, 'findStatusByName').mockImplementationOnce((status) => {return new Promise(resolve => {resolve(storedStatus);});});
+
+    let updatedContract: Contract;
+
+    await expect(updatedContract = await service.confirmContract(contract, isAccepted)).resolves;
+    expect(updatedContract).toBeDefined();
+    expect(updatedContract.status).toBe(storedStatus);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Declined');
+    expect(service.update).toHaveBeenCalledTimes(1);
+    expect(service.update).toHaveBeenCalledWith(contract);
   });
 
   //#endregion

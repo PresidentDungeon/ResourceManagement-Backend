@@ -3,6 +3,7 @@ import { ISocketService } from "../primary-ports/socket.service.interface";
 import { Server } from "socket.io";
 import { UserDTO } from "../../api/dtos/user.dto";
 import { User } from "../models/user";
+import { Contract } from "../models/contract";
 
 @Injectable()
 export class SocketService implements ISocketService{
@@ -15,20 +16,16 @@ export class SocketService implements ISocketService{
     this.server = socket;
   }
 
-  emitUserCreateEvent(user: User) {
-    this.server.emit('userCreated', this.convertUserToDTO(user));
+  emitContractCreateEvent(contract: Contract) {
+    this.server.emit('contractCreated', contract);
   }
 
-  emitUserUpdateEvent(user: User) {
-    this.server.emit('userUpdated', this.convertUserToDTO(user));
+  emitContractUpdateEvent(contract: Contract) {
+    this.server.emit('contractUpdated', contract);
   }
 
-  emitUserDeleteEvent(user: User) {
-    this.server.emit('userDeleted', this.convertUserToDTO(user));
-  }
-
-  convertUserToDTO(user: User): UserDTO{
-    return {ID: user.ID, username: user.username, status: user.status, role: user.role}
+  emitContractDeleteEvent(contract: Contract) {
+    this.server.emit('contractDeleted', contract);
   }
 
 
