@@ -45,7 +45,7 @@ export class ContractService implements IContractService{
     }
 
     let qb = this.contractRepository.createQueryBuilder("contract");
-    qb.leftJoinAndSelect('contract.users', 'users')
+    qb.leftJoinAndSelect('contract.users', 'users');
     qb.leftJoinAndSelect('contract.status', 'status');
     qb.leftJoinAndSelect('contract.resumes', 'resumes');
     qb.andWhere(`contract.ID = :contractID`, { contractID: `${ID}`});
@@ -69,6 +69,7 @@ export class ContractService implements IContractService{
     qb.andWhere(`users.ID = :userID`, { userID: `${ID}`});
     qb.leftJoin('contract.status', 'status');
     qb.andWhere(`status.status != :status`, { status: 'Rejected'})
+
     const foundContract: ContractEntity[] = await qb.getMany();
 
     return foundContract;
@@ -129,6 +130,13 @@ export class ContractService implements IContractService{
     return filterList;
   }
 
+  async confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>{
+    let status: Status = await ((isAccepted) ? this.statusService.findStatusByName("Accepted") : this.statusService.findStatusByName("Rejected"));
+    contract.status = status;
+    const updatedContract = await this.update(contract);
+    return updatedContract;
+  }
+
   async update(contract: Contract): Promise<Contract> {
     contract.startDate = new Date(contract.startDate);
     contract.endDate = new Date(contract.endDate);
@@ -176,7 +184,7 @@ export class ContractService implements IContractService{
     return amount;
   }
 
-  async getResumesCount(resumes: Resume[]): Promise<Resume[]> {
+  async getResumesCount(resumes: Resume[], excludeContract?: number): Promise<Resume[]> {
 
     let resumeIDs: number[] = [];
     resumes.map((resume) => {resumeIDs.push(resume.ID); resume.count = 0});
@@ -190,6 +198,11 @@ export class ContractService implements IContractService{
     qb.leftJoin('contracts.status', 'status');
     qb.andWhere('status.ID IN (:...statusIDs)', {statusIDs: statusIDs});
     qb.andWhere('resume.ID IN (:...resumeIDs)', {resumeIDs: resumeIDs});
+
+    if(excludeContract != null && excludeContract > 0){
+      qb.andWhere('contracts.ID != :contractID', {contractID: excludeContract});
+    }
+
     qb.select('resume.ID', 'ID');
     qb.addSelect('COUNT(DISTINCT(contracts.ID)) as contracts');
     qb.groupBy('resume.ID');

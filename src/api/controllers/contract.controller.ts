@@ -17,6 +17,8 @@ import { Resume } from "../../core/models/resume";
 import { Roles } from "../../auth/roles.decorator";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 import { Filter } from "../../core/models/filter";
+import { ResumeAmountRequestDTO } from "../dtos/resume.amount.request.dto";
+import { ContractStateReplyDTO } from "../dtos/contract.state.reply.dto";
 
 @Controller('contract')
 export class ContractController {
@@ -67,11 +69,13 @@ export class ContractController {
     try{
       return await this.contractService.getContracts(filter);
     }
-    catch(e){console.log(e);
+    catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
   @Get('getResumeAmount')
   async getResumeAmount(@Query() resumeID: any){
     try{
@@ -82,10 +86,12 @@ export class ContractController {
     }
   }
 
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
   @Post('getResumesAmount')
-  async getResumesAmount(@Body() resumes: Resume[]){
+  async getResumesAmount(@Body() resumeAmountRequest: ResumeAmountRequestDTO){
     try{
-      return await this.contractService.getResumesCount(resumes);
+      return await this.contractService.getResumesCount(resumeAmountRequest.resumes, resumeAmountRequest.excludeContract);
     }
     catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
@@ -101,6 +107,19 @@ export class ContractController {
       return updatedContract;
     }
     catch(e){
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('contractStateReply')
+  async confirmContractState(@Body() contractStateReplyDTO: ContractStateReplyDTO){
+    try{
+      const updatedContract = await this.contractService.confirmContract(contractStateReplyDTO.contract, contractStateReplyDTO.isAccepted);
+      return updatedContract;
+    }
+    catch(e){
+      console.log(e);
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }
