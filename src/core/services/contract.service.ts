@@ -67,6 +67,8 @@ export class ContractService implements IContractService{
     let qb = this.contractRepository.createQueryBuilder("contract");
     qb.leftJoin('contract.users', 'users');
     qb.andWhere(`users.ID = :userID`, { userID: `${ID}`});
+    qb.leftJoin('contract.status', 'status');
+    qb.andWhere(`status.status != :status`, { status: 'Rejected'})
     const foundContract: ContractEntity[] = await qb.getMany();
 
     return foundContract;
