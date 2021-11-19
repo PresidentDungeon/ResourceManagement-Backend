@@ -398,7 +398,7 @@ describe('ContractService', () => {
   it('Updating contract with isAccepted status of false calls find status by name of type Declined', async () => {
 
     let contract: Contract = {ID: 1, title: 'Contract', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
-    let storedStatus: Status = {ID: 3, status: 'Declined'}
+    let storedStatus: Status = {ID: 3, status: 'Rejected'}
     let isAccepted: boolean = false;
 
     jest.spyOn(service, 'update').mockImplementationOnce((contract) => {return new Promise(resolve => {resolve(contract);});});
@@ -410,7 +410,7 @@ describe('ContractService', () => {
     expect(updatedContract).toBeDefined();
     expect(updatedContract.status).toBe(storedStatus);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Declined');
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Rejected');
     expect(service.update).toHaveBeenCalledTimes(1);
     expect(service.update).toHaveBeenCalledWith(contract);
   });
