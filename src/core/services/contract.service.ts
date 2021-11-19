@@ -127,6 +127,13 @@ export class ContractService implements IContractService{
     return filterList;
   }
 
+  async confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>{
+    let status: Status = await ((isAccepted) ? this.statusService.findStatusByName("Accepted") : this.statusService.findStatusByName("Rejected"));
+    contract.status = status;
+    const updatedContract = await this.update(contract);
+    return updatedContract;
+  }
+
   async update(contract: Contract): Promise<Contract> {
     contract.startDate = new Date(contract.startDate);
     contract.endDate = new Date(contract.endDate);

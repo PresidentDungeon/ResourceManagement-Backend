@@ -18,6 +18,7 @@ import { Roles } from "../../auth/roles.decorator";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 import { Filter } from "../../core/models/filter";
 import { ResumeAmountRequestDTO } from "../dtos/resume.amount.request.dto";
+import { ContractStateReplyDTO } from "../dtos/contract.state.reply.dto";
 
 @Controller('contract')
 export class ContractController {
@@ -68,7 +69,7 @@ export class ContractController {
     try{
       return await this.contractService.getContracts(filter);
     }
-    catch(e){console.log(e);
+    catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -106,6 +107,19 @@ export class ContractController {
       return updatedContract;
     }
     catch(e){
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('contractStateReply')
+  async confirmContractState(@Body() contractStateReplyDTO: ContractStateReplyDTO){
+    try{
+      const updatedContract = await this.contractService.confirmContract(contractStateReplyDTO.contract, contractStateReplyDTO.isAccepted);
+      return updatedContract;
+    }
+    catch(e){
+      console.log(e);
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }
