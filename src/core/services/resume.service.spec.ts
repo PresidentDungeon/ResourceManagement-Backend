@@ -389,5 +389,5 @@ describe('ResumeService', () => {
   });
 
   //#endregion
-  
+
 });
