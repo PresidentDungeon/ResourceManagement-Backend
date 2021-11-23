@@ -5,11 +5,11 @@ import { MailModule } from "./infrastructure/mail/mail.module";
 import { DatabaseModule } from './infrastructure/data-source/postgres/database.module';
 import { ConfigModule } from "@nestjs/config";
 import { SocketModule } from "./api/socket.module";
+import { ContractResumeModule } from "./api/contract.resume.module";
 import * as Joi from '@hapi/joi';
-import { ContractModule } from "./api/contract.module";
 
 @Module({
-  imports: [UserModule, ContractModule, ConfigModule.forRoot({
+  imports: [UserModule, ContractResumeModule, ConfigModule.forRoot({
     envFilePath: '.dev.env',
     isGlobal: true,
     validationSchema: Joi.object({
@@ -20,6 +20,7 @@ import { ContractModule } from "./api/contract.module";
       POSTGRES_DB: Joi.string().required(),
       PORT: Joi.number(),
       FRONTEND_ROUTE: Joi.string().required(),
+      MOCK_API_URL: Joi.string().required(),
       EMAIL_USER: Joi.string().required(),
       EMAIL_PASS: Joi.string().required()
     })

@@ -19,37 +19,57 @@ import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 import { Filter } from "../../core/models/filter";
 import { ResumeAmountRequestDTO } from "../dtos/resume.amount.request.dto";
 import { ContractStateReplyDTO } from "../dtos/contract.state.reply.dto";
+import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/resume.service.interface";
 
 @Controller('contract')
 export class ContractController {
 
-  constructor(@Inject(IContractServiceProvider) private contractService: IContractService) {}
+  constructor(
+    @Inject(IContractServiceProvider) private contractService: IContractService,
+    @Inject(IResumeServiceProvider) private resumeService: IResumeService) {}
 
   //@Roles('Admin')
   //@UseGuards(JwtAuthGuard)
   @Post('create')
   async create(@Body() contract: Contract){
-    try
-    {
+    try {
       let createdContract: Contract = await this.contractService.addContract(contract);
       return createdContract;
     }
-    catch (e)
-    {
+    catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }
 
+  //@Roles('Admin')
   //@UseGuards(JwtAuthGuard)
   @Get('getContractByID')
   async getContractByID(@Query() contractID: any){
     try{
-      return await this.contractService.getContractByID(contractID.ID);
+      const contract: Contract = await this.contractService.getContractByID(contractID.ID, false);
+      const resumes: Resume[] = await this.resumeService.getResumesByID(contract.resumes, false);
+      contract.resumes = resumes;
+      return contract;
     }
     catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
+  //@UseGuards(JwtAuthGuard)
+  @Get('getContractByIDUser')
+  async getContractByIDUser(@Query() contractID: any){
+    try{
+      const contract: Contract = await this.contractService.getContractByID(contractID.ID, true);
+      const resumes: Resume[] = await this.resumeService.getResumesByID(contract.resumes, true);
+      contract.resumes = resumes;
+      return contract;
+    }
+    catch(e){
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
 
   //@UseGuards(JwtAuthGuard)
   @Get('getContractByUserID')
@@ -68,30 +88,6 @@ export class ContractController {
   async getAllContracts(@Query() filter: Filter){
     try{
       return await this.contractService.getContracts(filter);
-    }
-    catch(e){
-      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
-  @Get('getResumeAmount')
-  async getResumeAmount(@Query() resumeID: any){
-    try{
-      return await this.contractService.getResumeCount(resumeID.ID);
-    }
-    catch(e){
-      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
-  @Post('getResumesAmount')
-  async getResumesAmount(@Body() resumeAmountRequest: ResumeAmountRequestDTO){
-    try{
-      return await this.contractService.getResumesCount(resumeAmountRequest.resumes, resumeAmountRequest.excludeContract);
     }
     catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);

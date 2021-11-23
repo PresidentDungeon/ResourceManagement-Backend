@@ -14,6 +14,7 @@ import { ContractStatusService } from "./contract-status.service";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { Status } from "../models/status";
+import { IResumeServiceProvider } from "../primary-ports/resume.service.interface";
 
 describe('ContractService', () => {
   let service: ContractService;
@@ -47,7 +48,7 @@ describe('ContractService', () => {
     }
 
     const createQueryBuilder: any = {
-      leftJoinAndSelect: () => createQueryBuilder,
+      leftJoinAndSelect: jest.fn(() => createQueryBuilder),
       leftJoin: () => createQueryBuilder,
       andWhere: () => createQueryBuilder,
       select: () => createQueryBuilder,
@@ -170,6 +171,7 @@ describe('ContractService', () => {
     await expect(service.getContractByID(null)).rejects.toThrow(errorStringToExcept);
     await expect(service.getContractByID(ID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(0);
   });
 
   it('Find non-existing contract results in error', async () => {
@@ -183,6 +185,7 @@ describe('ContractService', () => {
 
     await expect(service.getContractByID(contractID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(2);
   });
 
   it('Find existing contract returns valid contract information', async () => {
@@ -199,6 +202,24 @@ describe('ContractService', () => {
     await expect(foundContract = await service.getContractByID(contractID)).resolves;
     expect(foundContract).toStrictEqual(storedContract);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(2);
+  });
+
+  it('Get contract by ID selects users if redacted is false', async () => {
+
+    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: []};
+    let contractID: number = 1;
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getOne')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedContract);});});
+
+    let foundContract: Contract;
+
+    await expect(foundContract = await service.getContractByID(contractID, false)).resolves;
+    expect(foundContract).toStrictEqual(storedContract);
+    expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(3);
   });
 
   //#endregion
@@ -579,115 +600,6 @@ describe('ContractService', () => {
     await expect(await service.delete(ID)).resolves;
     expect(mockContractRepository.createQueryBuilder().delete).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(1);
-  });
-
-  //#endregion
-
-  //#region GetResumeCount
-
-  it('Get resume count by ID fails on invalid ID', async () => {
-
-    let ID: number = 0;
-    let expectedErrorMessage: string = 'Resume ID must be instantiated or valid';
-
-    await expect(service.getResumeCount(null)).rejects.toThrow(expectedErrorMessage);
-    await expect(service.getResumeCount(ID)).rejects.toThrow(expectedErrorMessage);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
-    expect(mockContractRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
-    expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(0);
-  });
-
-  describe('Get contract count amount', () => {
-
-    let contract: Contract = {ID: 1, title: 'Contract one', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
-    let contract2: Contract = {ID: 2, title: 'Contract two', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 2}, {ID: 1}], users: []};
-    let contract3: Contract = {ID: 3, title: 'Contract three', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 5}, {ID: 7}, {ID: 2}, {ID: 9}], users: []};
-    let contract4: Contract = {ID: 4, title: 'Contract four', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}], users: []};
-
-    let contracts: Contract[] = [contract, contract2, contract3, contract4];
-
-    const theories = [
-      { resumeID: 1, expectedAmount: 3 },
-      { resumeID: 2, expectedAmount: 2 },
-      { resumeID: 9, expectedAmount: 1 },
-      { resumeID: 8, expectedAmount: 0 },
-    ];
-
-    theoretically('The right contract count is calculated', theories, async theory => {
-
-      jest.spyOn(mockContractRepository.createQueryBuilder(), 'getCount').mockImplementationOnce(() => {
-        let count: number = 0;
-        contracts.forEach((contract) => {contract.resumes.forEach((resume) => {if(resume.ID == theory.resumeID){count++;}})})
-        return new Promise(resolve => {resolve(count)});
-      });
-
-      await expect(await service.getResumeCount(theory.resumeID)).toBe(theory.expectedAmount);
-      expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
-      expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
-      expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
-      expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
-    })
-  });
-
-  //#endregion
-
-  //#region GetResumesCount
-
-  it('Get resumes count returns empty array if empty array of resumes are inserted', async () => {
-
-    let resumes: Resume[] = [];
-    let expectedResult: Resume[] = [];
-    let queryResults: any[] = [];
-
-    jest.spyOn(mockResumeRepository.createQueryBuilder(), 'getRawMany')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
-
-    let result: Resume[];
-
-    await expect(result = await service.getResumesCount(resumes)).resolves;
-    expect(result).toStrictEqual(expectedResult);
-    expect(mockResumeRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
-  });
-
-  it('Get resumes count maps correctly with existing resumes', async () => {
-
-    let resumes: Resume[] = [{ID: 1}, {ID: 3}, {ID: 4}];
-    let expectedResult: Resume[] = [{ID: 1, count: 2}, {ID: 3, count: 1}, {ID: 4, count: 1}];
-    let queryResults: any[] = [{ID: 1, contracts: '2'}, {ID: 3, contracts: '1'}, {ID: 4, contracts: '1'}];
-
-    jest.spyOn(mockResumeRepository.createQueryBuilder(), 'getRawMany')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
-
-    let result: Resume[];
-
-    await expect(result = await service.getResumesCount(resumes)).resolves;
-    expect(result).toStrictEqual(expectedResult);
-    expect(mockResumeRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
-  });
-
-  it('Get resumes count maps correctly with invalid resumes', async () => {
-
-    let resumes: Resume[] = [{ID: 1}, {ID: 3}, {ID: 4}];
-    let expectedResult: Resume[] = [{ID: 1, count: 2}, {ID: 3, count: 0}, {ID: 4, count: 1}];
-    let queryResults: any[] = [{ID: 1, contracts: '2'},  {ID: 4, contracts: '1'}];
-
-    jest.spyOn(mockResumeRepository.createQueryBuilder(), 'getRawMany')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
-
-    let result: Resume[];
-
-    await expect(result = await service.getResumesCount(resumes)).resolves;
-    expect(result).toStrictEqual(expectedResult);
-    expect(mockResumeRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
   });
 
   //#endregion
