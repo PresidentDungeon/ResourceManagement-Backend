@@ -4,12 +4,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 import { Contract } from "../models/contract";
-import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
-import { Resume } from "../models/resume";
-import {
-  IContractStatusService,
-  IContractStatusServiceProvider
-} from "../primary-ports/contract-status.service.interface";
+import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
 import { Status } from "../models/status";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
@@ -19,8 +14,7 @@ export class ContractService implements IContractService{
 
   constructor(
     @InjectRepository(ContractEntity) private contractRepository: Repository<ContractEntity>,
-    @InjectRepository(ResumeEntity) private contractorRepository: Repository<ResumeEntity>,
-    @Inject(IContractStatusServiceProvider) private statusService: IContractStatusService
+    @Inject(IContractStatusServiceProvider) private statusService: IContractStatusService,
   ) {}
 
   async addContract(contract: Contract): Promise<Contract> {
@@ -38,23 +32,24 @@ export class ContractService implements IContractService{
     catch (e) {throw new Error('Internal server error')}
   }
 
-  async getContractByID(ID: number): Promise<Contract>{
+  async getContractByID(ID: number, redact?: boolean): Promise<Contract>{
 
     if(ID == null || ID <= 0){
       throw new Error('Contract ID must be instantiated or valid');
     }
 
     let qb = this.contractRepository.createQueryBuilder("contract");
-    qb.leftJoinAndSelect('contract.users', 'users');
+    if(redact != null && !redact){qb.leftJoinAndSelect('contract.users', 'users');}
     qb.leftJoinAndSelect('contract.status', 'status');
     qb.leftJoinAndSelect('contract.resumes', 'resumes');
     qb.andWhere(`contract.ID = :contractID`, { contractID: `${ID}`});
-    const foundContract: ContractEntity = await qb.getOne();
+    const foundContract: Contract = await qb.getOne();
 
     if(foundContract == null)
     {
       throw new Error('No contracts registered with such ID');
     }
+
     return foundContract;
   }
 
@@ -162,56 +157,6 @@ export class ContractService implements IContractService{
     catch (e) {
       throw new Error('Internal server error')
     }
-  }
-
-  async getResumeCount(ID: number): Promise<number> {
-
-    if(ID == null || ID <= 0){
-      throw new Error('Resume ID must be instantiated or valid');
-    }
-
-    let draftStatus: Status = await this.statusService.findStatusByName('Draft');
-    let pendingStatus: Status = await this.statusService.findStatusByName('Pending review');
-    let statusIDs: number[] = [draftStatus.ID, pendingStatus.ID];
-
-    let qb = this.contractRepository.createQueryBuilder('contract');
-    qb.leftJoin('contract.resumes', 'resumes');
-    qb.leftJoin('contract.status', 'status');
-    qb.andWhere('status.ID IN (:...statusIDs)', {statusIDs: statusIDs});
-    qb.andWhere('resumes.ID = :resumeID', {resumeID: `${ID}`});
-    const amount = await qb.getCount();
-
-    return amount;
-  }
-
-  async getResumesCount(resumes: Resume[], excludeContract?: number): Promise<Resume[]> {
-
-    let resumeIDs: number[] = [];
-    resumes.map((resume) => {resumeIDs.push(resume.ID); resume.count = 0});
-
-    let draftStatus: Status = await this.statusService.findStatusByName('Draft');
-    let pendingStatus: Status = await this.statusService.findStatusByName('Pending review');
-    let statusIDs: number[] = [draftStatus.ID, pendingStatus.ID];
-
-    let qb = this.contractorRepository.createQueryBuilder('resume');
-    qb.leftJoin('resume.contracts', 'contracts');
-    qb.leftJoin('contracts.status', 'status');
-    qb.andWhere('status.ID IN (:...statusIDs)', {statusIDs: statusIDs});
-    qb.andWhere('resume.ID IN (:...resumeIDs)', {resumeIDs: resumeIDs});
-
-    if(excludeContract != null && excludeContract > 0){
-      qb.andWhere('contracts.ID != :contractID', {contractID: excludeContract});
-    }
-
-    qb.select('resume.ID', 'ID');
-    qb.addSelect('COUNT(DISTINCT(contracts.ID)) as contracts');
-    qb.groupBy('resume.ID');
-
-    const result = await qb.getRawMany();
-    let convertedValues: Resume[] = result.map((value) => {return {ID: value.ID as number, count: Number.parseInt(value.contracts)}})
-
-    resumes.map((resumeValue) => {const foundValue = convertedValues.find(item => item.ID == resumeValue.ID); if(foundValue){resumeValue.count = foundValue.count}});
-    return resumes;
   }
 
   verifyContractEntity(contract: Contract) {

@@ -10,7 +10,6 @@ export class RoleService implements IRoleService {
 
   constructor(@InjectRepository(RoleEntity) private roleRepository: Repository<RoleEntity>) {}
 
-  //Missing test
   async findRoleByName(role: string): Promise<Role> {
 
     if(role == undefined || role == null || role.length <= 0)
@@ -24,7 +23,6 @@ export class RoleService implements IRoleService {
     return foundRole;
   }
 
-  //Missing test
   async getRoles(): Promise<Role[]> {
     let qb = this.roleRepository.createQueryBuilder("role");
     const roles: Role[] = await qb.getMany();
