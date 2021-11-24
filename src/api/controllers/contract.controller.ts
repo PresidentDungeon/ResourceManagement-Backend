@@ -127,7 +127,6 @@ export class ContractController {
       return updatedContract;
     }
     catch(e){
-      console.log(e);
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }
