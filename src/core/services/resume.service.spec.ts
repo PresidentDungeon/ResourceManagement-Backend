@@ -271,10 +271,10 @@ describe('ResumeService', () => {
 
   describe('Get resume count amount', () => {
 
-    let contract: Contract = {ID: 1, title: 'Contract one', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: []};
-    let contract2: Contract = {ID: 2, title: 'Contract two', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 2}, {ID: 1}], users: []};
-    let contract3: Contract = {ID: 3, title: 'Contract three', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 5}, {ID: 7}, {ID: 2}, {ID: 9}], users: []};
-    let contract4: Contract = {ID: 4, title: 'Contract four', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}], users: []};
+    let contract: Contract = {ID: 1, title: 'Contract one', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract2: Contract = {ID: 2, title: 'Contract two', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 2}, {ID: 1}], users: [], resumeRequests: []};
+    let contract3: Contract = {ID: 3, title: 'Contract three', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 5}, {ID: 7}, {ID: 2}, {ID: 9}], users: [], resumeRequests: []};
+    let contract4: Contract = {ID: 4, title: 'Contract four', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}], users: [], resumeRequests: []};
 
     let contracts: Contract[] = [contract, contract2, contract3, contract4];
 

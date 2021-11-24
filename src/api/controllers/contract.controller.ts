@@ -41,6 +41,18 @@ export class ContractController {
     }
   }
 
+  //@UseGuards(JwtAuthGuard)
+  @Post('requestContract')
+  async requestContract(@Body() contract: Contract){
+    try {
+      let createdContract: Contract = await this.contractService.addRequestContract(contract);
+      return createdContract;
+    }
+    catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   //@Roles('Admin')
   //@UseGuards(JwtAuthGuard)
   @Get('getContractByID')

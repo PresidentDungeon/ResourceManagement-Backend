@@ -13,6 +13,7 @@ import { UserEntity } from "./user.entity";
 import { ResumeEntity } from "./resume.entity";
 import { UserStatusEntity } from "./user-status.entity";
 import { ContractStatusEntity } from "./contract-status.entity";
+import { ResumeRequestEntity } from "./resume-request.entity";
 
 @Entity()
 export class ContractEntity {
@@ -23,6 +24,9 @@ export class ContractEntity {
   @Column()
   public title: string;
 
+  @Column()
+  public description: string;
+
   @Index()
   @ManyToOne(() => ContractStatusEntity, (contractStatusEntity: ContractStatusEntity) => contractStatusEntity.contracts)
   public status: ContractStatusEntity;
@@ -32,6 +36,9 @@ export class ContractEntity {
 
   @Column({ type: 'timestamptz'})
   endDate: Date;
+
+  @OneToMany(() => ResumeRequestEntity, (resumeRequestEntity: ResumeRequestEntity) => resumeRequestEntity.contract, {cascade: true})
+  resumeRequests: ResumeRequestEntity[];
 
   @ManyToMany(() => UserEntity)
   @JoinTable()

@@ -8,6 +8,7 @@ export const IContractServiceProvider = 'IContractServiceProvider'
 export interface IContractService{
 
   addContract(contract: Contract): Promise<Contract>
+  addRequestContract(contract: Contract): Promise<Contract>
   getContractByID(ID: number, redact: boolean): Promise<Contract>
   getContractByUserID(ID: number): Promise<Contract[]>
   getContracts(filter: Filter): Promise<FilterList<Contract>>
