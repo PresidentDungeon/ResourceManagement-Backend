@@ -12,9 +12,10 @@ import { HttpModule } from "@nestjs/axios";
 import { IResumeServiceProvider } from "../core/primary-ports/resume.service.interface";
 import { IContractStatusServiceProvider } from "../core/primary-ports/contract-status.service.interface";
 import { IContractServiceProvider } from "../core/primary-ports/contract.service.interface";
+import { ResumeRequestEntity } from "../infrastructure/data-source/postgres/entities/resume-request.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ContractEntity, ResumeEntity, ContractStatusEntity]), HttpModule],
+  imports: [TypeOrmModule.forFeature([ContractEntity, ResumeEntity, ContractStatusEntity, ResumeRequestEntity]), HttpModule],
   controllers: [ContractController, ResumeController],
   providers: [{provide: IContractServiceProvider, useClass: ContractService}, {provide: IContractStatusServiceProvider, useClass: ContractStatusService}, {provide: IResumeServiceProvider, useClass: ResumeService}],
   exports: [IContractServiceProvider, IContractStatusServiceProvider, IResumeServiceProvider]

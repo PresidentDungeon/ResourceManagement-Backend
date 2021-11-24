@@ -42,10 +42,4 @@ export class ResumeController {
     return await this.resumeService.getResumeByID(resumeID.ID, true);
   }
 
-  //@UseGuards(JwtAuthGuard)
-  @Post('getResumesBy')
-  async getResumeBy(@Body() resume: Resume[]){
-    return await this.resumeService.getResumesByID(resume, false);
-  }
-
 }

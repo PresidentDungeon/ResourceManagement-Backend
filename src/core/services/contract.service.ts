@@ -8,12 +8,14 @@ import { IContractStatusService, IContractStatusServiceProvider } from "../prima
 import { Status } from "../models/status";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
+import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/entities/resume-request.entity";
 
 @Injectable()
 export class ContractService implements IContractService{
 
   constructor(
     @InjectRepository(ContractEntity) private contractRepository: Repository<ContractEntity>,
+    @InjectRepository(ResumeRequestEntity) private resumeRequestRepository: Repository<ResumeRequestEntity>,
     @Inject(IContractStatusServiceProvider) private statusService: IContractStatusService,
   ) {}
 
@@ -23,6 +25,29 @@ export class ContractService implements IContractService{
     contract.endDate = new Date(contract.endDate);
 
     this.verifyContractEntity(contract);
+    const newContract = await this.contractRepository.create(contract);
+
+    try{
+      const savedContract = await this.contractRepository.save(newContract);
+      return savedContract;
+    }
+    catch (e) {throw new Error('Internal server error')}
+  }
+
+  async addRequestContract(contract: Contract): Promise<Contract> {
+
+    contract.startDate = new Date(contract.startDate);
+    contract.endDate = new Date(contract.endDate);
+
+    let status: Status = await this.statusService.findStatusByName('Request');
+    contract.status = status;
+
+    this.verifyContractEntity(contract);
+
+    const resumeRequests = this.resumeRequestRepository.create(contract.resumeRequests);
+    await this.resumeRequestRepository.save(resumeRequests);
+    contract.resumeRequests = resumeRequests;
+
     const newContract = await this.contractRepository.create(contract);
 
     try{
@@ -42,6 +67,7 @@ export class ContractService implements IContractService{
     if(redact != null && !redact){qb.leftJoinAndSelect('contract.users', 'users');}
     qb.leftJoinAndSelect('contract.status', 'status');
     qb.leftJoinAndSelect('contract.resumes', 'resumes');
+    qb.leftJoinAndSelect('contract.resumeRequests', 'resumeRequests');
     qb.andWhere(`contract.ID = :contractID`, { contractID: `${ID}`});
     const foundContract: Contract = await qb.getOne();
 
@@ -139,6 +165,13 @@ export class ContractService implements IContractService{
     this.verifyContractEntity(contract);
 
     try{
+      await this.resumeRequestRepository.createQueryBuilder().delete()
+        .where("contractID = :contractID", {contractID: `${contract.ID}`}).execute();
+
+      const resumeRequests = this.resumeRequestRepository.create(contract.resumeRequests);
+      await this.resumeRequestRepository.save(resumeRequests);
+      contract.resumeRequests = resumeRequests;
+
       const savedContract: Contract = await this.contractRepository.save(contract);
       return savedContract;
     }
@@ -163,6 +196,7 @@ export class ContractService implements IContractService{
     if(contract == null) {throw new Error('Contract must be instantiated');}
     if(contract.ID == null || contract.ID < 0){throw new Error('Contract must have a valid ID')}
     if(contract.title == null || contract.title.trim().length == 0){throw new Error('Contract must have a valid title');}
+    if(contract.description == null || contract.description.length > 500){throw new Error('Contract must have a valid description under 500 characters');}
     if(contract.status == null || contract.status.ID <= 0){throw new Error('Contract must have a valid status');}
     if(contract.startDate == null ){throw new Error('Contract must contain a valid start date');}
     if(contract.endDate == null ){throw new Error('Contract must contain a valid end date');}
