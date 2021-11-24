@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { initialData1637752289945 } from "./migration/1637752289945-initial-data";
 
 @Module({
   imports: [
@@ -17,7 +18,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         entities: [
           __dirname + '/../postgres/entities/*.entity.js',
         ],
-        synchronize: true,
+        migrationsRun: true,
+        migrations: [initialData1637752289945],
+        synchronize: true
       })
     }),
   ],
