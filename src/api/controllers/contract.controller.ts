@@ -131,6 +131,19 @@ export class ContractController {
     }
   }
 
+  //@UseGuards(JwtAuthGuard)
+  @Post('requestRenewal')
+  async requestRenewal(@Body() contract: Contract){
+    try{
+
+      const updatedContract = await this.contractService.requestRenewal(contract);
+      return updatedContract;
+    }
+    catch(e){      console.log(e);
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Delete('delete')
   async deleteContract(@Body() contract: Contract){
     try{

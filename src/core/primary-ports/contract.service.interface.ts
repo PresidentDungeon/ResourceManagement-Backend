@@ -13,10 +13,12 @@ export interface IContractService{
   getContractByUserID(ID: number): Promise<Contract[]>
   getContracts(filter: Filter): Promise<FilterList<Contract>>
   confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>
+  requestRenewal(contract: Contract): Promise<Contract>
   update(contract: Contract): Promise<Contract>
   delete(ID: number)
 
   verifyContractEntity(contract: Contract)
+  verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>;
 
   getAllStatuses(): Promise<Status[]>
 }

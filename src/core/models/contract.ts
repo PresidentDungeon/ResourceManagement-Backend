@@ -10,6 +10,7 @@ export interface Contract {
   status: Status
   startDate: Date
   endDate: Date
+  dueDate?: Date
   resumeRequests: ResumeRequest[]
   users: User[]
   resumes: Resume[]

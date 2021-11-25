@@ -37,6 +37,9 @@ export class ContractEntity {
   @Column({ type: 'timestamptz'})
   endDate: Date;
 
+  @Column({ type: 'timestamp', nullable: true})
+  dueDate?: Date;
+
   @OneToMany(() => ResumeRequestEntity, (resumeRequestEntity: ResumeRequestEntity) => resumeRequestEntity.contract, {cascade: true})
   resumeRequests: ResumeRequestEntity[];
 

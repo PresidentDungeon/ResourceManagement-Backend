@@ -58,6 +58,7 @@ describe('ContractService', () => {
       getCount: jest.fn(() => {}),
       offset: jest.fn(() => {}),
       limit: jest.fn(() => {}),
+      update: jest.fn(() => {return updateQueryBuilder}),
       delete: jest.fn(() => {return deleteQueryBuilder}),
     };
 
@@ -66,6 +67,12 @@ describe('ContractService', () => {
       where: () => deleteQueryBuilder,
       from: () => deleteQueryBuilder,
       andWhere: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
+    const updateQueryBuilder: any = {
+      set: () => deleteQueryBuilder,
+      where: () => deleteQueryBuilder,
       execute: jest.fn(() => {}),
     };
 
@@ -235,10 +242,13 @@ describe('ContractService', () => {
     let ID: number = 0;
     let errorStringToExcept = 'Contract ID must be instantiated or valid';
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
     await expect(service.getContractByID(null)).rejects.toThrow(errorStringToExcept);
     await expect(service.getContractByID(ID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(0);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
 
   it('Find non-existing contract results in error', async () => {
@@ -247,12 +257,17 @@ describe('ContractService', () => {
       .spyOn(mockContractRepository.createQueryBuilder(), 'getOne')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null)});});
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
     let contractID: number = 1;
     let errorStringToExcept = 'No contracts registered with such ID';
+
+
 
     await expect(service.getContractByID(contractID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(3);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
 
   it('Find existing contract returns valid contract information', async () => {
@@ -264,12 +279,16 @@ describe('ContractService', () => {
       .spyOn(mockContractRepository.createQueryBuilder(), 'getOne')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedContract);});});
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
     let foundContract: Contract;
 
     await expect(foundContract = await service.getContractByID(contractID)).resolves;
     expect(foundContract).toStrictEqual(storedContract);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(3);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith([foundContract]);
   });
 
   it('Get contract by ID selects users if redacted is false', async () => {
@@ -281,12 +300,16 @@ describe('ContractService', () => {
       .spyOn(mockContractRepository.createQueryBuilder(), 'getOne')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedContract);});});
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
     let foundContract: Contract;
 
     await expect(foundContract = await service.getContractByID(contractID, false)).resolves;
     expect(foundContract).toStrictEqual(storedContract);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(4);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith([foundContract]);
   });
 
   //#endregion
@@ -298,9 +321,12 @@ describe('ContractService', () => {
     let ID: number = 0;
     let errorStringToExcept = 'User ID must be instantiated or valid';
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
     await expect(service.getContractByUserID(null)).rejects.toThrow(errorStringToExcept);
     await expect(service.getContractByUserID(ID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
 
   it('Find existing contracts by user ID returns valid contract information', async () => {
@@ -313,11 +339,15 @@ describe('ContractService', () => {
       .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract1, storedContract2]);});});
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
     let foundContract: Contract[];
 
     await expect(foundContract = await service.getContractByUserID(userID)).resolves;
     expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContract);
   });
 
 
@@ -343,10 +373,14 @@ describe('ContractService', () => {
       { filter: filter = {itemsPrPage: 1, currentPage: Number.MIN_SAFE_INTEGER}, expectedError: 'Invalid current page entered'},
     ];
 
+
     theoretically('The correct error message is thrown during user filtering', theories,  async theory => {
+      jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
       await expect(service.getContracts(theory.filter)).rejects.toThrow(theory.expectedError);
       expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
       expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(0);
+      expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -377,6 +411,8 @@ describe('ContractService', () => {
       .spyOn(mockContractRepository.createQueryBuilder(), 'getCount')
       .mockImplementation(() => {return new Promise(resolve => {resolve(storedContracts.length);});});
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
     expect(filterList.list).toStrictEqual(expectedList);
@@ -384,8 +420,8 @@ describe('ContractService', () => {
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
-
-    jest.spyOn(mockContractRepository, 'createQueryBuilder').mockReset();
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(filterList.list);
   });
 
   it('Get contracts returns valid filterList when offset', async () => {
@@ -427,6 +463,7 @@ describe('ContractService', () => {
       .spyOn(mockContractRepository.createQueryBuilder(), 'getCount')
       .mockImplementation(() => {return new Promise(resolve => {resolve(storedContracts.length);});});
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
@@ -435,8 +472,8 @@ describe('ContractService', () => {
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
-
-    jest.spyOn(mockContractRepository, 'createQueryBuilder').mockReset();
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(filterList.list);
   });
 
   it('Get contracts returns valid filterList when limit', async () => {
@@ -479,6 +516,7 @@ describe('ContractService', () => {
       .spyOn(mockContractRepository.createQueryBuilder(), 'getCount')
       .mockImplementation(() => {return new Promise(resolve => {resolve(storedContracts.length);});});
 
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
@@ -487,28 +525,78 @@ describe('ContractService', () => {
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
-
-    jest.spyOn(mockContractRepository, 'createQueryBuilder').mockReset();
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(filterList.list);
   });
 
   //#endregion
 
   //#region ConfirmContract
 
-  it('Updating contract with isAccepted status calls find status by name of type accepted', async () => {
+  it('Confirming contract with status not equal to pending review throws error', async () => {
 
     let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+
+    let isAccepted: boolean = true;
+
+    jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
+    jest.spyOn(service, 'update').mockImplementation();
+
+    let expectedErrorMessage: string = 'Contract is not pending review and cannot be accepted or declined';
+
+    await expect(service.confirmContract(contract, isAccepted)).rejects.toThrow(expectedErrorMessage);
+    expect(service.getContractByID).toHaveBeenCalledTimes(1);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
+    expect(service.update).toHaveBeenCalledTimes(0);
+  });
+
+  it('Confirming contract with invalid date throws error', async () => {
+
+    let storedDate: Date = new Date();
+    storedDate.setDate(storedDate.getDate() - 1);
+
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: new Date, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+
+    let storedStatus: Status = {ID: 3, status: 'Accepted'}
+    let isAccepted: boolean = true;
+
+    jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
+    jest.spyOn(service, 'update').mockImplementation();
+
+    let expectedErrorMessage: string = 'The validation window for this contract is expired and cannot be accepted or declined';
+
+    await expect(service.confirmContract(contract, isAccepted)).rejects.toThrow(expectedErrorMessage);
+    expect(service.getContractByID).toHaveBeenCalledTimes(1);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
+    expect(service.update).toHaveBeenCalledTimes(0);
+  });
+
+  it('Updating contract with isAccepted status calls find status by name of type accepted', async () => {
+
+    let storedDate: Date = new Date();
+    storedDate.setDate(storedDate.getDate() + 1);
+
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+
     let storedStatus: Status = {ID: 3, status: 'Accepted'}
     let isAccepted: boolean = true;
 
     jest.spyOn(service, 'update').mockImplementationOnce((contract) => {return new Promise(resolve => {resolve(contract);});});
     jest.spyOn(mockStatusService, 'findStatusByName').mockImplementationOnce((status) => {return new Promise(resolve => {resolve(storedStatus);});});
+    jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
 
     let updatedContract: Contract;
 
     await expect(updatedContract = await service.confirmContract(contract, isAccepted)).resolves;
     expect(updatedContract).toBeDefined();
     expect(updatedContract.status).toBe(storedStatus);
+    expect(service.getContractByID).toHaveBeenCalledTimes(1);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
     expect(service.update).toHaveBeenCalledTimes(1);
@@ -517,20 +605,72 @@ describe('ContractService', () => {
 
   it('Updating contract with isAccepted status of false calls find status by name of type Declined', async () => {
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedDate: Date = new Date();
+    storedDate.setDate(storedDate.getDate() + 1);
+
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+
     let storedStatus: Status = {ID: 3, status: 'Rejected'}
     let isAccepted: boolean = false;
 
     jest.spyOn(service, 'update').mockImplementationOnce((contract) => {return new Promise(resolve => {resolve(contract);});});
     jest.spyOn(mockStatusService, 'findStatusByName').mockImplementationOnce((status) => {return new Promise(resolve => {resolve(storedStatus);});});
+    jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
 
     let updatedContract: Contract;
 
     await expect(updatedContract = await service.confirmContract(contract, isAccepted)).resolves;
     expect(updatedContract).toBeDefined();
     expect(updatedContract.status).toBe(storedStatus);
+    expect(service.getContractByID).toHaveBeenCalledTimes(1);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Rejected');
+    expect(service.update).toHaveBeenCalledTimes(1);
+    expect(service.update).toHaveBeenCalledWith(contract);
+  });
+
+  //#endregion
+
+  //#region RequestRenewal
+
+  it('Requesting renewal for contract with different status throws error', async () => {
+
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+
+    jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
+    jest.spyOn(service, 'update').mockImplementation();
+
+    let expectedErrorMessage: string = 'Contract is not expired and cannot be requested for renewal';
+
+    await expect(service.requestRenewal(contract)).rejects.toThrow(expectedErrorMessage);
+    expect(service.getContractByID).toHaveBeenCalledTimes(1);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
+    expect(service.update).toHaveBeenCalledTimes(0);
+
+  });
+
+  it('Requesting renewal for contract with correct status is successful', async () => {
+
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+
+    jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
+    jest.spyOn(service, 'update').mockImplementation((contract: Contract) => {return new Promise(resolve => {resolve(contract);});});
+
+    let result: Contract;
+
+    await expect(result = await service.requestRenewal(contract)).resolves;
+    expect(result).toBe(contract);
+    expect(result.status.status).toEqual('Draft');
+
+    expect(service.getContractByID).toHaveBeenCalledTimes(1);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
     expect(service.update).toHaveBeenCalledTimes(1);
     expect(service.update).toHaveBeenCalledWith(contract);
   });
@@ -742,6 +882,54 @@ describe('ContractService', () => {
 
     theoretically('No error message is thrown using contract validation', theories, theory => {
       expect(service.verifyContractEntity(theory.input)).resolves;
+    })
+  });
+
+  //#endregion
+
+  //#region VerifyContractStatuses
+
+  describe('Update is executed for outdated contracts with status of pending review', () => {
+    let contracts: Contract[];
+
+    function addDays(date: Date, days: number){
+      date.setDate(date.getDate() + days);
+      return date;
+    }
+
+    const theories = [
+      { input: contracts = [
+        {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
+        {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: []},
+        {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: []},
+        ],
+        expectedCalls: 2
+      },
+      { input: contracts = [
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 1, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: []},
+        ],
+        expectedCalls: 1
+      },
+      { input: contracts = [
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 2), users: [], resumes: [], resumeRequests: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 3), users: [], resumes: [], resumeRequests: []},
+        ],
+        expectedCalls: 0
+      },
+
+    ];
+
+    theoretically('Correct calls are performed', theories, async theory => {
+
+      let result: Contract[];
+
+      await expect(result = await service.verifyContractStatuses(theory.input)).resolves;
+      expect(result).toBeDefined();
+      expect(result).toBe(theory.input);
+      expect(mockContractRepository.createQueryBuilder().update).toHaveBeenCalledTimes(theory.expectedCalls);
     })
   });
 
