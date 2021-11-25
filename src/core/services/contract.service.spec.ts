@@ -415,7 +415,7 @@ describe('ContractService', () => {
 
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
-    expect(filterList.list).toStrictEqual(expectedList);
+    expect(filterList.list).toEqual(expectedList);
     expect(filterList.list.length).toBe(expectedListSize)
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
@@ -467,7 +467,7 @@ describe('ContractService', () => {
 
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
-    expect(filterList.list).toStrictEqual(expectedList);
+    expect(filterList.list).toEqual(expectedList);
     expect(filterList.list.length).toBe(expectedListSize)
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
@@ -520,7 +520,7 @@ describe('ContractService', () => {
 
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
-    expect(filterList.list).toStrictEqual(expectedList);
+    expect(filterList.list).toEqual(expectedList);
     expect(filterList.list.length).toBe(expectedListSize)
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
@@ -557,7 +557,7 @@ describe('ContractService', () => {
     let storedDate: Date = new Date();
     storedDate.setDate(storedDate.getDate() - 2);
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'TATAWTRAAWDAW', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
     let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
 
     let storedStatus: Status = {ID: 3, status: 'Accepted'}
