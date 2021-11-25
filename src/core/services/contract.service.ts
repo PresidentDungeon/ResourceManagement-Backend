@@ -56,7 +56,7 @@ export class ContractService implements IContractService{
     }
     catch (e) {throw new Error('Internal server error')}
   }
-  
+
   async getContractByID(ID: number, redact?: boolean): Promise<Contract>{
 
     if(ID == null || ID <= 0){

@@ -555,9 +555,9 @@ describe('ContractService', () => {
   it('Confirming contract with invalid date throws error', async () => {
 
     let storedDate: Date = new Date();
-    storedDate.setDate(storedDate.getDate() - 1);
+    storedDate.setDate(storedDate.getDate() - 2);
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: new Date, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
     let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
 
     let storedStatus: Status = {ID: 3, status: 'Accepted'}
