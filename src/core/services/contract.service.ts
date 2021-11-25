@@ -163,7 +163,10 @@ export class ContractService implements IContractService{
       throw new Error('Contract is not pending review and cannot be accepted or declined.');
     }
 
-    if(new Date(contract.dueDate).getTime() < new Date().getTime()){
+    contract.dueDate = new Date(contract.dueDate);
+    let currentDate: Date = new Date();
+
+    if(contract.dueDate.getTime() < currentDate.getTime()){
       throw new Error('The validation window for this contract is expired and cannot be accepted or declined');
     }
 

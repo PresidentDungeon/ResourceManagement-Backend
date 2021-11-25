@@ -387,19 +387,15 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
     ]
 
     let expectedTotalListSize: number = 3;
     let expectedListSize: number = 3;
 
-    let expectedList: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-    ]
+    let expectedList: ContractEntity[] = [storedContracts[0], storedContracts[1], storedContracts[2]]
 
     let filter: Filter = {currentPage: 1, itemsPrPage: 2};
 
@@ -415,7 +411,7 @@ describe('ContractService', () => {
 
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
-    expect(filterList.list).toEqual(expectedList);
+    expect(filterList.list).toStrictEqual(expectedList);
     expect(filterList.list.length).toBe(expectedListSize)
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
@@ -427,17 +423,15 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList when offset', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
     ]
 
     let expectedTotalListSize: number = 3;
     let expectedListSize: number = 1;
 
-    let expectedList: Contract[] = [
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []}
-    ]
+    let expectedList: Contract[] = [storedContracts[2]]
 
     let filter: Filter = {currentPage: 2, itemsPrPage: 1};
     let offsetValue: number;
@@ -467,7 +461,7 @@ describe('ContractService', () => {
 
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
-    expect(filterList.list).toEqual(expectedList);
+    expect(filterList.list).toStrictEqual(expectedList);
     expect(filterList.list.length).toBe(expectedListSize)
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
@@ -479,18 +473,15 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList when limit', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
     ]
 
     let expectedTotalListSize: number = 3;
     let expectedListSize: number = 2;
 
-    let expectedList: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date(), endDate: new Date(), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-    ]
+    let expectedList: ContractEntity[] = [storedContracts[0], storedContracts[1]]
 
     let filter: Filter = {currentPage: 0, itemsPrPage: 2};
     let offsetValue: number;
@@ -520,7 +511,7 @@ describe('ContractService', () => {
 
     let filterList: FilterList<Contract>;
     await expect(filterList = await service.getContracts(filter)).resolves;
-    expect(filterList.list).toEqual(expectedList);
+    expect(filterList.list).toStrictEqual(expectedList);
     expect(filterList.list.length).toBe(expectedListSize)
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
@@ -554,13 +545,11 @@ describe('ContractService', () => {
 
   it('Confirming contract with invalid date throws error', async () => {
 
-    let storedDate: Date = new Date();
-    storedDate.setDate(storedDate.getDate() - 2);
+    let storedDate: Date = new Date('2021-11-08T21:00:00');
 
-    let contract: Contract = {ID: 1, title: 'TATAWTRAAWDAW', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
     let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
 
-    let storedStatus: Status = {ID: 3, status: 'Accepted'}
     let isAccepted: boolean = true;
 
     jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
