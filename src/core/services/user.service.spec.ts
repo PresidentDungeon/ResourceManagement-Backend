@@ -19,6 +19,7 @@ import { UserStatusEntity } from "../../infrastructure/data-source/postgres/enti
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
+import { Contract } from "../models/contract";
 
 describe('UserService', () => {
   let service: UserService;
@@ -82,11 +83,16 @@ describe('UserService', () => {
       andWhere: () => createQueryBuilder,
       update: jest.fn(() => {return updateQueryBuilder}),
       delete: jest.fn(() => {return deleteQueryBuilder}),
+      select: jest.fn(() => {return selectQueryBuilder}),
       getOne: jest.fn(() => {}),
       getMany: jest.fn(() => {}),
       getCount: jest.fn(() => {}),
       offset: jest.fn(() => {}),
       limit: jest.fn(() => {}),
+    };
+
+    const selectQueryBuilder: any = {
+      getMany: jest.fn(() => {}),
     };
 
     const updateQueryBuilder: any = {
@@ -738,6 +744,65 @@ describe('UserService', () => {
 
      jest.spyOn(mockUserRepository, 'createQueryBuilder').mockReset();
    });
+
+  //#endregion
+
+  //#region GetUsernames
+
+  describe('Get usernames maps correctly', () => {
+    let users: User[];
+    let returnValue: User[]
+    let expectedNames: string[];
+    let searchString: string;
+
+    const theories = [
+      { input: users = [
+          {ID: 1, username: 'Kim Hansen', role: {ID: 1, role: 'User'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''},
+          {ID: 2, username: 'Hans Christiansen', role: {ID: 1, role: 'User'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''},
+          {ID: 3, username: 'Michael Elis Madsen', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'}, salt: '', password: ''},
+          {ID: 4, username: 'Josefine', role: {ID: 2, role: 'Admin'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''}],
+
+        returnValue: returnValue = [
+          {ID: 1, username: 'Kim Hansen', role: {ID: 1, role: 'User'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''},
+          {ID: 2, username: 'Hans Christiansen', role: {ID: 1, role: 'User'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''},
+          {ID: 3, username: 'Michael Elis Madsen', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'}, salt: '', password: ''},
+          {ID: 4, username: 'Josefine', role: {ID: 2, role: 'Admin'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''}],
+
+        expected: expectedNames = ['Kim Hansen', 'Hans Christiansen', 'Michael Elis Madsen', 'Josefine'],
+        searchString: searchString = ''
+      },
+      { input: users = [
+          {ID: 1, username: 'Mads Hansen', role: {ID: 1, role: 'User'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''},
+          {ID: 2, username: 'Jonas Hansen', role: {ID: 1, role: 'User'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''}
+        ],
+
+        returnValue: returnValue = [
+          {ID: 2, username: 'Jonas Hansen', role: {ID: 1, role: 'User'}, status: {ID: 2, status: 'Active'}, salt: '', password: ''}],
+
+        expected: expectedNames = ['Jonas Hansen'],
+        searchString: searchString = 'Jonas'
+      },
+    ];
+
+    theoretically('The correct usernames are returned', theories, async theory => {
+
+      jest.spyOn(mockUserRepository.createQueryBuilder(), 'select').mockImplementation(() => {return selectQueryBuilder});
+
+      const selectQueryBuilder: any = {
+        getMany: jest.fn(() => {return new Promise(resolve => {resolve(theory.returnValue);});}),
+        andWhere: () => selectQueryBuilder,
+        limit: () => selectQueryBuilder
+      };
+
+      let result: string[];
+
+
+
+      await expect(result = await service.getUsernames(theory.searchString)).resolves;
+      expect(result).toStrictEqual(theory.expected);
+      expect(mockUserRepository.createQueryBuilder().select().getMany).toHaveBeenCalledTimes(1);
+    })
+  });
 
   //#endregion
 

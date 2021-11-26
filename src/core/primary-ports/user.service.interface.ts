@@ -14,6 +14,7 @@ export interface IUserService{
   getUserByUsername(username: string): Promise<User>
   getUserByID(ID: number): Promise<User>
   getUsers(filter: Filter): Promise<FilterList<UserDTO>>
+  getUsernames(username: string): Promise<string[]>
   updateUser(userDTO: UserDTO): Promise<User>
 
   login(username: string, password: string): Promise<User>
