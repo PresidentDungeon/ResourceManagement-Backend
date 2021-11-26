@@ -17,6 +17,7 @@ export const ContractStatusSeed: ContractStatusEntity[] = [
   {ID: 1, status: 'Request'},
   {ID: 2, status: 'Draft'},
   {ID: 3, status: 'Pending review'},
-  {ID: 4, status: 'Accepted'},
-  {ID: 5, status: 'Rejected'},
+  {ID: 4, status: 'Expired'},
+  {ID: 5, status: 'Accepted'},
+  {ID: 6, status: 'Rejected'},
 ]

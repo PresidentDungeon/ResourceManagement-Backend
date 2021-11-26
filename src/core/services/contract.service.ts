@@ -76,6 +76,8 @@ export class ContractService implements IContractService{
       throw new Error('No contracts registered with such ID');
     }
 
+    await this.verifyContractStatuses([foundContract]);
+
     return foundContract;
   }
 
@@ -88,11 +90,11 @@ export class ContractService implements IContractService{
     let qb = this.contractRepository.createQueryBuilder("contract");
     qb.leftJoin('contract.users', 'users');
     qb.andWhere(`users.ID = :userID`, { userID: `${ID}`});
-    qb.leftJoin('contract.status', 'status');
+    qb.leftJoinAndSelect('contract.status', 'status');
     qb.andWhere(`status.status != :status`, { status: 'Rejected'})
 
     const foundContract: ContractEntity[] = await qb.getMany();
-
+    await this.verifyContractStatuses(foundContract);
     return foundContract;
   }
 
@@ -147,13 +149,44 @@ export class ContractService implements IContractService{
     const result = await qb.getMany();
     const count = await qb.getCount();
 
+    await this.verifyContractStatuses(result);
+
     const filterList: FilterList<Contract> = {list: result, totalItems: count};
     return filterList;
   }
 
   async confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>{
+
+    const storedContract: Contract = await this.getContractByID(contract.ID, false);
+
+    if(storedContract.status.status.toLowerCase() != 'pending review'){
+      throw new Error('Contract is not pending review and cannot be accepted or declined.');
+    }
+
+    contract.dueDate = new Date(contract.dueDate);
+    let currentDate: Date = new Date();
+
+    if(contract.dueDate.getTime() < currentDate.getTime()){
+      throw new Error('The validation window for this contract is expired and cannot be accepted or declined');
+    }
+
     let status: Status = await ((isAccepted) ? this.statusService.findStatusByName("Accepted") : this.statusService.findStatusByName("Rejected"));
     contract.status = status;
+    contract.dueDate = null;
+    const updatedContract = await this.update(contract);
+    return updatedContract;
+  }
+
+  async requestRenewal(contract: Contract): Promise<Contract>{
+
+    const storedContract: Contract = await this.getContractByID(contract.ID, false);
+
+    if(storedContract.status.status.toLowerCase() != 'expired'){
+      throw new Error('Contract is not expired and cannot be requested for renewal');
+    }
+
+    let pendingStatus: Status = await this.statusService.findStatusByName("Draft");
+    contract.status = pendingStatus;
     const updatedContract = await this.update(contract);
     return updatedContract;
   }
@@ -201,6 +234,19 @@ export class ContractService implements IContractService{
     if(contract.startDate == null ){throw new Error('Contract must contain a valid start date');}
     if(contract.endDate == null ){throw new Error('Contract must contain a valid end date');}
     if(contract.endDate.getTime() - contract.startDate.getTime() < 0 ){throw new Error('Start date cannot be after end date');}
+  }
+
+  async verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>{
+
+    const expiredStatus: Status = await this.statusService.findStatusByName('Expired');
+
+    contracts.map((contract) => {
+      if(contract.status.status.toLowerCase() == 'pending review' && contract.dueDate && contract.dueDate.getTime() < new Date().getTime()){
+        contract.status = expiredStatus
+        this.contractRepository.createQueryBuilder().update(ContractEntity).set({status: expiredStatus, dueDate: null}).where("ID = :contractID", {contractID: contract.ID}).execute();}
+    });
+
+    return contracts;
   }
 
   async getAllStatuses(): Promise<Status[]>{

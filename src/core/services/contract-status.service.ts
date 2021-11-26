@@ -4,6 +4,7 @@ import { Repository } from "typeorm";
 import { Status } from "../models/status";
 import { IContractStatusService } from "../primary-ports/contract-status.service.interface";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
+import { Contract } from "../models/contract";
 
 @Injectable()
 export class ContractStatusService implements IContractStatusService {
