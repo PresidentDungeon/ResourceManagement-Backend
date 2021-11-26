@@ -70,9 +70,9 @@ export class ResumeService implements IResumeService{
       throw new Error('Resume ID must be instantiated or valid');
     }
 
-    let draftStatus: Status = await this.statusService.findStatusByName('Draft');
     let pendingStatus: Status = await this.statusService.findStatusByName('Pending review');
-    let statusIDs: number[] = [draftStatus.ID, pendingStatus.ID];
+    let acceptedStatus: Status = await this.statusService.findStatusByName('Accepted');
+    let statusIDs: number[] = [pendingStatus.ID, acceptedStatus.ID];
 
     let qb = this.resumeRepository.createQueryBuilder('resume');
     qb.leftJoin('resume.contracts', 'contracts');
