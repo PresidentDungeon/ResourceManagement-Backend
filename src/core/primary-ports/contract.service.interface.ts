@@ -11,6 +11,7 @@ export interface IContractService{
   addRequestContract(contract: Contract): Promise<Contract>
   getContractByID(ID: number, redact: boolean): Promise<Contract>
   getContractByUserID(ID: number): Promise<Contract[]>
+  getContractsByResume(ID: number): Promise<Contract[]>
   getContracts(filter: Filter): Promise<FilterList<Contract>>
   confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>
   requestRenewal(contract: Contract): Promise<Contract>

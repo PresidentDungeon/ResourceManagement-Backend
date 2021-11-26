@@ -20,7 +20,6 @@ export class ResumeEntity {
   public ID: number;
 
   @ManyToMany(() => ContractEntity, contractEntity => contractEntity.resumes)
-  //@JoinTable()
   contracts: ContractEntity[];
 }
 

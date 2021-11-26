@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContractService } from './contract.service';
 import { getRepositoryToken } from "@nestjs/typeorm";
-import { DeleteQueryBuilder, FindManyOptions, Repository } from "typeorm";
+import { Connection, DeleteQueryBuilder, EntityManager, FindManyOptions, Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
 import { User } from "../models/user";
@@ -20,7 +20,8 @@ describe('ContractService', () => {
   let mockContractRepository: Repository<ContractEntity>;
   let mockResumeRequestRepository: Repository<ResumeRequestEntity>;
   let mockDeleteQueryBuilder: DeleteQueryBuilder<ContractEntity>;
-  let mockStatusService: ContractStatusService
+  let mockStatusService: ContractStatusService;
+  let connection: Connection;
 
   beforeEach(async () => {
 
@@ -58,6 +59,7 @@ describe('ContractService', () => {
       getCount: jest.fn(() => {}),
       offset: jest.fn(() => {}),
       limit: jest.fn(() => {}),
+      orderBy: jest.fn(() => {}),
       update: jest.fn(() => {return updateQueryBuilder}),
       delete: jest.fn(() => {return deleteQueryBuilder}),
     };
@@ -84,8 +86,20 @@ describe('ContractService', () => {
       })
     }
 
+    const mockConnection = {
+      provide: Connection,
+      useFactory: () => ({
+        transaction: jest.fn((fn) => {return fn(mockedManager)}),
+      })
+    };
+
+    const mockedManager = {
+      save: jest.fn(() => {}),
+      createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
+    }
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ContractService, MockContractRepository, MockResumeRequestRepository, StatusServiceMock],
+      providers: [ContractService, MockContractRepository, MockResumeRequestRepository, StatusServiceMock, mockConnection],
     }).compile();
 
     service = module.get<ContractService>(ContractService);
@@ -93,6 +107,9 @@ describe('ContractService', () => {
     mockResumeRequestRepository = module.get<Repository<ResumeRequestEntity>>(getRepositoryToken(ResumeRequestEntity));
     mockDeleteQueryBuilder = deleteQueryBuilder;
     mockStatusService = module.get<ContractStatusService>(IContractStatusServiceProvider);
+    connection = module.get<Connection>(Connection);
+
+    let mockManager = mockedManager;
   });
 
   it('Contract service be defined', () => {
@@ -109,6 +126,10 @@ describe('ContractService', () => {
 
   it('Mock status service Should be defined', () => {
     expect(mockStatusService).toBeDefined();
+  });
+
+  it('Connection Should be defined', () => {
+    expect(connection).toBeDefined();
   });
 
   //#region AddContract
@@ -166,13 +187,15 @@ describe('ContractService', () => {
 
   //#endregion
 
-  //#region AddRequestContract
+//#region AddRequestContract
 
   it('Add invalid contract doesnt save contract to database', async () => {
 
     let contract: Contract = {ID: 0, title: '', description: 'Some company', status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {throw new Error('Contract must have a valid title')})
+    const mockedManager = { save: jest.fn(() => {}) }
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)})
 
     let errorStringToExcept: string = 'Contract must have a valid title';
 
@@ -182,9 +205,8 @@ describe('ContractService', () => {
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contract);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
-    expect(mockResumeRequestRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockedManager.save).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
-    expect(mockContractRepository.save).toHaveBeenCalledTimes(0);
   });
 
   it('Error during save throw correct error message', async () => {
@@ -192,7 +214,10 @@ describe('ContractService', () => {
     let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [{ID: 0, occupation: 'Electrician', count: 3}]};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
-    jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {throw new Error()});
+
+    const mockedManager = { save: jest.fn(() => {throw new Error('')}) }
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)})
+
 
     let errorStringToExcept: string = 'Internal server error';
 
@@ -203,10 +228,8 @@ describe('ContractService', () => {
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contract);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(1);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledWith([{ID: 0, occupation: 'Electrician', count: 3}]);
-    expect(mockResumeRequestRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.create).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.create).toHaveBeenCalledWith(contract);
-    expect(mockContractRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockedManager.save).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
   });
 
   it('Saving contract resolves correctly', async () => {
@@ -215,7 +238,8 @@ describe('ContractService', () => {
     let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
-    jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {return new Promise(resolve => {resolve(contractSaveReturns)});});
+    const mockedManager = { save: jest.fn(() => {return new Promise(resolve => {resolve(contractSaveReturns)});}) }
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)})
 
     let savedContract: Contract;
 
@@ -227,10 +251,9 @@ describe('ContractService', () => {
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contract);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(1);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledWith([]);
-    expect(mockResumeRequestRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockedManager.save).toHaveBeenCalledTimes(2);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.create).toHaveBeenCalledWith(contract);
-    expect(mockContractRepository.save).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
@@ -350,6 +373,41 @@ describe('ContractService', () => {
     expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContract);
   });
 
+
+  //#endregion
+
+  //#region GetContractsByResume
+
+  it('Find contract with invalid resumeID results in error', async () => {
+
+    let ID: number = 0;
+    let errorStringToExcept = 'Resume ID must be instantiated or valid';
+
+    await expect(service.getContractsByResume(null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractsByResume(ID)).rejects.toThrow(errorStringToExcept);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
+  });
+
+  it('Find existing contracts by resume ID returns valid contract information', async () => {
+
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let resumeID: number = 1;
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract1, storedContract2]);});});
+
+    let foundContract: Contract[];
+
+    await expect(foundContract = await service.getContractsByResume(resumeID)).resolves;
+    expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+  });
 
   //#endregion
 
@@ -679,14 +737,31 @@ describe('ContractService', () => {
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce(() => {});
 
+    const mockedManager = {
+      save: jest.fn(() => {}),
+      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
+    }
+
+    const createQueryBuilder: any = {
+      from: () => createQueryBuilder,
+      delete: jest.fn(() => {return deleteQueryBuilder}),
+    };
+
+    const deleteQueryBuilder: any = {
+      where: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
+
     await expect(service.update(contract)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
-    expect(mockResumeRequestRepository.createQueryBuilder().delete).toHaveBeenCalledTimes(0);
-    expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
-    expect(mockResumeRequestRepository.save).toHaveBeenCalledTimes(0);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(0);
-    expect(mockContractRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
+    expect(mockedManager.save).toHaveBeenCalledTimes(0);
+    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(0);
   });
 
   it('Update contract with invalid data throws error', async () => {
@@ -702,6 +777,23 @@ describe('ContractService', () => {
       .spyOn(service, 'verifyContractEntity')
       .mockImplementationOnce((contract: Contract) => {throw new Error('Contract must have a valid title')});
 
+    const mockedManager = {
+      save: jest.fn(() => {}),
+      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
+    }
+
+    const createQueryBuilder: any = {
+      from: () => createQueryBuilder,
+      delete: jest.fn(() => {return deleteQueryBuilder}),
+    };
+
+    const deleteQueryBuilder: any = {
+      where: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
+
     let expectedErrorMessage: string = 'Contract must have a valid title'
 
     await expect(service.update(contractToUpdate)).rejects.toThrow(expectedErrorMessage);
@@ -709,10 +801,10 @@ describe('ContractService', () => {
     expect(service.getContractByID).toHaveBeenCalledWith(contractToUpdate.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contractToUpdate);
-    expect(mockResumeRequestRepository.createQueryBuilder().delete).toHaveBeenCalledTimes(0);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
-    expect(mockResumeRequestRepository.save).toHaveBeenCalledTimes(0);
-    expect(mockContractRepository.save).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
+    expect(mockedManager.save).toHaveBeenCalledTimes(0);
+    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(0);
   });
 
   it('Error while updating contract throws error', async () => {
@@ -728,9 +820,22 @@ describe('ContractService', () => {
       .spyOn(service, 'verifyContractEntity')
       .mockImplementationOnce((contract: Contract) => {});
 
-    jest
-      .spyOn(mockContractRepository, 'save')
-      .mockImplementationOnce((contract: Contract) => {throw new Error});
+    const mockedManager = {
+      save: jest.fn(() => {throw new Error('')}),
+      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
+    }
+
+    const createQueryBuilder: any = {
+      from: () => createQueryBuilder,
+      delete: jest.fn(() => {return deleteQueryBuilder}),
+    };
+
+    const deleteQueryBuilder: any = {
+      where: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
 
     let expectedErrorMessage: string = 'Internal server error'
 
@@ -739,11 +844,11 @@ describe('ContractService', () => {
     expect(service.getContractByID).toHaveBeenCalledWith(contractToUpdate.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contractToUpdate);
-    expect(mockResumeRequestRepository.createQueryBuilder().delete).toHaveBeenCalledTimes(1);
+    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(1);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(1);
-    expect(mockResumeRequestRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.save).toHaveBeenCalledWith(contractToUpdate);
+    expect(mockResumeRequestRepository.create).toHaveBeenCalledWith(contractToUpdate.resumeRequests);
+    expect(mockedManager.save).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
   });
 
   it('Updating contract with valid data resolves correctly', async () => {
@@ -759,6 +864,23 @@ describe('ContractService', () => {
       .spyOn(service, 'verifyContractEntity')
       .mockImplementationOnce((contract: Contract) => {});
 
+    const mockedManager = {
+      save: jest.fn(() => {return new Promise(resolve => {resolve(contractToUpdate)});}),
+      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
+    }
+
+    const createQueryBuilder: any = {
+      from: () => createQueryBuilder,
+      delete: jest.fn(() => {return deleteQueryBuilder}),
+    };
+
+    const deleteQueryBuilder: any = {
+      where: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
+
     let updatedContract: Contract;
 
     await expect(updatedContract = await service.update(contractToUpdate)).resolves;
@@ -767,11 +889,12 @@ describe('ContractService', () => {
     expect(service.getContractByID).toHaveBeenCalledWith(contractToUpdate.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contractToUpdate);
-    expect(mockResumeRequestRepository.createQueryBuilder().delete).toHaveBeenCalledTimes(1);
+    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(1);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(1);
-    expect(mockResumeRequestRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.save).toHaveBeenCalledWith(contractToUpdate);
+    expect(mockResumeRequestRepository.create).toHaveBeenCalledWith([]);
+    expect(mockedManager.save).toHaveBeenCalledTimes(2);
+    expect(mockContractRepository.create).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.create).toHaveBeenCalledWith(contractToUpdate);
   });
 
   //#endregion

@@ -38,18 +38,14 @@ export class ResumeService implements IResumeService{
   async getResumesByID(simpleResume: Resume[], redact: boolean): Promise<Resume[]>{
 
     let IDs: number[] = simpleResume.map((resume) => {return resume.ID});
-    let resumes: Resume[] = []
-    const promises: Promise<Resume>[] = []
+    let axiosResume: AxiosResponse<Resume[]>;
 
-    IDs.forEach((resumeID) => {
-        const promise: Promise<Resume> = this.getResumeByID(resumeID, redact);
-        promise.then((resume) => {resumes.push(resume)}).catch((error) => {});
-        promises.push(promise);
-    });
+    try{axiosResume = await this.http.post(this.configService.get('MOCK_API_URL') + `/resume/getResumesByID`, IDs).toPromise();}
+    catch (e) {throw new Error('Internal server error');}
 
-    await Promise.all(promises.map(p => p.catch(e => e))).then().catch();
+    let resumes: Resume[] = axiosResume.data;
 
-    resumes.sort((resume1, resume2) => {return resume1.ID - resume2.ID});
+    if(redact){for(let i = 0; i < resumes.length; i++){resumes[i] = this.redactResume(resumes[i]);}}
 
     return resumes;
   }
