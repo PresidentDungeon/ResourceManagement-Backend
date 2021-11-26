@@ -16,10 +16,10 @@ export class ResumeController {
   @Post('getResumes')
   async getResumes(@Body() getResumeDTO: GetResumesDTO){
     try {
-      let resumeFiler: FilterList<Resume> = await this.resumeService.getResumes(getResumeDTO.searchFilter, getResumeDTO.shouldLoadResumeCount, getResumeDTO.excludeContract);
+      let resumeFiler: FilterList<Resume> = await this.resumeService.getResumes(getResumeDTO);
       return resumeFiler;
     }
-    catch (e) {
+    catch (e) {console.log(e);
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }

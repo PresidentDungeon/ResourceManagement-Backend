@@ -20,4 +20,5 @@ export const ContractStatusSeed: ContractStatusEntity[] = [
   {ID: 4, status: 'Expired'},
   {ID: 5, status: 'Accepted'},
   {ID: 6, status: 'Rejected'},
+  {ID: 7, status: 'Completed'},
 ]

@@ -92,7 +92,7 @@ export class ContractController {
     try{
       return await this.contractService.getContractByUserID(userID.ID);
     }
-    catch(e){console.log(e);
+    catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

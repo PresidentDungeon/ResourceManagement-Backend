@@ -12,9 +12,11 @@ import {
   IContractStatusService,
   IContractStatusServiceProvider
 } from "../primary-ports/contract-status.service.interface";
+import { IResumeService } from "../primary-ports/resume.service.interface";
+import { GetResumesDTO } from "../../api/dtos/get.resumes.dto";
 
 @Injectable()
-export class ResumeService {
+export class ResumeService implements IResumeService{
 
   constructor(
     @InjectRepository(ResumeEntity) private resumeRepository: Repository<ResumeEntity>,
@@ -52,12 +54,11 @@ export class ResumeService {
     return resumes;
   }
 
-  async getResumes(filter: string, getResumeCount: boolean, excludeContract?: number): Promise<FilterList<Resume>>{
-    const axiosResume: AxiosResponse<FilterList<Resume>> = await this.http.get(this.configService.get('MOCK_API_URL') + `/resume/getResumes` + filter).toPromise();
+  async getResumes(getResumeDTO: GetResumesDTO): Promise<FilterList<Resume>>{
+    const axiosResume: AxiosResponse<FilterList<Resume>> = await this.http.get(this.configService.get('MOCK_API_URL') + `/resume/getResumes` + getResumeDTO.searchFilter).toPromise();
     const resumes: FilterList<Resume> = axiosResume.data;
-
-    if(getResumeCount){
-      await this.getResumesCount(resumes.list, excludeContract)
+    if(getResumeDTO.shouldLoadResumeCount && resumes.list.length > 0){
+      await this.getResumesCount(resumes.list, getResumeDTO)
     }
 
     return resumes;
@@ -86,14 +87,15 @@ export class ResumeService {
     return Number.parseInt(result.contracts)
   }
 
-  async getResumesCount(resumes: Resume[], excludeContract?: number): Promise<Resume[]> {
+  async getResumesCount(resumes: Resume[], getResumeDTO: GetResumesDTO): Promise<Resume[]> {
 
     let resumeIDs: number[] = [];
     resumes.map((resume) => {resumeIDs.push(resume.ID); resume.count = 0});
 
-    let draftStatus: Status = await this.statusService.findStatusByName('Draft');
     let pendingStatus: Status = await this.statusService.findStatusByName('Pending review');
-    let statusIDs: number[] = [draftStatus.ID, pendingStatus.ID];
+    let acceptedStatus: Status = await this.statusService.findStatusByName('Accepted');
+
+    let statusIDs: number[] = [pendingStatus.ID, acceptedStatus.ID];
 
     let qb = this.resumeRepository.createQueryBuilder('resume');
     qb.leftJoin('resume.contracts', 'contracts');
@@ -101,8 +103,16 @@ export class ResumeService {
     qb.andWhere('status.ID IN (:...statusIDs)', {statusIDs: statusIDs});
     qb.andWhere('resume.ID IN (:...resumeIDs)', {resumeIDs: resumeIDs});
 
-    if(excludeContract != null && excludeContract > 0){
-      qb.andWhere('contracts.ID != :contractID', {contractID: excludeContract});
+    if(getResumeDTO.excludeContract != null && getResumeDTO.excludeContract > 0){
+      qb.andWhere('contracts.ID != :contractID', {contractID: getResumeDTO.excludeContract});
+    }
+
+    if(getResumeDTO.startDate != null && getResumeDTO.endDate != null){
+
+      let startDateString: Date = new Date(getResumeDTO.startDate);
+      let endDateString: Date = new Date(getResumeDTO.endDate);
+
+      qb.andWhere(':startDate < contracts.endDate AND :endDate > contracts.startDate', {startDate: startDateString, endDate: endDateString})
     }
 
     qb.select('resume.ID', 'ID');
