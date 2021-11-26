@@ -82,6 +82,18 @@ export class UserController {
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
   }
 
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
+  @Get('getUsernames')
+  async getUsernames(){
+
+    try{
+      let usernames: string[] = await this.userService.getUsernames();
+      return usernames;
+    }
+    catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
+  }
+
   @Post('login')
   async login(@Body() loginDto: LoginDTO){
 

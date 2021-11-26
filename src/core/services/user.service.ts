@@ -219,6 +219,18 @@ export class UserService implements IUserService{
     return filterList;
   }
 
+  async getUsernames(username: string): Promise<string[]>{
+
+    let limitCount = 5;
+
+    let qb = this.userRepository.createQueryBuilder("user");
+    qb = qb.select('user.username', 'username');
+    qb.andWhere(`username ILIKE :userUsername`, { userUsername: `%${username}%` });
+    qb.limit(limitCount);
+    const result = await qb.getMany();
+    return result.map((value) => {return value.username});
+  }
+
   async updateUser(userDTO: UserDTO): Promise<User>{
 
     const foundUser = await this.getUserByID(userDTO.ID);
