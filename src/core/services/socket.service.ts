@@ -21,12 +21,19 @@ export class SocketService implements ISocketService{
   }
 
   emitContractUpdateEvent(contract: Contract) {
-    this.server.emit('contractUpdated', contract);
+    this.server.emit('contractUpdatedAdmin', contract);
+    this.server.emit('contractUpdatedUser', this.redactContract(contract));
   }
 
   emitContractDeleteEvent(contract: Contract) {
     this.server.emit('contractDeleted', contract);
   }
+
+  redactContract(contract: Contract): Contract{
+    contract.users = [];
+    contract.resumes.map((resume) => {resume.firstName = ''; resume.middleName = ''; resume.lastName = ''; resume.middleLastName = '';});
+    return contract;
+}
 
 
 

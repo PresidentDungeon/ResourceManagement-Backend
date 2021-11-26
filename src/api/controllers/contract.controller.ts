@@ -20,13 +20,15 @@ import { Filter } from "../../core/models/filter";
 import { ResumeAmountRequestDTO } from "../dtos/resume.amount.request.dto";
 import { ContractStateReplyDTO } from "../dtos/contract.state.reply.dto";
 import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/resume.service.interface";
+import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/socket.service.interface";
 
 @Controller('contract')
 export class ContractController {
 
   constructor(
     @Inject(IContractServiceProvider) private contractService: IContractService,
-    @Inject(IResumeServiceProvider) private resumeService: IResumeService) {}
+    @Inject(IResumeServiceProvider) private resumeService: IResumeService,
+    @Inject(ISocketServiceProvider) private socketService: ISocketService) {}
 
   //@Roles('Admin')
   //@UseGuards(JwtAuthGuard)
@@ -34,6 +36,7 @@ export class ContractController {
   async create(@Body() contract: Contract){
     try {
       let createdContract: Contract = await this.contractService.addContract(contract);
+      this.contractService.getContractByID(contract.ID, true).then((contract) => {this.socketService.emitContractCreateEvent(contract)});
       return createdContract;
     }
     catch (e) {
@@ -89,7 +92,7 @@ export class ContractController {
     try{
       return await this.contractService.getContractByUserID(userID.ID);
     }
-    catch(e){
+    catch(e){console.log(e);
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -112,6 +115,7 @@ export class ContractController {
   async updateContract(@Body() contract: Contract){
     try{
       const updatedContract = await this.contractService.update(contract);
+      this.contractService.getContractByID(contract.ID, false).then((contract) => {this.socketService.emitContractUpdateEvent(contract)});
       return updatedContract;
     }
     catch(e){
@@ -124,6 +128,7 @@ export class ContractController {
   async confirmContractState(@Body() contractStateReplyDTO: ContractStateReplyDTO){
     try{
       const updatedContract = await this.contractService.confirmContract(contractStateReplyDTO.contract, contractStateReplyDTO.isAccepted);
+      this.contractService.getContractByID(contractStateReplyDTO.contract.ID, false).then((contract) => {this.socketService.emitContractUpdateEvent(contract)});
       return updatedContract;
     }
     catch(e){
@@ -135,13 +140,11 @@ export class ContractController {
   @Post('requestRenewal')
   async requestRenewal(@Body() contract: Contract){
     try{
-
       const updatedContract = await this.contractService.requestRenewal(contract);
+      this.contractService.getContractByID(contract.ID, false).then((contract) => {this.socketService.emitContractUpdateEvent(contract)});
       return updatedContract;
     }
-    catch(e){      console.log(e);
-      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
-    }
+    catch(e){throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
   }
 
   @Delete('delete')
