@@ -279,7 +279,7 @@ export class ContractService implements IContractService{
   async verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>{
 
     const expiredStatus: Status = await this.statusService.findStatusByName('Expired');
-    //const completedStatus: Status = await this.statusService.findStatusByName('Completed');
+    const completedStatus: Status = await this.statusService.findStatusByName('Completed');
 
     contracts.map((contract) => {
 
@@ -287,12 +287,12 @@ export class ContractService implements IContractService{
         contract.status = expiredStatus
         this.contractRepository.createQueryBuilder().update(ContractEntity).set({status: expiredStatus, dueDate: null}).where("ID = :contractID", {contractID: contract.ID}).execute();}
 
-      /*
+
       if(contract.status.status.toLowerCase() == 'accepted' && contract.endDate.getTime() < new Date().getTime()){
         contract.status = completedStatus;
         this.contractRepository.createQueryBuilder().update(ContractEntity).set({status: completedStatus}).where("ID = :contractID", {contractID: contract.ID}).execute();
       }
-      */
+
 
     });
 

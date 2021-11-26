@@ -1011,23 +1011,23 @@ describe('ContractService', () => {
 
     const theories = [
       { input: contracts = [
-        {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
-        {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: []},
-        {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: []},
+        {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
+        {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: []},
+        {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: []},
         ],
         expectedCalls: 2
       },
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
-          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 1, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: []},
-          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 6, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: []},
         ],
         expectedCalls: 1
       },
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
-          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 2), users: [], resumes: [], resumeRequests: []},
-          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 3), users: [], resumes: [], resumeRequests: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 2), users: [], resumes: [], resumeRequests: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 3), users: [], resumes: [], resumeRequests: []},
         ],
         expectedCalls: 0
       },
@@ -1041,10 +1041,59 @@ describe('ContractService', () => {
       await expect(result = await service.verifyContractStatuses(theory.input)).resolves;
       expect(result).toBeDefined();
       expect(result).toBe(theory.input);
+      expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
+      expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Expired');
+      expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Completed');
       expect(mockContractRepository.createQueryBuilder().update).toHaveBeenCalledTimes(theory.expectedCalls);
     })
   });
 
+  describe('Update is executed for outdated contracts with status of accepted', () => {
+    let contracts: Contract[];
+
+    function addDays(date: Date, days: number){
+      date.setDate(date.getDate() + days);
+      return date;
+    }
+
+    const theories = [
+      { input: contracts = [
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), -1), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 0), dueDate: null, users: [], resumes: [], resumeRequests: []},
+        ],
+        expectedCalls: 2
+      },
+      { input: contracts = [
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 6, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), -1), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 0), dueDate: null, users: [], resumes: [], resumeRequests: []},
+        ],
+        expectedCalls: 1
+      },
+      { input: contracts = [
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 2), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 3), dueDate: null, users: [], resumes: [], resumeRequests: []},
+        ],
+        expectedCalls: 0
+      },
+
+    ];
+
+    theoretically('Correct calls are performed', theories, async theory => {
+
+      let result: Contract[];
+
+      await expect(result = await service.verifyContractStatuses(theory.input)).resolves;
+      expect(result).toBeDefined();
+      expect(result).toBe(theory.input);
+      expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
+      expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Expired');
+      expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Completed');
+      expect(mockContractRepository.createQueryBuilder().update).toHaveBeenCalledTimes(theory.expectedCalls);
+    })
+  });
   //#endregion
 
   //#region GetAllStatuses
