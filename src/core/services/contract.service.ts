@@ -10,6 +10,7 @@ import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/entities/resume-request.entity";
 import { CommentEntity } from "../../infrastructure/data-source/postgres/entities/comment.entity";
+import { CommentDTO } from "src/api/dtos/comment.dto";
 
 @Injectable()
 export class ContractService implements IContractService{
@@ -17,6 +18,7 @@ export class ContractService implements IContractService{
   constructor(
     @InjectRepository(ContractEntity) private contractRepository: Repository<ContractEntity>,
     @InjectRepository(ResumeRequestEntity) private resumeRequestRepository: Repository<ResumeRequestEntity>,
+    @InjectRepository(CommentEntity) private commentRepository: Repository<CommentEntity>,
     @InjectConnection() private readonly connection: Connection,
     @Inject(IContractStatusServiceProvider) private statusService: IContractStatusService,
   ) {}
@@ -64,6 +66,13 @@ export class ContractService implements IContractService{
     catch (e) {
       throw new Error('Internal server error');
     }
+  }
+
+  async saveComment(commentDTO: CommentDTO) {
+    const commentEntity = this.commentRepository.create(commentDTO);
+    commentEntity.user = JSON.parse(JSON.stringify({ID: commentDTO.userID}));
+    commentEntity.contract = JSON.parse(JSON.stringify({ID: commentDTO.contractID}));
+    await this.commentRepository.save(commentEntity);
   }
 
   async getContractByID(ID: number, redact?: boolean, personalID?: number): Promise<Contract>{

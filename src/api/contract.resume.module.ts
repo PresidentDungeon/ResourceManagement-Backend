@@ -14,9 +14,10 @@ import { IContractStatusServiceProvider } from "../core/primary-ports/contract-s
 import { IContractServiceProvider } from "../core/primary-ports/contract.service.interface";
 import { ResumeRequestEntity } from "../infrastructure/data-source/postgres/entities/resume-request.entity";
 import { SocketModule } from "./socket.module";
+import { CommentEntity } from 'src/infrastructure/data-source/postgres/entities/comment.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ContractEntity, ResumeEntity, ContractStatusEntity, ResumeRequestEntity]), HttpModule, SocketModule],
+  imports: [TypeOrmModule.forFeature([ContractEntity, ResumeEntity, ContractStatusEntity, ResumeRequestEntity, CommentEntity]), HttpModule, SocketModule],
   controllers: [ContractController, ResumeController],
   providers: [{provide: IContractServiceProvider, useClass: ContractService}, {provide: IContractStatusServiceProvider, useClass: ContractStatusService}, {provide: IResumeServiceProvider, useClass: ResumeService}],
   exports: [IContractServiceProvider, IContractStatusServiceProvider, IResumeServiceProvider]
