@@ -48,8 +48,7 @@ export class UserController {
       [allUsers, registeredUsers, confirmationTokens] = await this.userService.registerUsers(unregisteredUsers);
 
       let allUsersConverted: UserDTO[] = allUsers.map(user => {return {ID: user.ID, username: user.username, status: user.status, role: user.role}});
-      let emails: string[] = registeredUsers.map(user => {return user.username});
-      this.mailService.sendUsersRegistrationInvite(emails, confirmationTokens);
+      this.mailService.sendUsersRegistrationInvite(registeredUsers, confirmationTokens);
       return allUsersConverted;
     }
     catch (e)

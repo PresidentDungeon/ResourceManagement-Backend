@@ -25,7 +25,9 @@ export class MailService implements IMailService{
     });
   }
 
-  async sendUsersRegistrationInvite(emails: string[], confirmationCodes: string[]){
+  async sendUsersRegistrationInvite(users: User[], confirmationCodes: string[]){
+
+    let emails: string[] = users.map(user => {return user.username});
 
     for (let i = 0; i < emails.length; i++){
 

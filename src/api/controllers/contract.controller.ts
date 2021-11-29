@@ -36,7 +36,7 @@ export class ContractController {
   async create(@Body() contract: Contract){
     try {
       let createdContract: Contract = await this.contractService.addContract(contract);
-      this.contractService.getContractByID(contract.ID, true).then((contract) => {this.socketService.emitContractCreateEvent(contract)});
+      this.contractService.getContractByID(createdContract.ID, true).then((contract) => {this.socketService.emitContractCreateEvent(contract)});
       return createdContract;
     }
     catch (e) {
