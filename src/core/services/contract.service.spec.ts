@@ -3,7 +3,6 @@ import { ContractService } from './contract.service';
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { Connection, DeleteQueryBuilder, EntityManager, FindManyOptions, Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
-import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
 import { User } from "../models/user";
 import theoretically from "jest-theories";
 import { Contract } from "../models/contract";
@@ -14,6 +13,8 @@ import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { Status } from "../models/status";
 import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/entities/resume-request.entity";
+import { Comment } from "../models/comment";
+import { CommentEntity } from "../../infrastructure/data-source/postgres/entities/comment.entity";
 
 describe('ContractService', () => {
   let service: ContractService;
@@ -53,8 +54,10 @@ describe('ContractService', () => {
       select: () => createQueryBuilder,
       addSelect: () => createQueryBuilder,
       groupBy: () => createQueryBuilder,
+      addGroupBy: () => createQueryBuilder,
       getOne: jest.fn(() => {}),
       getMany: jest.fn(() => {}),
+      getRawOne: jest.fn(() => {}),
       getRawMany: jest.fn(() => {}),
       getCount: jest.fn(() => {}),
       offset: jest.fn(() => {}),
@@ -270,6 +273,23 @@ describe('ContractService', () => {
     await expect(service.getContractByID(null)).rejects.toThrow(errorStringToExcept);
     await expect(service.getContractByID(ID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(0);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
+  });
+
+  it('Find contract with invalid personal ID results in error', async () => {
+
+    let contractID: number = 1;
+    let personalID: number = 0;
+
+    let errorStringToExcept = 'Invalid user ID entered';
+
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
+    await expect(service.getContractByID(contractID, true, personalID)).rejects.toThrow(errorStringToExcept);
+    expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(0);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
@@ -289,6 +309,7 @@ describe('ContractService', () => {
 
     await expect(service.getContractByID(contractID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(3);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
@@ -309,6 +330,7 @@ describe('ContractService', () => {
     await expect(foundContract = await service.getContractByID(contractID)).resolves;
     expect(foundContract).toStrictEqual(storedContract);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(3);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledWith([foundContract]);
@@ -330,7 +352,40 @@ describe('ContractService', () => {
     await expect(foundContract = await service.getContractByID(contractID, false)).resolves;
     expect(foundContract).toStrictEqual(storedContract);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(4);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith([foundContract]);
+  });
+
+  it('Get contract by ID selects selects personal resume if valid personal ID is entered', async () => {
+
+    let userID: number = 2;
+    let personalComment: string = 'The contract went good as expected. Everything is fine.'
+    let comments: CommentEntity[] = [{comment: 'A bit left to be desired. The contractors were a fine selection but I had a slight problem with Husam...', contract: JSON.parse('{"ID": "1"}'), user: JSON.parse('{"ID": "1"}')}, {comment: personalComment, contract: JSON.parse('{"ID": "1"}'), user: JSON.parse('{"ID": "2"}')}]
+
+    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 4, status: 'Completed'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: comments};
+    let storedContractRaw: any = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 4, status: 'Completed'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: comments, personal_comment: personalComment};
+    let contractID: number = 1;
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getOne')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedContract);});});
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getRawOne')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedContractRaw);});});
+
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
+    let foundContract: Contract;
+
+    await expect(foundContract = await service.getContractByID(contractID, false, userID)).resolves;
+    expect(foundContract).toStrictEqual(storedContract);
+    expect(foundContract.personalComment).toEqual({comment: storedContractRaw.personal_comment});
+    expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(3);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledWith([foundContract]);
   });

@@ -8,7 +8,7 @@ import {
   Inject,
   Post,
   Put,
-  Query,
+  Query, Req,
   UseGuards
 } from "@nestjs/common";
 import { IContractService, IContractServiceProvider } from "../../core/primary-ports/contract.service.interface";
@@ -71,11 +71,12 @@ export class ContractController {
     }
   }
 
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('getContractByIDUser')
-  async getContractByIDUser(@Query() contractID: any){
+  async getContractByIDUser(@Query() contractID: any, @Req() request){
     try{
-      const contract: Contract = await this.contractService.getContractByID(contractID.ID, true);
+      let userID = request.user.userID;
+      const contract: Contract = await this.contractService.getContractByID(contractID.ID, true, userID);
       const resumes: Resume[] = await this.resumeService.getResumesByID(contract.resumes, true);
       contract.resumes = resumes;
       return contract;
@@ -93,15 +94,15 @@ export class ContractController {
       const contracts: Contract[] = await this.contractService.getContractsByResume(resumeID.ID);
       return contracts;
     }
-    catch(e){console.log(e);
+    catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
 
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('getContractByUserID')
-  async getContractByUserID(@Query() userID: any){
+  async getContractByUserID(@Query() userID: any, @Req() request){
     try{
       return await this.contractService.getContractByUserID(userID.ID);
     }
