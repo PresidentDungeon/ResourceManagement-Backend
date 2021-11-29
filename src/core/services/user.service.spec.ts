@@ -245,19 +245,14 @@ describe('UserService', () => {
     let user3: User = { ID: 0, username: 'Jens', password: 'Password', salt: 'SaltValue', role: {ID: 1, role: 'User'}, status: {ID: 1, status: 'Pending'} }
 
     let usersToRegister: User[] = [user1, user2, user3];
-    let expectedErrorMessage = 'Username must be a valid email';
-
-    jest
-      .spyOn(service, 'getUserByUsername')
-      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(null);});});
-
+    let expectedErrorMessage = 'Username Jens must be a valid email';
 
     await expect(service.registerUsers(usersToRegister)).rejects.toThrow(expectedErrorMessage);
     expect(mockRoleService.findRoleByName).toHaveBeenCalledTimes(1);
     expect(mockRoleService.findRoleByName).toHaveBeenCalledWith('user');
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('pending');
-    expect(service.getUserByUsername).toHaveBeenCalledTimes(0);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.create).toHaveBeenCalledTimes(0);
@@ -277,8 +272,8 @@ describe('UserService', () => {
     let confirmationTokens: string[] = [];
 
     jest
-      .spyOn(service, 'getUserByUsername')
-      .mockImplementation((username: string) => {throw new Error();});
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(null);})})
 
     await expect([allUsers, addedUsers, confirmationTokens] = await service.registerUsers(usersToRegister)).resolves;
     expect(allUsers).toStrictEqual(usersToRegister);
@@ -289,15 +284,15 @@ describe('UserService', () => {
     expect(mockRoleService.findRoleByName).toHaveBeenCalledWith('user');
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('pending');
-    expect(service.getUserByUsername).toHaveBeenCalledTimes(3);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(3);
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(9);
     expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(3);
     expect(mockUserRepository.create).toHaveBeenCalledTimes(3);
+    for(let user of usersToRegister){expect(mockUserRepository.create).toHaveBeenCalledWith(user)}
     expect(mockUserRepository.save).toHaveBeenCalledTimes(3);
+    for(let user of usersToRegister){expect(mockUserRepository.save).toHaveBeenCalledWith(user)}
     expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(3);
-
-    jest.restoreAllMocks();
   });
 
   it('Registration saves only unregistered users to database', async () => {
@@ -314,10 +309,10 @@ describe('UserService', () => {
     let confirmationTokens: string[] = [];
 
     jest
-      .spyOn(service, 'getUserByUsername')
-      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(user1);})})
-      .mockImplementationOnce((username: string) => {throw new Error();})
-      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(user3);})})
+      .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(user1);})})
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);})})
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(user3);})})
 
     await expect([allUsers, addedUsers, confirmationTokens] = await service.registerUsers(usersToRegister)).resolves;
     expect(allUsers).toStrictEqual(usersToRegister);
@@ -328,12 +323,14 @@ describe('UserService', () => {
     expect(mockRoleService.findRoleByName).toHaveBeenCalledWith('user');
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('pending');
-    expect(service.getUserByUsername).toHaveBeenCalledTimes(3);
+    expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(3);
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(3);
     expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
     expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
     expect(mockUserRepository.create).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.create).toHaveBeenCalledWith(user2);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.save).toHaveBeenCalledWith(user2);
     expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
   });
 

@@ -63,17 +63,20 @@ export class UserService implements IUserService{
 
     for (let user of users) {
       if(user == null || !this.emailRegex.test(user.username)){
-        throw new Error('Username must be a valid email');
+        throw new Error(`Username ${user.username} must be a valid email`);
       }
     }
 
     for (let user of users) {
-      try {
-        const foundUser = await this.getUserByUsername(user.username);
+
+      let foundUser: User = await this.userRepository.createQueryBuilder('user')
+      .andWhere(`user.username ILIKE :Username`, { Username: `${user.username}`}).getOne();
+
+      if(foundUser){
         allUsers.push(foundUser);
       }
-      catch (e) {
-        //User doesn't exist which is why error code is thrown
+
+      else{
         user.role = userRole;
         user.status = userStatus;
         user.password = '';
@@ -84,7 +87,7 @@ export class UserService implements IUserService{
         const hashedVerificationCode = this.generateHash(verificationCode, tokenSalt);
 
         const newUser = await this.userRepository.create(user);
-        try{
+        try {
           const savedUser = await this.userRepository.save(newUser);
           const confirmationToken: ConfirmationToken = {user: JSON.parse(JSON.stringify({ID: savedUser.ID})), salt: tokenSalt, hashedConfirmationToken: hashedVerificationCode};
           await this.confirmationTokenRepository.save(confirmationToken);
@@ -96,6 +99,7 @@ export class UserService implements IUserService{
         catch (e) {throw new Error('Internal server error')}
       }
     }
+
     return [allUsers, addedUsers, confirmationTokens];
   }
 

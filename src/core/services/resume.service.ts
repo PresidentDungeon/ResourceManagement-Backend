@@ -108,7 +108,7 @@ export class ResumeService implements IResumeService{
       let startDateString: Date = new Date(getResumeDTO.startDate);
       let endDateString: Date = new Date(getResumeDTO.endDate);
 
-      qb.andWhere(':startDate < contracts.endDate AND :endDate > contracts.startDate', {startDate: startDateString, endDate: endDateString})
+      qb.andWhere(':startDate <= contracts.endDate AND :endDate >= contracts.startDate', {startDate: startDateString, endDate: endDateString})
     }
 
     qb.select('resume.ID', 'ID');
