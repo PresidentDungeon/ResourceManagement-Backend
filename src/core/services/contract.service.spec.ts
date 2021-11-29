@@ -385,7 +385,7 @@ describe('ContractService', () => {
     expect(foundContract.personalComment).toEqual({comment: storedContractRaw.personal_comment});
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(3);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(4);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledWith([foundContract]);
   });
@@ -651,7 +651,7 @@ describe('ContractService', () => {
 
     await expect(service.confirmContract(contract, isAccepted)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
-    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(service.update).toHaveBeenCalledTimes(0);
   });
@@ -672,7 +672,7 @@ describe('ContractService', () => {
 
     await expect(service.confirmContract(contract, isAccepted)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
-    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(service.update).toHaveBeenCalledTimes(0);
   });
@@ -698,7 +698,7 @@ describe('ContractService', () => {
     expect(updatedContract).toBeDefined();
     expect(updatedContract.status).toBe(storedStatus);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
-    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
     expect(service.update).toHaveBeenCalledTimes(1);
@@ -726,7 +726,7 @@ describe('ContractService', () => {
     expect(updatedContract).toBeDefined();
     expect(updatedContract.status).toBe(storedStatus);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
-    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Rejected');
     expect(service.update).toHaveBeenCalledTimes(1);
@@ -749,7 +749,7 @@ describe('ContractService', () => {
 
     await expect(service.requestRenewal(contract)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
-    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(service.update).toHaveBeenCalledTimes(0);
 
@@ -770,7 +770,7 @@ describe('ContractService', () => {
     expect(result.status.status).toEqual('Draft');
 
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
-    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID, false);
+    expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
     expect(service.update).toHaveBeenCalledTimes(1);

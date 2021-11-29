@@ -73,6 +73,7 @@ export class ContractService implements IContractService{
     }
 
     let qb = this.contractRepository.createQueryBuilder("contract");
+    if(redact != null && !redact){qb.leftJoinAndSelect('contract.users', 'users');}
 
     if(personalID != null){
 
