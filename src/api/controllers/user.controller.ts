@@ -85,10 +85,10 @@ export class UserController {
   //@Roles('Admin')
   //@UseGuards(JwtAuthGuard)
   @Get('getUsernames')
-  async getUsernames(){
+  async getUsernames(@Query() data: any){
 
     try{
-      let usernames: string[] = await this.userService.getUsernames();
+      let usernames: string[] = await this.userService.getUsernames(data.username);
       return usernames;
     }
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}

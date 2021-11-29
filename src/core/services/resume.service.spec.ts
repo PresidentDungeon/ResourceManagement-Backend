@@ -14,6 +14,7 @@ import { Resume } from "../models/resume";
 import { AxiosResponse } from "axios";
 import { Observable, of, throwError } from "rxjs";
 import { FilterList } from "../models/filterList";
+import { GetResumesDTO } from "../../api/dtos/get.resumes.dto";
 
 describe('ResumeService', () => {
 
@@ -40,6 +41,7 @@ describe('ResumeService', () => {
       provide: HttpService,
       useFactory: () => ({
         get: jest.fn(() => {let axiosReponse: AxiosResponse<Resume> = {data: {ID: 1}, statusText: 'success', status: 1, config: null, request: null, headers: null}; return of(axiosReponse);}),
+        post: jest.fn((url: string, IDs: number[]) => {let axiosReponse: AxiosResponse<Resume[]> = {data: IDs.map((ID: number) => {let resume: Resume = {ID: ID}; return resume}), statusText: 'success', status: 1, config: null, request: null, headers: null}; return of(axiosReponse);}),
       })
     };
 
@@ -160,59 +162,53 @@ describe('ResumeService', () => {
 
   //#region GetResumesByID
 
-  it('Get resumes by ID calls resume service with correct IDs', async () => {
+  it('Get resumes by ID calls throws correct error on request fail', async () => {
+
+    let simpleResumes: Resume[] = [{ID: 1}];
+
+    jest.spyOn(mockHTTPService, 'post').mockImplementation((url: string) => {return throwError('');});
+    jest.spyOn(service, 'redactResume').mockImplementation((resume: Resume) => {return resume});
+
+    let expectedErrorMessage = 'Internal server error';
+
+    await expect(service.getResumesByID(simpleResumes, true)).rejects.toThrow(expectedErrorMessage);
+    expect(mockConfigService.get).toHaveBeenCalledWith('MOCK_API_URL');
+    expect(mockHTTPService.post).toHaveBeenCalledTimes(1);
+    expect(mockHTTPService.post).toHaveBeenCalledWith(mockConfigService.get('MOCK_API_URL') + `/resume/getResumesByID`, [1]);
+    expect(service.redactResume).toHaveBeenCalledTimes(0);
+  });
+
+  it('Get resumes by ID calls backend API  with correct IDs', async () => {
 
     let simpleResumes: Resume[] = [{ID: 1}, {ID: 5}, {ID: 11}];
 
-    jest.spyOn(service, 'getResumeByID').mockImplementation((resumeID: number) => {return new Promise(resolve => {resolve({ID: resumeID});});});
+    jest.spyOn(service, 'redactResume').mockImplementation((resume: Resume) => {return resume});
+    let resumesReponse: Resume[];
 
-    let resumes: Resume[];
-
-    await expect(resumes = await service.getResumesByID(simpleResumes, true)).resolves;
-    expect(resumes).toStrictEqual(simpleResumes);
-    expect(service.getResumeByID).toHaveBeenCalledTimes(3);
-    expect(service.getResumeByID).toHaveBeenCalledWith(simpleResumes[0].ID, true);
-    expect(service.getResumeByID).toHaveBeenCalledWith(simpleResumes[1].ID, true);
-    expect(service.getResumeByID).toHaveBeenCalledWith(simpleResumes[2].ID, true);
+    await expect(resumesReponse = await service.getResumesByID(simpleResumes, true)).resolves;
+    expect(resumesReponse).toStrictEqual(simpleResumes);
+    expect(mockConfigService.get).toHaveBeenCalledWith('MOCK_API_URL');
+    expect(mockHTTPService.post).toHaveBeenCalledTimes(1);
+    expect(mockHTTPService.post).toHaveBeenCalledWith(mockConfigService.get('MOCK_API_URL') + `/resume/getResumesByID`, [1, 5, 11]);
+    expect(service.redactResume).toHaveBeenCalledTimes(simpleResumes.length);
+    expect(service.redactResume).toHaveBeenCalledWith(simpleResumes[0]);
+    expect(service.redactResume).toHaveBeenCalledWith(simpleResumes[1]);
+    expect(service.redactResume).toHaveBeenCalledWith(simpleResumes[2]);
   });
 
-  describe('Get resumes by ID sorts resumes correctly', () => {
-
-    let resumes: Resume[];
-    let expectedOrder: Resume[];
-    let returnedResumes: Resume[];
-
-    const theories = [
-      { simpleRecipe: resumes = [{ID: 5}, {ID: 1}, {ID: 10}], sortedRecipes: expectedOrder = [{ID: 1}, {ID: 5}, {ID: 10}] },
-      { simpleRecipe: resumes = [{ID: 11}, {ID: 0}, {ID: -1}], sortedRecipes: expectedOrder = [{ID: -1}, {ID: 0}, {ID: 11}] },
-      { simpleRecipe: resumes = [{ID: 1}, {ID: 2}, {ID: 3}], sortedRecipes: expectedOrder = [{ID: 1}, {ID: 2}, {ID: 3}] },
-    ];
-
-    theoretically('Recipes are sorted after ID', theories, async theory => {
-
-      jest.spyOn(service, 'getResumeByID').mockImplementation((resumeID: number) => {return new Promise(resolve => {resolve({ID: resumeID});});});
-      await expect(returnedResumes = await service.getResumesByID(theory.simpleRecipe, true)).resolves;
-      expect(theory.sortedRecipes).toEqual(returnedResumes);
-    })
-  });
-
-  it('Get resumes by ID doesnt return missing IDs', async () => {
+  it('Get resumes by ID doesnt call redact if set to false', async () => {
 
     let simpleResumes: Resume[] = [{ID: 1}, {ID: 5}, {ID: 11}];
-    let expectedResumes: Resume[] = [{ID: 1}, {ID: 11}];
 
-    jest.spyOn(service, 'getResumeByID').mockImplementationOnce((resumeID: number) => {return new Promise(resolve => {resolve({ID: resumeID});});});
-    jest.spyOn(service, 'getResumeByID').mockImplementationOnce((resumeID: number) => {return new Promise(resolve => {throw new Error()});});
-    jest.spyOn(service, 'getResumeByID').mockImplementationOnce((resumeID: number) => {return new Promise(resolve => {resolve({ID: resumeID});});});
+    jest.spyOn(service, 'redactResume').mockImplementation((resume: Resume) => {return resume});
+    let resumesReponse: Resume[];
 
-    let resumes: Resume[];
-
-    await expect(resumes = await service.getResumesByID(simpleResumes, true)).resolves;
-    expect(resumes).toStrictEqual(expectedResumes);
-    expect(service.getResumeByID).toHaveBeenCalledTimes(3);
-    expect(service.getResumeByID).toHaveBeenCalledWith(simpleResumes[0].ID, true);
-    expect(service.getResumeByID).toHaveBeenCalledWith(simpleResumes[1].ID, true);
-    expect(service.getResumeByID).toHaveBeenCalledWith(simpleResumes[2].ID, true);
+    await expect(resumesReponse = await service.getResumesByID(simpleResumes, false)).resolves;
+    expect(resumesReponse).toStrictEqual(simpleResumes);
+    expect(mockConfigService.get).toHaveBeenCalledWith('MOCK_API_URL');
+    expect(mockHTTPService.post).toHaveBeenCalledTimes(1);
+    expect(mockHTTPService.post).toHaveBeenCalledWith(mockConfigService.get('MOCK_API_URL') + `/resume/getResumesByID`, [1, 5, 11]);
+    expect(service.redactResume).toHaveBeenCalledTimes(0);
   });
 
   //#endregion
@@ -221,36 +217,38 @@ describe('ResumeService', () => {
 
   it('Get resumes calls mock API with filter', async () => {
 
-    let filter: string = '?currentPage=0&itemsPrPage=25';
+    let getResumeDTO: GetResumesDTO = {searchFilter: '?currentPage=0&itemsPrPage=25', shouldLoadResumeCount: false, excludeContract: 1};
     let resumes: FilterList<Resume>;
+
+
 
     jest.spyOn(service, 'getResumesCount').mockImplementation();
 
-    await expect(resumes = await service.getResumes(filter, false)).resolves;
+    await expect(resumes = await service.getResumes(getResumeDTO)).resolves;
     expect(resumes).toBeDefined();
     expect(mockConfigService.get).toHaveBeenCalledTimes(1);
     expect(mockConfigService.get).toHaveBeenCalledWith('MOCK_API_URL');
     expect(mockHTTPService.get).toHaveBeenCalledTimes(1);
-    expect(mockHTTPService.get).toHaveBeenCalledWith(mockConfigService.get('MOCK_API_URL') + `/resume/getResumes` + filter);
+    expect(mockHTTPService.get).toHaveBeenCalledWith(mockConfigService.get('MOCK_API_URL') + `/resume/getResumes` + getResumeDTO.searchFilter);
     expect(service.getResumesCount).toHaveBeenCalledTimes(0);
   });
 
   it('Get resumes calls get resumes count if get recipes count is true', async () => {
 
-    let filter: string = '?currentPage=0&itemsPrPage=25';
-    let excludeContract: number = 1;
+    let getResumeDTO: GetResumesDTO = {searchFilter: '?currentPage=0&itemsPrPage=25', shouldLoadResumeCount: true, excludeContract: 1};
     let resumes: FilterList<Resume>;
 
     jest.spyOn(service, 'getResumesCount').mockImplementation();
+    jest.spyOn(mockHTTPService, 'get').mockImplementation(() => {let axiosReponse: AxiosResponse<FilterList<Resume>> = {data: {list: [{ID: 1}], totalItems: 1}, statusText: 'success', status: 1, config: null, request: null, headers: null}; return of(axiosReponse);})
 
-    await expect(resumes = await service.getResumes(filter, true, excludeContract)).resolves;
+    await expect(resumes = await service.getResumes(getResumeDTO)).resolves;
     expect(resumes).toBeDefined();
     expect(mockConfigService.get).toHaveBeenCalledTimes(1);
     expect(mockConfigService.get).toHaveBeenCalledWith('MOCK_API_URL');
     expect(mockHTTPService.get).toHaveBeenCalledTimes(1);
-    expect(mockHTTPService.get).toHaveBeenCalledWith(mockConfigService.get('MOCK_API_URL') + `/resume/getResumes` + filter);
+    expect(mockHTTPService.get).toHaveBeenCalledWith(mockConfigService.get('MOCK_API_URL') + `/resume/getResumes` + getResumeDTO.searchFilter);
     expect(service.getResumesCount).toHaveBeenCalledTimes(1);
-    expect(service.getResumesCount).toHaveBeenCalledWith(resumes.list, excludeContract);
+    expect(service.getResumesCount).toHaveBeenCalledWith(resumes.list, getResumeDTO);
   });
 
   //#endregion
@@ -296,8 +294,8 @@ describe('ResumeService', () => {
       await expect(await service.getResumeCount(theory.resumeID)).toBe(theory.expectedAmount);
       expect(mockResumeRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(1);
       expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
-      expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
       expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
+      expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
     })
   });
 
@@ -308,6 +306,7 @@ describe('ResumeService', () => {
   it('Get resumes count returns empty array if empty array of resumes are inserted', async () => {
 
     let resumes: Resume[] = [];
+    let getResumeDTO: GetResumesDTO = {searchFilter: '?currentPage=0&itemsPrPage=25', shouldLoadResumeCount: true, excludeContract: 1};
     let expectedResult: Resume[] = [];
     let queryResults: any[] = [];
 
@@ -316,12 +315,12 @@ describe('ResumeService', () => {
 
     let result: Resume[];
 
-    await expect(result = await service.getResumesCount(resumes)).resolves;
+    await expect(result = await service.getResumesCount(resumes, getResumeDTO)).resolves;
     expect(result).toStrictEqual(expectedResult);
     expect(mockResumeRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
   });
 
   it('Get resumes count maps correctly with existing resumes', async () => {
@@ -329,18 +328,19 @@ describe('ResumeService', () => {
     let resumes: Resume[] = [{ID: 1}, {ID: 3}, {ID: 4}];
     let expectedResult: Resume[] = [{ID: 1, count: 2}, {ID: 3, count: 1}, {ID: 4, count: 1}];
     let queryResults: any[] = [{ID: 1, contracts: '2'}, {ID: 3, contracts: '1'}, {ID: 4, contracts: '1'}];
+    let getResumeDTO: GetResumesDTO = {searchFilter: '?currentPage=0&itemsPrPage=25', shouldLoadResumeCount: true};
 
     jest.spyOn(mockResumeRepository.createQueryBuilder(), 'getRawMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
 
     let result: Resume[];
 
-    await expect(result = await service.getResumesCount(resumes)).resolves;
+    await expect(result = await service.getResumesCount(resumes, getResumeDTO)).resolves;
     expect(result).toStrictEqual(expectedResult);
     expect(mockResumeRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
   });
 
   it('Get resumes count maps correctly with invalid resumes', async () => {
@@ -348,18 +348,19 @@ describe('ResumeService', () => {
     let resumes: Resume[] = [{ID: 1}, {ID: 3}, {ID: 4}];
     let expectedResult: Resume[] = [{ID: 1, count: 2}, {ID: 3, count: 0}, {ID: 4, count: 1}];
     let queryResults: any[] = [{ID: 1, contracts: '2'},  {ID: 4, contracts: '1'}];
+    let getResumeDTO: GetResumesDTO = {searchFilter: '?currentPage=0&itemsPrPage=25', shouldLoadResumeCount: true};
 
     jest.spyOn(mockResumeRepository.createQueryBuilder(), 'getRawMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(queryResults);});})
 
     let result: Resume[];
 
-    await expect(result = await service.getResumesCount(resumes)).resolves;
+    await expect(result = await service.getResumesCount(resumes, getResumeDTO)).resolves;
     expect(result).toStrictEqual(expectedResult);
     expect(mockResumeRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(2);
-    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Pending review');
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
   });
 
   //#endregion

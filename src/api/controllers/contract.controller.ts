@@ -85,6 +85,19 @@ export class ContractController {
     }
   }
 
+  //@Roles('Admin')
+  //@UseGuards(JwtAuthGuard)
+  @Get('getContractsByResume')
+  async getContractsByResume(@Query() resumeID: any){
+    try{
+      const contracts: Contract[] = await this.contractService.getContractsByResume(resumeID.ID);
+      return contracts;
+    }
+    catch(e){console.log(e);
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
 
   //@UseGuards(JwtAuthGuard)
   @Get('getContractByUserID')
@@ -92,7 +105,7 @@ export class ContractController {
     try{
       return await this.contractService.getContractByUserID(userID.ID);
     }
-    catch(e){console.log(e);
+    catch(e){
       throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

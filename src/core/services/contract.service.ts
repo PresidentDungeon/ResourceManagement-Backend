@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { IContractService } from "../primary-ports/contract.service.interface";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { InjectConnection, InjectRepository } from "@nestjs/typeorm";
+import { Connection, Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 import { Contract } from "../models/contract";
 import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
@@ -16,7 +16,9 @@ export class ContractService implements IContractService{
   constructor(
     @InjectRepository(ContractEntity) private contractRepository: Repository<ContractEntity>,
     @InjectRepository(ResumeRequestEntity) private resumeRequestRepository: Repository<ResumeRequestEntity>,
+    @InjectConnection() private readonly connection: Connection,
     @Inject(IContractStatusServiceProvider) private statusService: IContractStatusService,
+
   ) {}
 
   async addContract(contract: Contract): Promise<Contract> {
@@ -44,17 +46,24 @@ export class ContractService implements IContractService{
 
     this.verifyContractEntity(contract);
 
-    const resumeRequests = this.resumeRequestRepository.create(contract.resumeRequests);
-    await this.resumeRequestRepository.save(resumeRequests);
-    contract.resumeRequests = resumeRequests;
-
-    const newContract = await this.contractRepository.create(contract);
-
     try{
-      const savedContract = await this.contractRepository.save(newContract);
+      const savedContract = await this.connection.transaction<Contract>(async transactionalEntityManager => {
+
+        const resumeRequests = this.resumeRequestRepository.create(contract.resumeRequests);
+        await transactionalEntityManager.save(resumeRequests);
+
+        contract.resumeRequests = resumeRequests;
+
+        const newContract = await this.contractRepository.create(contract);
+
+        const savedContract = await transactionalEntityManager.save(newContract);
+        return savedContract;
+      });
       return savedContract;
     }
-    catch (e) {throw new Error('Internal server error')}
+    catch (e) {
+      throw new Error('Internal server error');
+    }
   }
 
   async getContractByID(ID: number, redact?: boolean): Promise<Contract>{
@@ -91,10 +100,31 @@ export class ContractService implements IContractService{
     qb.leftJoin('contract.users', 'users');
     qb.andWhere(`users.ID = :userID`, { userID: `${ID}`});
     qb.leftJoinAndSelect('contract.status', 'status');
-    qb.andWhere(`status.status != :status`, { status: 'Rejected'})
+    qb.andWhere(`status.status != (:...status)`, { status: ['Rejected', 'Draft']});
 
     const foundContract: ContractEntity[] = await qb.getMany();
     await this.verifyContractStatuses(foundContract);
+    return foundContract;
+  }
+
+  async getContractsByResume(ID: number) {
+
+    if(ID == null || ID <= 0){
+      throw new Error('Resume ID must be instantiated or valid');
+    }
+
+    let pendingStatus: Status = await this.statusService.findStatusByName('Pending review');
+    let acceptedStatus: Status = await this.statusService.findStatusByName('Accepted');
+    let statusIDs: number[] = [pendingStatus.ID, acceptedStatus.ID];
+
+    let qb = this.contractRepository.createQueryBuilder("contract");
+    qb.leftJoin('contract.resumes', 'resumes');
+    qb.leftJoinAndSelect('contract.status', 'status');
+    qb.andWhere(`resumes.ID = :resumeID`, { resumeID: `${ID}`});
+    qb.andWhere('status.ID IN (:...statusIDs)', {statusIDs: statusIDs});
+    qb.orderBy('contract.startDate');
+
+    const foundContract: ContractEntity[] = await qb.getMany();
     return foundContract;
   }
 
@@ -198,17 +228,27 @@ export class ContractService implements IContractService{
     this.verifyContractEntity(contract);
 
     try{
-      await this.resumeRequestRepository.createQueryBuilder().delete()
-        .where("contractID = :contractID", {contractID: `${contract.ID}`}).execute();
+      const savedContract = await this.connection.transaction<Contract>(async transactionalEntityManager => {
 
-      const resumeRequests = this.resumeRequestRepository.create(contract.resumeRequests);
-      await this.resumeRequestRepository.save(resumeRequests);
-      contract.resumeRequests = resumeRequests;
+        await transactionalEntityManager.createQueryBuilder().from(ResumeRequestEntity, 'resumeRequest').delete()
+          .where('contractID = :contractID', {contractID: `${contract.ID}`}).execute();
 
-      const savedContract: Contract = await this.contractRepository.save(contract);
+        const resumeRequests = this.resumeRequestRepository.create(contract.resumeRequests);
+        await transactionalEntityManager.save(resumeRequests);
+
+        contract.resumeRequests = resumeRequests;
+
+        const newContract = await this.contractRepository.create(contract);
+
+        const savedContract = await transactionalEntityManager.save(newContract);
+        return savedContract;
+      });
       return savedContract;
     }
-    catch (e) {throw new Error('Internal server error')}
+    catch (e) {
+      throw new Error('Internal server error');
+    }
+
   }
 
   async delete(ID: number) {
@@ -239,11 +279,21 @@ export class ContractService implements IContractService{
   async verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>{
 
     const expiredStatus: Status = await this.statusService.findStatusByName('Expired');
+    const completedStatus: Status = await this.statusService.findStatusByName('Completed');
 
     contracts.map((contract) => {
+
       if(contract.status.status.toLowerCase() == 'pending review' && contract.dueDate && contract.dueDate.getTime() < new Date().getTime()){
         contract.status = expiredStatus
         this.contractRepository.createQueryBuilder().update(ContractEntity).set({status: expiredStatus, dueDate: null}).where("ID = :contractID", {contractID: contract.ID}).execute();}
+
+
+      if(contract.status.status.toLowerCase() == 'accepted' && contract.endDate.getTime() < new Date().getTime()){
+        contract.status = completedStatus;
+        this.contractRepository.createQueryBuilder().update(ContractEntity).set({status: completedStatus}).where("ID = :contractID", {contractID: contract.ID}).execute();
+      }
+
+
     });
 
     return contracts;
