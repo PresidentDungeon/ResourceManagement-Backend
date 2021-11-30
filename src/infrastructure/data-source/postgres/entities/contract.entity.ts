@@ -14,6 +14,7 @@ import { ResumeEntity } from "./resume.entity";
 import { UserStatusEntity } from "./user-status.entity";
 import { ContractStatusEntity } from "./contract-status.entity";
 import { ResumeRequestEntity } from "./resume-request.entity";
+import { CommentEntity } from "./comment.entity";
 
 @Entity()
 export class ContractEntity {
@@ -42,6 +43,9 @@ export class ContractEntity {
 
   @OneToMany(() => ResumeRequestEntity, (resumeRequestEntity: ResumeRequestEntity) => resumeRequestEntity.contract, {cascade: true})
   resumeRequests: ResumeRequestEntity[];
+
+  @OneToMany(() => CommentEntity, (commentEntity: CommentEntity) => commentEntity.contract, {cascade: true})
+  public comments?: CommentEntity[]
 
   @ManyToMany(() => UserEntity)
   @JoinTable()

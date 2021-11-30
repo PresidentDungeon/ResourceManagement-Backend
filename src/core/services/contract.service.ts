@@ -9,6 +9,8 @@ import { Status } from "../models/status";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/entities/resume-request.entity";
+import { CommentEntity } from "../../infrastructure/data-source/postgres/entities/comment.entity";
+import { CommentDTO } from "src/api/dtos/comment.dto";
 
 @Injectable()
 export class ContractService implements IContractService{
@@ -16,9 +18,9 @@ export class ContractService implements IContractService{
   constructor(
     @InjectRepository(ContractEntity) private contractRepository: Repository<ContractEntity>,
     @InjectRepository(ResumeRequestEntity) private resumeRequestRepository: Repository<ResumeRequestEntity>,
+    @InjectRepository(CommentEntity) private commentRepository: Repository<CommentEntity>,
     @InjectConnection() private readonly connection: Connection,
     @Inject(IContractStatusServiceProvider) private statusService: IContractStatusService,
-
   ) {}
 
   async addContract(contract: Contract): Promise<Contract> {
@@ -66,7 +68,14 @@ export class ContractService implements IContractService{
     }
   }
 
-  async getContractByID(ID: number, redact?: boolean): Promise<Contract>{
+  async saveComment(commentDTO: CommentDTO) {
+    const commentEntity = this.commentRepository.create(commentDTO);
+    commentEntity.user = JSON.parse(JSON.stringify({ID: commentDTO.userID}));
+    commentEntity.contract = JSON.parse(JSON.stringify({ID: commentDTO.contractID}));
+    await this.commentRepository.save(commentEntity);
+  }
+
+  async getContractByID(ID: number, redact?: boolean, personalID?: number): Promise<Contract>{
 
     if(ID == null || ID <= 0){
       throw new Error('Contract ID must be instantiated or valid');
@@ -74,15 +83,30 @@ export class ContractService implements IContractService{
 
     let qb = this.contractRepository.createQueryBuilder("contract");
     if(redact != null && !redact){qb.leftJoinAndSelect('contract.users', 'users');}
+
+    if(personalID != null){
+
+      if(personalID <= 0) {throw new Error('Invalid user ID entered');}
+
+      qb.leftJoin(qb => qb.select("commentPersonal.comment as personal_comment, commentPersonal.contractID, commentPersonal.userID")
+        .from(CommentEntity, 'commentPersonal').where('commentPersonal.userID = :personalID', {personalID: `${personalID}`}), 'commentPersonal', '"commentPersonal"."contractID" = contract.ID')
+        .addGroupBy('"commentPersonal"."contractID", "commentPersonal"."userID", "commentPersonal"."personal_comment"');
+
+      qb.addSelect(`COALESCE("personal_comment", '')`, 'personal_comment');
+      qb.addGroupBy('"contract"."ID", "status"."ID", "resumes"."ID", "resumeRequests"."ID"');
+    }
+
     qb.leftJoinAndSelect('contract.status', 'status');
     qb.leftJoinAndSelect('contract.resumes', 'resumes');
     qb.leftJoinAndSelect('contract.resumeRequests', 'resumeRequests');
     qb.andWhere(`contract.ID = :contractID`, { contractID: `${ID}`});
-    const foundContract: Contract = await qb.getOne();
 
-    if(foundContract == null)
-    {
-      throw new Error('No contracts registered with such ID');
+    const foundContract: Contract = await qb.getOne();
+    if(foundContract == null) {throw new Error('No contracts registered with such ID');}
+
+    if (personalID != null){
+      const contractRaw: any = await qb.getRawOne();
+      foundContract.personalComment = {comment: contractRaw.personal_comment};
     }
 
     await this.verifyContractStatuses([foundContract]);
@@ -100,7 +124,7 @@ export class ContractService implements IContractService{
     qb.leftJoin('contract.users', 'users');
     qb.andWhere(`users.ID = :userID`, { userID: `${ID}`});
     qb.leftJoinAndSelect('contract.status', 'status');
-    qb.andWhere(`status.status != (:...status)`, { status: ['Rejected', 'Draft']});
+    qb.andWhere(`status.status NOT IN (:...status)`, { status: ['Rejected', 'Draft']});
 
     const foundContract: ContractEntity[] = await qb.getMany();
     await this.verifyContractStatuses(foundContract);
@@ -187,7 +211,7 @@ export class ContractService implements IContractService{
 
   async confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>{
 
-    const storedContract: Contract = await this.getContractByID(contract.ID, false);
+    const storedContract: Contract = await this.getContractByID(contract.ID);
 
     if(storedContract.status.status.toLowerCase() != 'pending review'){
       throw new Error('Contract is not pending review and cannot be accepted or declined.');
@@ -209,7 +233,7 @@ export class ContractService implements IContractService{
 
   async requestRenewal(contract: Contract): Promise<Contract>{
 
-    const storedContract: Contract = await this.getContractByID(contract.ID, false);
+    const storedContract: Contract = await this.getContractByID(contract.ID);
 
     if(storedContract.status.status.toLowerCase() != 'expired'){
       throw new Error('Contract is not expired and cannot be requested for renewal');

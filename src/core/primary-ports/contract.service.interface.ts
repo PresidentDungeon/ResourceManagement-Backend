@@ -3,13 +3,15 @@ import { Resume } from "../models/resume";
 import { Status } from "../models/status";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
+import { CommentDTO } from "src/api/dtos/comment.dto";
 
 export const IContractServiceProvider = 'IContractServiceProvider'
 export interface IContractService{
 
   addContract(contract: Contract): Promise<Contract>
   addRequestContract(contract: Contract): Promise<Contract>
-  getContractByID(ID: number, redact: boolean): Promise<Contract>
+  saveComment(commentDTO: CommentDTO): Promise<void>
+  getContractByID(ID: number, redact?: boolean, userID?: number): Promise<Contract>
   getContractByUserID(ID: number): Promise<Contract[]>
   getContractsByResume(ID: number): Promise<Contract[]>
   getContracts(filter: Filter): Promise<FilterList<Contract>>

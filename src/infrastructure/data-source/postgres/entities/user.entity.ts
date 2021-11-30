@@ -3,6 +3,7 @@ import { RoleEntity } from "./role.entity";
 import { PasswordTokenEntity } from "./password-token.entity";
 import { UserStatusEntity } from "./user-status.entity";
 import { ConfirmationTokenEntity } from "./confirmation-token.entity";
+import { CommentEntity } from "./comment.entity";
 
 @Entity()
 export class UserEntity {
@@ -32,6 +33,9 @@ export class UserEntity {
 
   @OneToOne(() => ConfirmationTokenEntity,{cascade: true})
   public confirmationToken?: ConfirmationTokenEntity
+
+  @OneToMany(() => CommentEntity, (commentEntity: CommentEntity) => commentEntity.user, {cascade: true})
+  public comments?: CommentEntity[]
 
 }
 
