@@ -4,6 +4,7 @@ import { Status } from "../models/status";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { CommentDTO } from "src/api/dtos/comment.dto";
+import { Comment } from "../models/comment";
 
 export const IContractServiceProvider = 'IContractServiceProvider'
 export interface IContractService{
@@ -11,6 +12,7 @@ export interface IContractService{
   addContract(contract: Contract): Promise<Contract>
   addRequestContract(contract: Contract): Promise<Contract>
   saveComment(commentDTO: CommentDTO): Promise<void>
+  getContractComments(ID: number): Promise<Comment[]>
   getContractByID(ID: number, redact?: boolean, userID?: number): Promise<Contract>
   getContractByUserID(userID: number, statusID: number): Promise<Contract[]>
   getContractsByResume(ID: number): Promise<Contract[]>

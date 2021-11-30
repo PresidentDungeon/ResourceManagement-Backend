@@ -54,6 +54,7 @@ describe('ContractService', () => {
       useFactory: () => ({
         create: jest.fn((commentEntity: CommentEntity) => { return new Promise(resolve => {resolve(commentEntity);});}),
         save: jest.fn((commentEntity: CommentEntity) => { return new Promise(resolve => {resolve(commentEntity);});}),
+        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
       })
     }
 
@@ -287,6 +288,36 @@ describe('ContractService', () => {
     expect(mockCommentRepository.create).toHaveBeenCalledTimes(1);
     expect(mockCommentRepository.create).toHaveBeenCalledWith(commentDTO);
     expect(mockCommentRepository.save).toHaveBeenCalledTimes(1);
+  });
+
+  //#endregion
+
+  //#region GetContractComments
+
+  it('Find contract comments with invalid ID results in error', async () => {
+
+    let ID: number = 0;
+    let errorStringToExcept = 'Contract ID must be instantiated or valid';
+
+    await expect(service.getContractComments(null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractComments(ID)).rejects.toThrow(errorStringToExcept);
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
+  });
+
+  it('Find contract comments with valid ID returns comments', async () => {
+
+    let ID: number = 1;
+    let storedComments: CommentEntity[] = [{comment: 'A bit left to be desired. The contractors were a fine selection but I had a slight problem with Husam...', contract: JSON.parse('{"ID": "1"}'), user: JSON.parse('{"ID": "1"}')}, {comment: 'The contract went good as expected. Everything is fine.', contract: JSON.parse('{"ID": "1"}'), user: JSON.parse('{"ID": "2"}')}]
+
+    jest
+      .spyOn(mockCommentRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedComments);});});
+
+    let result: Comment[];
+
+    await expect(result = await service.getContractComments(ID)).resolves;
+    expect(result).toBe(storedComments);
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
