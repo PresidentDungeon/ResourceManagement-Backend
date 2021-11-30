@@ -22,6 +22,7 @@ import { ContractStateReplyDTO } from "../dtos/contract.state.reply.dto";
 import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/resume.service.interface";
 import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/socket.service.interface";
 import { CommentDTO } from "../dtos/comment.dto";
+import { query } from "express";
 
 @Controller('contract')
 export class ContractController {
@@ -31,8 +32,8 @@ export class ContractController {
     @Inject(IResumeServiceProvider) private resumeService: IResumeService,
     @Inject(ISocketServiceProvider) private socketService: ISocketService) { }
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Post('create')
   async create(@Body() contract: Contract) {
     try {
@@ -45,7 +46,7 @@ export class ContractController {
     }
   }
 
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('requestContract')
   async requestContract(@Body() contract: Contract) {
     try {
@@ -68,8 +69,20 @@ export class ContractController {
     }
   }
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Post('getComments')
+  async getContractComments(@Query() commentID: any) {
+    try {
+      await this.contractService.getContractComments(commentID.ID);
+    }
+    catch (e) {
+      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Get('getContractByID')
   async getContractByID(@Query() contractID: any) {
     try {
@@ -98,8 +111,8 @@ export class ContractController {
     }
   }
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Get('getContractsByResume')
   async getContractsByResume(@Query() resumeID: any) {
     try {
@@ -123,8 +136,8 @@ export class ContractController {
     }
   }
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Get('getContracts')
   async getAllContracts(@Query() filter: Filter) {
     try {
@@ -135,8 +148,8 @@ export class ContractController {
     }
   }
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Put('update')
   async updateContract(@Body() contract: Contract) {
     try {
@@ -162,7 +175,7 @@ export class ContractController {
     }
   }
 
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('requestRenewal')
   async requestRenewal(@Body() contract: Contract) {
     try {

@@ -35,8 +35,8 @@ export class UserController {
     }
   }
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Post('registerUsers')
   async registerUsers(@Body() unregisteredUsers: User[]){
     try
@@ -81,8 +81,8 @@ export class UserController {
     catch (e) {throw new HttpException(e.message, HttpStatus.BAD_REQUEST);}
   }
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Get('getUsernames')
   async getUsernames(@Query() data: any){
 
