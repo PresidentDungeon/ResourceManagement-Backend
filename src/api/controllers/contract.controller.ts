@@ -71,7 +71,7 @@ export class ContractController {
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
-  @Post('getComments')
+  @Get('getComments')
   async getContractComments(@Query() commentID: any) {
     try {
       await this.contractService.getContractComments(commentID.ID);

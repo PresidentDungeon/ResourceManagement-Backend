@@ -82,8 +82,8 @@ export class ContractService implements IContractService{
     }
 
     let qb = this.commentRepository.createQueryBuilder('comment');
-    qb.leftJoinAndSelect('comment.contracts', 'contracts');
-    qb.andWhere('contracts.ID = :contractID', {contractID: ID});
+    qb.leftJoinAndSelect('comment.contract', 'contract');
+    qb.andWhere('contract.ID = :contractID', {contractID: ID});
     let comments: Comment[] = await qb.getMany();
 
     return comments;
