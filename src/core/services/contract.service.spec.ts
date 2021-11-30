@@ -15,11 +15,13 @@ import { Status } from "../models/status";
 import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/entities/resume-request.entity";
 import { Comment } from "../models/comment";
 import { CommentEntity } from "../../infrastructure/data-source/postgres/entities/comment.entity";
+import { CommentDTO } from "../../api/dtos/comment.dto";
 
 describe('ContractService', () => {
   let service: ContractService;
   let mockContractRepository: Repository<ContractEntity>;
   let mockResumeRequestRepository: Repository<ResumeRequestEntity>;
+  let mockCommentRepository: Repository<CommentEntity>;
   let mockDeleteQueryBuilder: DeleteQueryBuilder<ContractEntity>;
   let mockStatusService: ContractStatusService;
   let connection: Connection;
@@ -44,6 +46,14 @@ describe('ContractService', () => {
         create: jest.fn((resumeRequestEntity: ResumeRequestEntity) => {return new Promise(resolve => {resolve(resumeRequestEntity);});}),
         execute: jest.fn(() => {}),
         createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
+      })
+    }
+
+    const MockCommentRepository = {
+      provide: getRepositoryToken(CommentEntity),
+      useFactory: () => ({
+        create: jest.fn((commentEntity: CommentEntity) => { return new Promise(resolve => {resolve(commentEntity);});}),
+        save: jest.fn((commentEntity: CommentEntity) => { return new Promise(resolve => {resolve(commentEntity);});}),
       })
     }
 
@@ -102,12 +112,13 @@ describe('ContractService', () => {
     }
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ContractService, MockContractRepository, MockResumeRequestRepository, StatusServiceMock, mockConnection],
+      providers: [ContractService, MockContractRepository, MockResumeRequestRepository, MockCommentRepository, StatusServiceMock, mockConnection],
     }).compile();
 
     service = module.get<ContractService>(ContractService);
     mockContractRepository = module.get<Repository<ContractEntity>>(getRepositoryToken(ContractEntity));
     mockResumeRequestRepository = module.get<Repository<ResumeRequestEntity>>(getRepositoryToken(ResumeRequestEntity));
+    mockCommentRepository = module.get<Repository<CommentEntity>>(getRepositoryToken(CommentEntity));
     mockDeleteQueryBuilder = deleteQueryBuilder;
     mockStatusService = module.get<ContractStatusService>(IContractStatusServiceProvider);
     connection = module.get<Connection>(Connection);
@@ -121,6 +132,10 @@ describe('ContractService', () => {
 
   it('Mock contract repository should be defined', () => {
     expect(mockContractRepository).toBeDefined();
+  });
+
+  it('Mock comment repository should be defined', () => {
+    expect(mockCommentRepository).toBeDefined();
   });
 
   it('Mock resume request repository should be defined', () => {
@@ -190,7 +205,7 @@ describe('ContractService', () => {
 
   //#endregion
 
-//#region AddRequestContract
+  //#region AddRequestContract
 
   it('Add invalid contract doesnt save contract to database', async () => {
 
@@ -233,6 +248,7 @@ describe('ContractService', () => {
     expect(mockResumeRequestRepository.create).toHaveBeenCalledWith([{ID: 0, occupation: 'Electrician', count: 3}]);
     expect(mockedManager.save).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
   });
 
   it('Saving contract resolves correctly', async () => {
@@ -257,6 +273,20 @@ describe('ContractService', () => {
     expect(mockedManager.save).toHaveBeenCalledTimes(2);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.create).toHaveBeenCalledWith(contract);
+  });
+
+  //#endregion
+
+  //#region SaveComment
+
+  it('Save comment calls comment repository', async () => {
+
+    let commentDTO: CommentDTO = {comment: 'The contract was perfect and I really enjoyed the selected contractors!', contractID: 1, userID: 2};
+
+    await expect(await service.saveComment(commentDTO)).resolves;
+    expect(mockCommentRepository.create).toHaveBeenCalledTimes(1);
+    expect(mockCommentRepository.create).toHaveBeenCalledWith(commentDTO);
+    expect(mockCommentRepository.save).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
