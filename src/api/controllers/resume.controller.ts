@@ -1,18 +1,20 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Query, UseGuards } from "@nestjs/common";
 import { GetResumesDTO } from "../dtos/get.resumes.dto";
 import { IContractService, IContractServiceProvider } from "../../core/primary-ports/contract.service.interface";
 import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/resume.service.interface";
 import { Contract } from "../../core/models/contract";
 import { Resume } from "../../core/models/resume";
 import { FilterList } from "../../core/models/filterList";
+import { Roles } from "../../auth/roles.decorator";
+import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 
 @Controller('resume')
 export class ResumeController {
 
   constructor(@Inject(IResumeServiceProvider) private resumeService: IResumeService) {}
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Post('getResumes')
   async getResumes(@Body() getResumeDTO: GetResumesDTO){
     try {
@@ -24,8 +26,8 @@ export class ResumeController {
     }
   }
 
-  //@Roles('Admin')
-  //@UseGuards(JwtAuthGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
   @Get('getResumeByID')
   async getResumeByID(@Query() resumeID: any){
     try {
@@ -36,7 +38,7 @@ export class ResumeController {
       }
   }
 
-  //@UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('getResumeByIDUser')
   async getResumeByIDUser(@Query() resumeID: any){
     return await this.resumeService.getResumeByID(resumeID.ID, true);

@@ -11,6 +11,7 @@ import { FilterList } from "../models/filterList";
 import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/entities/resume-request.entity";
 import { CommentEntity } from "../../infrastructure/data-source/postgres/entities/comment.entity";
 import { CommentDTO } from "src/api/dtos/comment.dto";
+import { Comment } from "../models/comment";
 
 @Injectable()
 export class ContractService implements IContractService{
@@ -73,6 +74,19 @@ export class ContractService implements IContractService{
     commentEntity.user = JSON.parse(JSON.stringify({ID: commentDTO.userID}));
     commentEntity.contract = JSON.parse(JSON.stringify({ID: commentDTO.contractID}));
     await this.commentRepository.save(commentEntity);
+  }
+
+  async getContractComments(ID: number): Promise<Comment[]>{
+    if(ID == null || ID <= 0){
+      throw new Error('Contract ID must be instantiated or valid');
+    }
+
+    let qb = this.commentRepository.createQueryBuilder('comment');
+    qb.leftJoinAndSelect('comment.contracts', 'contracts');
+    qb.andWhere('contracts.ID = :contractID', {contractID: ID});
+    let comments: Comment[] = await qb.getMany();
+
+    return comments;
   }
 
   async getContractByID(ID: number, redact?: boolean, personalID?: number): Promise<Contract>{
