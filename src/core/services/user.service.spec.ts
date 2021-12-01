@@ -20,6 +20,7 @@ import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgr
 import { ConfirmationToken } from "../models/confirmation.token";
 import { IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
 import { Contract } from "../models/contract";
+import crypto from "crypto";
 
 describe('UserService', () => {
   let service: UserService;
@@ -247,6 +248,8 @@ describe('UserService', () => {
     let usersToRegister: User[] = [user1, user2, user3];
     let expectedErrorMessage = 'Username Jens must be a valid email';
 
+    jest.spyOn(service, 'addUser').mockImplementation();
+
     await expect(service.registerUsers(usersToRegister)).rejects.toThrow(expectedErrorMessage);
     expect(mockRoleService.findRoleByName).toHaveBeenCalledTimes(1);
     expect(mockRoleService.findRoleByName).toHaveBeenCalledWith('user');
@@ -254,10 +257,7 @@ describe('UserService', () => {
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('pending');
     expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(0);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.create).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
-    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(0);
+    expect(service.addUser).toHaveBeenCalledTimes(0);
   });
 
   it('Registration of unregistered users saves all to database', async () => {
@@ -275,6 +275,8 @@ describe('UserService', () => {
       .spyOn(mockUserRepository.createQueryBuilder(), 'getOne')
       .mockImplementation(() => {return new Promise(resolve => {resolve(null);})})
 
+    jest.spyOn(service, 'addUser').mockImplementation((user: User) => {return new Promise(resolve => {resolve([user, 'someVerificationCode']);});});
+
     await expect([allUsers, addedUsers, confirmationTokens] = await service.registerUsers(usersToRegister)).resolves;
     expect(allUsers).toStrictEqual(usersToRegister);
     expect(addedUsers).toStrictEqual(usersToRegister);
@@ -285,14 +287,10 @@ describe('UserService', () => {
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('pending');
     expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(3);
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(9);
-    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(3);
-    expect(mockUserRepository.create).toHaveBeenCalledTimes(3);
-    for(let user of usersToRegister){expect(mockUserRepository.create).toHaveBeenCalledWith(user)}
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(3);
-    for(let user of usersToRegister){expect(mockUserRepository.save).toHaveBeenCalledWith(user)}
-    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(3);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(3);
+    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.saltLength);
+    expect(service.addUser).toHaveBeenCalledTimes(3);
+    for(let user of usersToRegister){expect(service.addUser).toHaveBeenCalledWith(user)};
   });
 
   it('Registration saves only unregistered users to database', async () => {
@@ -314,6 +312,8 @@ describe('UserService', () => {
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);})})
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(user3);})})
 
+    jest.spyOn(service, 'addUser').mockImplementation((user: User) => {return new Promise(resolve => {resolve([user, 'someVerificationCode']);});});
+
     await expect([allUsers, addedUsers, confirmationTokens] = await service.registerUsers(usersToRegister)).resolves;
     expect(allUsers).toStrictEqual(usersToRegister);
     expect(addedUsers).toStrictEqual(expectedRegisteredUsers);
@@ -324,14 +324,10 @@ describe('UserService', () => {
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('pending');
     expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(3);
-    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(3);
-    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.verificationTokenCount);
-    expect(authenticationMock.generateHash).toHaveBeenCalledTimes(1);
-    expect(mockUserRepository.create).toHaveBeenCalledTimes(1);
-    expect(mockUserRepository.create).toHaveBeenCalledWith(user2);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockUserRepository.save).toHaveBeenCalledWith(user2);
-    expect(mockConfirmationTokenRepository.save).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.generateToken).toHaveBeenCalledWith(service.saltLength);
+    expect(service.addUser).toHaveBeenCalledTimes(1);
+    expect(service.addUser).toHaveBeenCalledWith(user2);
   });
 
   //#endregion

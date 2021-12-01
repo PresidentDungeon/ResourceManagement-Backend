@@ -71,10 +71,10 @@ export class ContractController {
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
-  @Post('getComments')
+  @Get('getComments')
   async getContractComments(@Query() commentID: any) {
     try {
-     return await this.contractService.getContractComments(commentID.ID);
+      return await this.contractService.getContractComments(commentID.ID);
     }
     catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);

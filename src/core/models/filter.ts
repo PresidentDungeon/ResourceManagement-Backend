@@ -8,4 +8,6 @@ export interface Filter{
   roleID?: number
   sortingType?: string
   sorting?: string
+
+  enableCommentCount?: boolean
 }
