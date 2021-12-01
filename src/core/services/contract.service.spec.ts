@@ -188,7 +188,7 @@ describe('ContractService', () => {
   it('Saving contract resolves correctly', async () => {
 
     let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {return new Promise(resolve => {resolve(contractSaveReturns)});});
@@ -255,7 +255,7 @@ describe('ContractService', () => {
   it('Saving contract resolves correctly', async () => {
 
     let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     const mockedManager = { save: jest.fn(() => {return new Promise(resolve => {resolve(contractSaveReturns)});}) }
@@ -307,7 +307,12 @@ describe('ContractService', () => {
   it('Find contract comments with valid ID returns comments', async () => {
 
     let ID: number = 1;
-    let storedComments: CommentEntity[] = [{comment: 'A bit left to be desired. The contractors were a fine selection but I had a slight problem with Husam...', contract: JSON.parse('{"ID": "1"}'), user: JSON.parse('{"ID": "1"}')}, {comment: 'The contract went good as expected. Everything is fine.', contract: JSON.parse('{"ID": "1"}'), user: JSON.parse('{"ID": "2"}')}]
+
+    let user1: User = {ID: 1, username: 'User1@gmail.com', salt: 'someSalt', password: 'somePassword', status: {ID: 2, status: 'Active'}, role: {ID: 1, role: 'User'}}
+    let user2: User = {ID: 2, username: 'User2@gmail.com', salt: 'someSalt', password: 'somePassword', status: {ID: 2, status: 'Active'}, role: {ID: 2, role: 'Admin'}}
+
+    let storedComments: CommentEntity[] = [{comment: 'A bit left to be desired. The contractors were a fine selection but I had a slight problem with Husam...', contract: JSON.parse('{"ID": "1"}'), user: user1}, {comment: 'The contract went good as expected. Everything is fine.', contract: JSON.parse('{"ID": "1"}'), user: user2}]
+    let expectedComments: Comment[] = [{comment: 'A bit left to be desired. The contractors were a fine selection but I had a slight problem with Husam...', username: 'User1@gmail.com'}, {comment: 'The contract went good as expected. Everything is fine.', username: 'User2@gmail.com'}]
 
     jest
       .spyOn(mockCommentRepository.createQueryBuilder(), 'getMany')
@@ -316,7 +321,7 @@ describe('ContractService', () => {
     let result: Comment[];
 
     await expect(result = await service.getContractComments(ID)).resolves;
-    expect(result).toBe(storedComments);
+    expect(result).toEqual(expectedComments);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
   });
 
@@ -377,7 +382,7 @@ describe('ContractService', () => {
 
   it('Find existing contract returns valid contract information', async () => {
 
-    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let contractID: number = 1;
 
     jest
@@ -399,7 +404,7 @@ describe('ContractService', () => {
 
   it('Get contract by ID selects users if redacted is false', async () => {
 
-    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let contractID: number = 1;
 
     jest
@@ -470,8 +475,8 @@ describe('ContractService', () => {
 
   it('Find existing contracts by user ID returns valid contract information', async () => {
 
-    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let userID: number = 1;
 
     jest
@@ -507,8 +512,8 @@ describe('ContractService', () => {
 
   it('Find existing contracts by resume ID returns valid contract information', async () => {
 
-    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let resumeID: number = 1;
 
     jest
@@ -561,9 +566,9 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
     ]
 
     let expectedTotalListSize: number = 3;
@@ -597,9 +602,9 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList when offset', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
     ]
 
     let expectedTotalListSize: number = 3;
@@ -647,9 +652,9 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList when limit', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
     ]
 
     let expectedTotalListSize: number = 3;
@@ -689,6 +694,58 @@ describe('ContractService', () => {
     expect(filterList.list.length).toBe(expectedListSize)
     expect(filterList.totalItems).toBe(expectedTotalListSize);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(filterList.list);
+  });
+
+  it('Get contracts with enabled comment count returns valid filterList with comments', async () => {
+
+    let storedContracts: any[] = [
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+    ]
+
+    let rawStoredContracts: any[] = [
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comment_count: '4'},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comment_count: '0'},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comment_count: '1'},
+    ]
+
+    let expectedContracts: Contract[] = [
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], commentCount: 4},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], commentCount: 0},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], commentCount: 1},
+    ]
+
+    let expectedListSize = 3;
+    let expectedTotalListSize = 3;
+
+    let filter: Filter = {currentPage: 0, itemsPrPage: 25, enableCommentCount: true};
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(storedContracts);});});
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getRawMany')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(rawStoredContracts);});});
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getCount')
+      .mockImplementation(() => {return new Promise(resolve => {resolve(storedContracts.length);});});
+
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
+    let filterList: FilterList<Contract>;
+
+    await expect(filterList = await service.getContracts(filter)).resolves;
+    expect(filterList.list.toString()).toEqual(expectedContracts.toString());
+    expect(filterList.list.length).toBe(expectedListSize)
+    expect(filterList.totalItems).toBe(expectedTotalListSize);
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.createQueryBuilder().getRawMany).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledWith(filterList.list);
