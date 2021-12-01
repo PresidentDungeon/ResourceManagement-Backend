@@ -187,6 +187,9 @@ export class ContractService implements IContractService{
       throw new Error('Invalid current page entered');
     }
 
+    let enableMatchComplete: boolean = (filter.enableMatchComplete == null) ? false : JSON.parse(filter.enableMatchComplete as unknown as string);
+    let enableCommentCount: boolean = (filter.enableCommentCount == null) ? false : JSON.parse(filter.enableCommentCount as unknown as string);
+
     let qb = this.contractRepository.createQueryBuilder("contract");
     qb.leftJoinAndSelect('contract.status', 'status');
     qb.leftJoin('contract.users', 'users');
@@ -198,7 +201,8 @@ export class ContractService implements IContractService{
 
     if(filter.contractUser != null && filter.contractUser !== '')
     {
-      qb.andWhere(`users.username ILIKE :contractUser`, { contractUser: `${filter.contractUser}` });
+      if(!enableMatchComplete){qb.andWhere(`users.username ILIKE :contractUser`, { contractUser: `%${filter.contractUser}%` });}
+      else{qb.andWhere(`users.username ILIKE :contractUser`, {contractUser: `${filter.contractUser}` });}
     }
 
     if(filter.statusID != null && filter.statusID > 0)
@@ -206,7 +210,7 @@ export class ContractService implements IContractService{
       qb.andWhere(`status.ID = :statusID`, { statusID: `${filter.statusID}` });
     }
 
-    if(filter.enableCommentCount){
+    if(enableCommentCount){
       qb.leftJoin('contract.comments', 'comments');
       qb.addSelect('COALESCE(COUNT(comments), 0)', 'comment_count');
       qb.addGroupBy('"contract"."ID", "status"."ID"');

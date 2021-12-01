@@ -779,21 +779,12 @@ describe('UserService', () => {
 
     theoretically('The correct usernames are returned', theories, async theory => {
 
-      jest.spyOn(mockUserRepository.createQueryBuilder(), 'select').mockImplementation(() => {return selectQueryBuilder});
-
-      const selectQueryBuilder: any = {
-        getMany: jest.fn(() => {return new Promise(resolve => {resolve(theory.returnValue);});}),
-        andWhere: () => selectQueryBuilder,
-        limit: () => selectQueryBuilder
-      };
-
+      jest.spyOn(mockUserRepository.createQueryBuilder(), 'getMany').mockImplementation(() => {return new Promise( resolve => {resolve(theory.returnValue);});});
       let result: string[];
-
-
 
       await expect(result = await service.getUsernames(theory.searchString)).resolves;
       expect(result).toStrictEqual(theory.expected);
-      expect(mockUserRepository.createQueryBuilder().select().getMany).toHaveBeenCalledTimes(1);
+      expect(mockUserRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     })
   });
 
