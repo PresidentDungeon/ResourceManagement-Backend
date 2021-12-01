@@ -133,8 +133,6 @@ export class ContractService implements IContractService{
 
     const foundContract: ContractEntity[] = await qb.getMany();
     await this.verifyContractStatuses(foundContract);
-    console.log(foundContract);
-    console.log(statusID);
     return foundContract;
   }
 
