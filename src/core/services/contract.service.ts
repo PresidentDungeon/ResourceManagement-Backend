@@ -83,9 +83,12 @@ export class ContractService implements IContractService{
 
     let qb = this.commentRepository.createQueryBuilder('comment');
     qb.leftJoin('comment.contract', 'contract');
+    qb.leftJoinAndSelect('comment.user', 'user');
     qb.andWhere('contract.ID = :contractID', {contractID: ID});
-    let comments: Comment[] = await qb.getMany();
-    return comments;
+    let commentEntity: CommentEntity[] = await qb.getMany();
+
+    let convertedComments: Comment[] = commentEntity.map((comment) => {return {comment: comment.comment, username: comment.user.username}});
+    return convertedComments;
   }
 
   async getContractByID(ID: number, redact?: boolean, personalID?: number): Promise<Contract>{
@@ -203,6 +206,12 @@ export class ContractService implements IContractService{
       qb.andWhere(`status.ID = :statusID`, { statusID: `${filter.statusID}` });
     }
 
+    if(filter.enableCommentCount){
+      qb.leftJoin('contract.comments', 'comments');
+      qb.addSelect('COALESCE(COUNT(comments), 0)', 'comment_count');
+      qb.addGroupBy('"contract"."ID", "status"."ID"');
+    }
+
     if(filter.sorting != null && filter.sorting === 'ASC' || filter.sorting != null && filter.sorting === 'DESC')
     {
       if(filter.sortingType != null && filter.sortingType === 'ALF')
@@ -218,8 +227,13 @@ export class ContractService implements IContractService{
     qb.offset((filter.currentPage) * filter.itemsPrPage);
     qb.limit(filter.itemsPrPage);
 
-    const result = await qb.getMany();
+    const result: Contract[] = await qb.getMany();
     const count = await qb.getCount();
+
+    if(filter.enableCommentCount){
+      const resultRaw = await qb.getRawMany();
+      result.map((contract, index) => {contract.commentCount = Number.parseInt(resultRaw[index].comment_count)});
+    }
 
     await this.verifyContractStatuses(result);
 

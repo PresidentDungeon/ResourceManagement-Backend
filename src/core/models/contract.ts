@@ -17,5 +17,6 @@ export interface Contract {
   resumes: Resume[]
 
   comments?: Comment[]
+  commentCount?: number
   personalComment?: Comment
 }
