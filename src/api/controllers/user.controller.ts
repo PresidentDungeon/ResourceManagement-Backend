@@ -85,7 +85,6 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get('getUsernames')
   async getUsernames(@Query() data: any){
-
     try{
       let usernames: string[] = await this.userService.getUsernames(data.username);
       return usernames;

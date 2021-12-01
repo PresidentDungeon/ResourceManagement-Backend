@@ -215,7 +215,6 @@ export class UserService implements IUserService {
     let limitCount = 5;
 
     let qb = this.userRepository.createQueryBuilder("user");
-    qb = qb.select("user.username", "username");
     qb.andWhere(`username ILIKE :userUsername`, { userUsername: `%${username}%` });
     qb.limit(limitCount);
     const result = await qb.getMany();

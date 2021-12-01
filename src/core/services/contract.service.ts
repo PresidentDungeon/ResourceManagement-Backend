@@ -193,7 +193,7 @@ export class ContractService implements IContractService{
 
     if(filter.contractUser != null && filter.contractUser !== '')
     {
-      qb.andWhere(`users.username ILIKE :contractUser`, { contractUser: `%${filter.contractUser}%` });
+      qb.andWhere(`users.username ILIKE :contractUser`, { contractUser: `${filter.contractUser}` });
     }
 
     if(filter.statusID != null && filter.statusID > 0)
