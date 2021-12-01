@@ -61,11 +61,11 @@ describe('ContractService', () => {
     const createQueryBuilder: any = {
       leftJoinAndSelect: jest.fn(() => createQueryBuilder),
       leftJoin: () => createQueryBuilder,
-      andWhere: () => createQueryBuilder,
       select: () => createQueryBuilder,
       addSelect: () => createQueryBuilder,
       groupBy: () => createQueryBuilder,
       addGroupBy: () => createQueryBuilder,
+      andWhere: jest.fn(() => createQueryBuilder),
       getOne: jest.fn(() => {}),
       getMany: jest.fn(() => {}),
       getRawOne: jest.fn(() => {}),
@@ -463,12 +463,14 @@ describe('ContractService', () => {
   it('Find contract with invalid userID results in error', async () => {
 
     let ID: number = 0;
+    let statusID: number = 0;
+
     let errorStringToExcept = 'User ID must be instantiated or valid';
 
     jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
-    await expect(service.getContractByUserID(null)).rejects.toThrow(errorStringToExcept);
-    await expect(service.getContractByUserID(ID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractByUserID(null, statusID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractByUserID(ID, statusID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
@@ -478,6 +480,7 @@ describe('ContractService', () => {
     let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let userID: number = 1;
+    let statusID: number = 0;
 
     jest
       .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
@@ -487,13 +490,37 @@ describe('ContractService', () => {
 
     let foundContract: Contract[];
 
-    await expect(foundContract = await service.getContractByUserID(userID)).resolves;
+    await expect(foundContract = await service.getContractByUserID(userID, statusID)).resolves;
     expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContract);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(2);
   });
 
+  it('Find existing contracts by user ID and status ID returns valid contract information', async () => {
+
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let userID: number = 1;
+    let statusID: number = 2;
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract1, storedContract2]);});});
+
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
+    let foundContract: Contract[];
+
+    await expect(foundContract = await service.getContractByUserID(userID, statusID)).resolves;
+    expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContract);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(3);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith(`status.ID = :statusID`, { statusID: `${statusID}` });
+  });
 
   //#endregion
 
