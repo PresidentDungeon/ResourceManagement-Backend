@@ -500,8 +500,8 @@ describe('ContractService', () => {
 
   it('Find existing contracts by user ID and status ID returns valid contract information', async () => {
 
-    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let userID: number = 1;
     let statusID: number = 2;
 
