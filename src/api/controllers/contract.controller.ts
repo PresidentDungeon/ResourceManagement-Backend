@@ -48,9 +48,9 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Post('requestContract')
-  async requestContract(@Body() contract: Contract) {
+  async requestContract(@Body() contract: Contract, @Req() request) {
     try {
-      let createdContract: Contract = await this.contractService.addRequestContract(contract);
+      let createdContract: Contract = await this.contractService.addRequestContract(contract, request.status);
       return createdContract;
     }
     catch (e) {

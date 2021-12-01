@@ -6,11 +6,11 @@ import { DatabaseModule } from './infrastructure/data-source/postgres/database.m
 import { ConfigModule } from "@nestjs/config";
 import { SocketModule } from "./api/socket.module";
 import { ContractResumeModule } from "./api/contract.resume.module";
-import { WhitelistService } from './core/services/whitelist.service';
 import * as Joi from '@hapi/joi';
+import { WhitelistModule } from "./api/whitelist.module";
 
 @Module({
-  imports: [UserModule, ContractResumeModule, ConfigModule.forRoot({
+  imports: [UserModule, ContractResumeModule, WhitelistModule, ConfigModule.forRoot({
     envFilePath: '.dev.env',
     isGlobal: true,
     validationSchema: Joi.object({
