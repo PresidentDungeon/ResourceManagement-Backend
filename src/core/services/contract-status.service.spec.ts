@@ -6,6 +6,8 @@ import { UserStatusEntity } from "../../infrastructure/data-source/postgres/enti
 import { Status } from "../models/status";
 import { ContractStatusService } from "./contract-status.service";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
+import { Contract } from "../models/contract";
+import theoretically from "jest-theories";
 
 describe('UserStatusService', () => {
   let service: ContractStatusService;
@@ -77,6 +79,23 @@ describe('UserStatusService', () => {
 
     await expect(service.findStatusByName(status)).rejects.toEqual(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Calling find status by name finds status with inserted status title', () => {
+
+    let statusTitle: string;
+    const theories = [
+      { input: statusTitle = 'Pending review'},
+      { input: statusTitle = 'Accepted'},
+      { input: statusTitle = 'Declined'},
+    ];
+
+    theoretically('Correct calls are performed', theories, async theory => {
+
+      await expect(await service.findStatusByName(theory.input)).resolves;
+      expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({where: `"status" ILIKE '${theory.input}'`});
+    })
   });
 
   //#endregion

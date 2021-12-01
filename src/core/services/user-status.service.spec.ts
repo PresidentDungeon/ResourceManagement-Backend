@@ -4,6 +4,7 @@ import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserStatusService } from "./user-status.service";
 import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
 import { Status } from "../models/status";
+import theoretically from "jest-theories";
 
 describe('UserStatusService', () => {
   let service: UserStatusService;
@@ -75,6 +76,25 @@ describe('UserStatusService', () => {
 
     await expect(service.findStatusByName(status)).rejects.toEqual(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Calling find user status by name finds role with inserted user status title', () => {
+
+    let roleTitle: string;
+
+    const theories = [
+      { input: roleTitle = 'Pending'},
+      { input: roleTitle = 'Active'},
+      { input: roleTitle = 'Whitelisted'},
+      { input: roleTitle = 'Disabled'},
+    ];
+
+    theoretically('Correct calls are performed', theories, async theory => {
+
+      await expect(await service.findStatusByName(theory.input)).resolves;
+      expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({where: `"status" ILIKE '${theory.input}'`});
+    })
   });
 
   //#endregion
