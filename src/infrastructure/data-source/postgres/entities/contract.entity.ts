@@ -45,7 +45,7 @@ export class ContractEntity {
   resumeRequests: ResumeRequestEntity[];
 
   @OneToMany(() => CommentEntity, (commentEntity: CommentEntity) => commentEntity.contract, {cascade: true})
-  public comments?: CommentEntity[]
+  comments: CommentEntity[]
 
   @ManyToMany(() => UserEntity)
   @JoinTable()
