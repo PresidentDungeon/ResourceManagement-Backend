@@ -12,7 +12,7 @@ export interface IContractService{
   addRequestContract(contract: Contract): Promise<Contract>
   saveComment(commentDTO: CommentDTO): Promise<void>
   getContractByID(ID: number, redact?: boolean, userID?: number): Promise<Contract>
-  getContractByUserID(ID: number): Promise<Contract[]>
+  getContractByUserID(userID: number, statusID: number): Promise<Contract[]>
   getContractsByResume(ID: number): Promise<Contract[]>
   getContracts(filter: Filter): Promise<FilterList<Contract>>
   confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>
@@ -24,4 +24,5 @@ export interface IContractService{
   verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>;
 
   getAllStatuses(): Promise<Status[]>
+  getAllUserStatuses(): Promise<Status[]>
 }

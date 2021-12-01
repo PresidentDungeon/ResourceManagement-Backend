@@ -4,7 +4,6 @@ import { Repository } from "typeorm";
 import { Status } from "../models/status";
 import { IContractStatusService } from "../primary-ports/contract-status.service.interface";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
-import { Contract } from "../models/contract";
 
 @Injectable()
 export class ContractStatusService implements IContractStatusService {
@@ -26,6 +25,16 @@ export class ContractStatusService implements IContractStatusService {
 
   async getStatuses(): Promise<Status[]> {
     let qb = this.statusRepository.createQueryBuilder("status");
+    const status: Status[] = await qb.getMany();
+    return status;
+  }
+
+  async getUserStatus(): Promise<Status[]> {
+
+    let statuses: string[] = ['Pending review', 'Accepted', 'Completed'];
+    let qb = this.statusRepository.createQueryBuilder('status');
+    qb.andWhere('status.status IN (:...statuses)', {statuses: statuses});
+
     const status: Status[] = await qb.getMany();
     return status;
   }
