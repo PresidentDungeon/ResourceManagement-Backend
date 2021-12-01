@@ -85,7 +85,6 @@ export class ContractService implements IContractService{
     qb.leftJoinAndSelect('comment.contracts', 'contracts');
     qb.andWhere('contracts.ID = :contractID', {contractID: ID});
     let comments: Comment[] = await qb.getMany();
-
     return comments;
   }
 

@@ -16,6 +16,7 @@ import { Status } from "../models/status";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
+import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
 
 @Injectable()
 export class UserService implements IUserService{
@@ -31,7 +32,8 @@ export class UserService implements IUserService{
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
     @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
-    @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService
+    @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService,
+    @Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService,
   ) {}
 
   async createUser(username: string, password: string): Promise<User> {
@@ -310,6 +312,7 @@ export class UserService implements IUserService{
     return passwordResetString;
   }
 
+  //Calling whitelist if confirm is correct -> calling correct find status by username
   async verifyUser(username: string, verificationCode: string) {
 
     let foundUser = await this.getUserByUsername(username);
@@ -321,8 +324,10 @@ export class UserService implements IUserService{
 
     await this.verifyUserConfirmationToken(foundUser, verificationCode);
 
-    const activeStatus: Status = await this.statusService.findStatusByName('active');
-    foundUser.status = activeStatus;
+    const isWhitelisted: boolean = await this.whitelistService.verifyUserWhitelist(foundUser.username);
+    const userStatus: Status = (isWhitelisted) ? await this.statusService.findStatusByName('whitelisted') : await this.statusService.findStatusByName('active');
+
+    foundUser.status = userStatus;
 
     await this.userRepository.save(foundUser);
     await this.deleteUserConfirmationToken(foundUser.ID);
@@ -392,9 +397,6 @@ export class UserService implements IUserService{
 
   }
 
-
-
-
   async updatePasswordWithConfirmationToken(username: string, confirmationToken: string, password: string): Promise<boolean>{
 
     let foundUser = await this.getUserByUsername(username);
@@ -459,8 +461,6 @@ export class UserService implements IUserService{
     return this.authenticationHelper.validateJWTToken(token);
   }
 
-
-
   verifyUserEntity(user: User) {
     if(user == undefined || user == null) {throw new Error('User must be instantiated');}
     if(user.ID == undefined || user.ID == null || user.ID < 0){throw new Error('User must have a valid ID')}
@@ -468,6 +468,12 @@ export class UserService implements IUserService{
     if(user.salt == undefined || user.salt == null || user.salt.trim().length <= 0){throw new Error('An error occurred with Salt');}
     if(user.role == undefined || user.role == null || user.role.ID <= 0){throw new Error('An error occurred with user role');}
     if(user.status == undefined || user.status == null || user.status.ID <= 0){throw new Error('An error occurred with user status');}
+  }
+
+  verifyUserDomain(user: User) {
+
+
+
   }
 
 

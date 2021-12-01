@@ -15,15 +15,19 @@ import { UserStatusService } from "../core/services/user-status.service";
 import { RoleEntity } from "../infrastructure/data-source/postgres/entities/role.entity";
 import { UserStatusEntity } from "../infrastructure/data-source/postgres/entities/user-status.entity";
 import { ConfirmationTokenEntity } from "../infrastructure/data-source/postgres/entities/confirmation-token.entity";
+import { IWhitelistServiceProvider } from "../core/primary-ports/whitelist.service.interface";
+import { WhitelistService } from "../core/services/whitelist.service";
+import { WhitelistDomainEntity } from "../infrastructure/data-source/postgres/entities/whitelist.domain.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity, ConfirmationTokenEntity, PasswordTokenEntity, RoleEntity, UserStatusEntity]), AuthModule, MailModule, SocketModule],
+  imports: [TypeOrmModule.forFeature([UserEntity, ConfirmationTokenEntity, PasswordTokenEntity, RoleEntity, UserStatusEntity, WhitelistDomainEntity]), AuthModule, MailModule, SocketModule],
   providers: [
     {provide: IUserServiceProvider, useClass: UserService},
     {provide: IRoleServiceProvider, useClass: RoleService},
-    {provide: IUserStatusServiceProvider, useClass: UserStatusService}
+    {provide: IUserStatusServiceProvider, useClass: UserStatusService},
+    {provide: IWhitelistServiceProvider, useClass: WhitelistService},
   ],
   controllers: [UserController],
-  exports: [IUserServiceProvider, IRoleServiceProvider, IUserStatusServiceProvider]
+  exports: [IUserServiceProvider, IRoleServiceProvider, IUserStatusServiceProvider, IWhitelistServiceProvider]
 })
 export class UserModule {}

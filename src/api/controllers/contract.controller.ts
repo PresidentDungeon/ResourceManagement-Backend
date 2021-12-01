@@ -74,7 +74,7 @@ export class ContractController {
   @Post('getComments')
   async getContractComments(@Query() commentID: any) {
     try {
-      await this.contractService.getContractComments(commentID.ID);
+     return await this.contractService.getContractComments(commentID.ID);
     }
     catch (e) {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
