@@ -19,11 +19,9 @@ import { UserStatusEntity } from "../../infrastructure/data-source/postgres/enti
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
-import { Contract } from "../models/contract";
-import crypto from "crypto";
 import { WhitelistService } from "./whitelist.service";
 import { IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
-import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
+
 
 describe('UserService', () => {
   let service: UserService;

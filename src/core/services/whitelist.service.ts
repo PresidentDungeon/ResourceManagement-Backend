@@ -4,6 +4,9 @@ import { Repository } from "typeorm";
 import { IWhitelistService } from "../primary-ports/whitelist.service.interface";
 import { WhitelistDomainEntity } from "../../infrastructure/data-source/postgres/entities/whitelist.domain.entity";
 import { Whitelist } from "../models/whitelist";
+import { Filter } from "../models/filter";
+import { FilterList } from "../models/filterList";
+import { UserDTO } from "../../api/dtos/user.dto";
 
 @Injectable()
 export class WhitelistService implements IWhitelistService {
@@ -35,18 +38,83 @@ export class WhitelistService implements IWhitelistService {
   }
 
   //Missing test
-  deleteWhitelist(whiteList: Whitelist): Promise<Whitelist> {
-    return Promise.resolve(undefined);
+  async deleteWhitelist(whitelist: Whitelist): Promise<void> { //
+    const foundWhitelist = await this.getWhitelistByID(whitelist.ID);
+
+    this.verifyWhitelist(foundWhitelist);
+
+    try{
+      let updatedWhitelist = await this.whitelistRepository.delete(foundWhitelist);
+    }
+    catch (e){
+      throw new Error('Internal server error');
+    }
+
+  }
+
+  async getWhitelist(filter: Filter): Promise<FilterList<Whitelist>> {
+
+    if (filter == null || filter == undefined) {
+      throw new Error("Invalid filter entered");
+    }
+
+    if (filter.itemsPrPage == null || filter.itemsPrPage == undefined || filter.itemsPrPage <= 0) {
+      throw new Error("Invalid items pr. page entered");
+    }
+
+    if (filter.currentPage == null || filter.currentPage == undefined || filter.currentPage < 0) {
+      throw new Error("Invalid current page entered");
+    }
+    let qb = this.whitelistRepository.createQueryBuilder("whitelist");
+
+    if (filter.domain != null && filter.domain !== "") {
+      qb.andWhere(`domain ILIKE :domain`, { domain: `%${filter.domain}%` });
+    }
+
+    qb.offset((filter.currentPage) * filter.itemsPrPage);
+    qb.limit(filter.itemsPrPage);
+
+    const result = await qb.getMany();
+    const count = await qb.getCount();
+
+    const filterList: FilterList<Whitelist> = { list: result, totalItems: count };
+    return filterList;
+}
+
+
+  //Missing test
+  async getWhitelistByID(ID: number): Promise<Whitelist> {
+
+    if (ID == null || ID == undefined || ID <= 0) {
+      throw new Error("Whitelist ID must be instantiated or valid");
+    }
+
+    let qb = this.whitelistRepository.createQueryBuilder("whitelist");
+    qb.where('whitelist.ID = :whitelistID', { whitelistID: `${ID}`});
+    const foundWhitelist: WhitelistDomainEntity = await qb.getOne();
+
+    if (foundWhitelist == null) {
+      throw new Error("No whitelist registered with such ID");
+    }
+    return foundWhitelist;
   }
 
   //Missing test
-  getWhitelistByID(ID: number): Promise<Whitelist> {
-    return Promise.resolve(undefined);
-  }
+  async updateWhitelist(whitelist: Whitelist): Promise<Whitelist> {
 
-  //Missing test
-  updateWhitelist(whiteList: Whitelist): Promise<Whitelist> {
-    return Promise.resolve(undefined);
+    const foundWhitelist = await this.getWhitelistByID(whitelist.ID);
+    foundWhitelist.ID = whitelist.ID;
+    foundWhitelist.domain = whitelist.domain;
+
+    this.verifyWhitelist(foundWhitelist);
+
+    try{
+      let updatedWhitelist = await this.whitelistRepository.save(foundWhitelist);
+      return updatedWhitelist;
+    }
+    catch (e){
+      throw new Error('Internal server error');
+    }
   }
 
   //Missing test
@@ -58,10 +126,6 @@ export class WhitelistService implements IWhitelistService {
 
   //Missing test
   verifyUserWhitelist(username: string): Promise<boolean> {
-
-
-
-
 
     return Promise.resolve(false);
   }

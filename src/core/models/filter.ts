@@ -8,6 +8,7 @@ export interface Filter{
   roleID?: number
   sortingType?: string
   sorting?: string
+  domain?: string
 
   enableCommentCount?: boolean
 }
