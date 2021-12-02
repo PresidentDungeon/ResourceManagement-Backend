@@ -22,7 +22,7 @@ describe('UserStatusService', () => {
 
     const createQueryBuilder: any = {
       leftJoinAndSelect: () => createQueryBuilder,
-      andWhere: () => createQueryBuilder,
+      andWhere: jest.fn(() => createQueryBuilder),
       getOne: jest.fn(() => {}),
       getMany: jest.fn(() => {}),
     };
@@ -98,6 +98,31 @@ describe('UserStatusService', () => {
     await expect(foundStatuses = await service.getStatuses()).resolves;
     expect(mockRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(foundStatuses).toBe(statuses);
+  });
+
+  //#endregion
+
+  //#region GetUserStatus
+
+  it('Calling get user statuses inserts correct andwhere statement', async () => {
+
+    const storedStatuses: Status[] = [
+      {ID: 3, status: 'Pending review'},
+      {ID: 5, status: 'Accepted'},
+      {ID: 7, status: 'Completed'},
+    ]
+
+    jest
+      .spyOn(mockRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedStatuses);});});
+
+    let foundStatuses: Status[];
+
+    await expect(foundStatuses = await service.getUserStatus()).resolves;
+    expect(foundStatuses).toEqual(storedStatuses);
+    expect(mockRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(1);
+    expect(mockRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith('status.status IN (:...statuses)', {statuses: ['Pending review', 'Accepted', 'Completed']});
+    expect(mockRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
   });
 
   //#endregion

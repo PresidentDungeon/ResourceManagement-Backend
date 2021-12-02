@@ -133,17 +133,22 @@ export class ContractService implements IContractService{
     return foundContract;
   }
 
-  async getContractByUserID(ID: number) {
+  async getContractByUserID(userID: number, statusID: number) {
 
-    if(ID == null || ID <= 0){
+    if(userID == null || userID <= 0){
       throw new BadRequestError('User ID must be instantiated or valid');
     }
 
     let qb = this.contractRepository.createQueryBuilder("contract");
     qb.leftJoin('contract.users', 'users');
-    qb.andWhere(`users.ID = :userID`, { userID: `${ID}`});
+    qb.andWhere(`users.ID = :userID`, { userID: `${userID}`});
     qb.leftJoinAndSelect('contract.status', 'status');
     qb.andWhere(`status.status NOT IN (:...status)`, { status: ['Rejected', 'Draft']});
+
+    if(statusID > 0)
+    {
+      qb.andWhere(`status.ID = :statusID`, { statusID: `${statusID}` });
+    }
 
     const foundContract: ContractEntity[] = await qb.getMany();
     await this.verifyContractStatuses(foundContract);
@@ -349,6 +354,10 @@ export class ContractService implements IContractService{
 
   async getAllStatuses(): Promise<Status[]>{
     return await this.statusService.getStatuses();
+  }
+
+  async getAllUserStatuses(): Promise<Status[]>{
+    return await this.statusService.getUserStatus();
   }
 
 }

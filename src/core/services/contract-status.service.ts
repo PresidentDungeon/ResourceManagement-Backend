@@ -25,4 +25,14 @@ export class ContractStatusService implements IContractStatusService {
     const status: Status[] = await qb.getMany();
     return status;
   }
+
+  async getUserStatus(): Promise<Status[]> {
+
+    let statuses: string[] = ['Pending review', 'Accepted', 'Completed'];
+    let qb = this.statusRepository.createQueryBuilder('status');
+    qb.andWhere('status.status IN (:...statuses)', {statuses: statuses});
+
+    const status: Status[] = await qb.getMany();
+    return status;
+  }
 }
