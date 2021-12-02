@@ -216,7 +216,6 @@ export class UserService implements IUserService {
     return result.map((value) => {return value.username;});
   }
 
-  //Changed slightly might fail
   async updateUser(userDTO: UserDTO): Promise<User> {
 
     const foundUser = await this.getUserByID(userDTO.ID);

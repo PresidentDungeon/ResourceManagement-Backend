@@ -1,16 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Inject,
-  Post,
-  Put,
-  Query,
-  Req,
-  UseGuards,
-  UseInterceptors
-} from "@nestjs/common";
+import { Body, Controller, Delete, Get, Inject, Post, Put, Query, Req, UseGuards, UseInterceptors } from "@nestjs/common";
 import { IContractService, IContractServiceProvider } from "../../core/primary-ports/contract.service.interface";
 import { Contract } from "../../core/models/contract";
 import { Resume } from "../../core/models/resume";

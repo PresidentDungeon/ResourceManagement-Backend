@@ -478,8 +478,8 @@ describe('ContractService', () => {
 
     jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
-    await expect(service.getContractByUserID(null, statusID)).rejects.toThrow(errorStringToExcept);
-    await expect(service.getContractByUserID(ID, statusID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractsByUserID(null, statusID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractsByUserID(ID, statusID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
@@ -499,7 +499,7 @@ describe('ContractService', () => {
 
     let foundContract: Contract[];
 
-    await expect(foundContract = await service.getContractByUserID(userID, statusID)).resolves;
+    await expect(foundContract = await service.getContractsByUserID(userID, statusID)).resolves;
     expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
@@ -522,7 +522,7 @@ describe('ContractService', () => {
 
     let foundContract: Contract[];
 
-    await expect(foundContract = await service.getContractByUserID(userID, statusID)).resolves;
+    await expect(foundContract = await service.getContractsByUserID(userID, statusID)).resolves;
     expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
