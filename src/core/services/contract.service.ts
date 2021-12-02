@@ -1,4 +1,3 @@
-import { Inject, Injectable } from "@nestjs/common";
 import { IContractService } from "../primary-ports/contract.service.interface";
 import { InjectConnection, InjectRepository } from "@nestjs/typeorm";
 import { Connection, Repository } from "typeorm";
@@ -12,6 +11,8 @@ import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/e
 import { CommentEntity } from "../../infrastructure/data-source/postgres/entities/comment.entity";
 import { CommentDTO } from "src/api/dtos/comment.dto";
 import { Comment } from "../models/comment";
+import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
+import { Inject, Injectable } from "@nestjs/common";
 
 @Injectable()
 export class ContractService implements IContractService{
@@ -36,7 +37,7 @@ export class ContractService implements IContractService{
       const savedContract = await this.contractRepository.save(newContract);
       return savedContract;
     }
-    catch (e) {throw new Error('Internal server error')}
+    catch (e) {throw new InternalServerError('Error saving contract to database')}
   }
 
   async addRequestContract(contract: Contract): Promise<Contract> {
@@ -50,6 +51,7 @@ export class ContractService implements IContractService{
     this.verifyContractEntity(contract);
 
     try{
+
       const savedContract = await this.connection.transaction<Contract>(async transactionalEntityManager => {
 
         const resumeRequests = this.resumeRequestRepository.create(contract.resumeRequests);
@@ -65,7 +67,7 @@ export class ContractService implements IContractService{
       return savedContract;
     }
     catch (e) {
-      throw new Error('Internal server error');
+      throw new InternalServerError('Error saving contract request');
     }
   }
 
@@ -73,12 +75,13 @@ export class ContractService implements IContractService{
     const commentEntity = this.commentRepository.create(commentDTO);
     commentEntity.user = JSON.parse(JSON.stringify({ID: commentDTO.userID}));
     commentEntity.contract = JSON.parse(JSON.stringify({ID: commentDTO.contractID}));
-    await this.commentRepository.save(commentEntity);
+    try{await this.commentRepository.save(commentEntity);}
+    catch (e) {throw new InternalServerError('Error saving comment to database');}
   }
 
   async getContractComments(ID: number): Promise<Comment[]>{
     if(ID == null || ID <= 0){
-      throw new Error('Contract ID must be instantiated or valid');
+      throw new BadRequestError('Contract ID must be instantiated or valid');
     }
 
     let qb = this.commentRepository.createQueryBuilder('comment');
@@ -94,7 +97,7 @@ export class ContractService implements IContractService{
   async getContractByID(ID: number, redact?: boolean, personalID?: number): Promise<Contract>{
 
     if(ID == null || ID <= 0){
-      throw new Error('Contract ID must be instantiated or valid');
+      throw new BadRequestError('Contract ID must be instantiated or valid');
     }
 
     let qb = this.contractRepository.createQueryBuilder("contract");
@@ -102,7 +105,7 @@ export class ContractService implements IContractService{
 
     if(personalID != null){
 
-      if(personalID <= 0) {throw new Error('Invalid user ID entered');}
+      if(personalID <= 0) {throw new BadRequestError('Invalid user ID entered');}
 
       qb.leftJoin(qb => qb.select("commentPersonal.comment as personal_comment, commentPersonal.contractID, commentPersonal.userID")
         .from(CommentEntity, 'commentPersonal').where('commentPersonal.userID = :personalID', {personalID: `${personalID}`}), 'commentPersonal', '"commentPersonal"."contractID" = contract.ID')
@@ -118,7 +121,7 @@ export class ContractService implements IContractService{
     qb.andWhere(`contract.ID = :contractID`, { contractID: `${ID}`});
 
     const foundContract: Contract = await qb.getOne();
-    if(foundContract == null) {throw new Error('No contracts registered with such ID');}
+    if(foundContract == null) {throw new EntityNotFoundError('No contracts registered with such ID');}
 
     if (personalID != null){
       const contractRaw: any = await qb.getRawOne();
@@ -133,7 +136,7 @@ export class ContractService implements IContractService{
   async getContractByUserID(ID: number) {
 
     if(ID == null || ID <= 0){
-      throw new Error('User ID must be instantiated or valid');
+      throw new BadRequestError('User ID must be instantiated or valid');
     }
 
     let qb = this.contractRepository.createQueryBuilder("contract");
@@ -150,7 +153,7 @@ export class ContractService implements IContractService{
   async getContractsByResume(ID: number) {
 
     if(ID == null || ID <= 0){
-      throw new Error('Resume ID must be instantiated or valid');
+      throw new BadRequestError('Resume ID must be instantiated or valid');
     }
 
     let pendingStatus: Status = await this.statusService.findStatusByName('Pending review');
@@ -171,15 +174,15 @@ export class ContractService implements IContractService{
   async getContracts(filter: Filter): Promise<FilterList<Contract>> {
 
     if(filter == null || filter == undefined){
-      throw new Error('Invalid filter entered');
+      throw new BadRequestError('Invalid filter entered');
     }
 
     if(filter.itemsPrPage == null || filter.itemsPrPage == undefined || filter.itemsPrPage <= 0){
-      throw new Error('Invalid items pr. page entered');
+      throw new BadRequestError('Invalid items pr. page entered');
     }
 
     if(filter.currentPage == null || filter.currentPage == undefined || filter.currentPage < 0){
-      throw new Error('Invalid current page entered');
+      throw new BadRequestError('Invalid current page entered');
     }
 
     let enableMatchComplete: boolean = (filter.enableMatchComplete == null) ? false : JSON.parse(filter.enableMatchComplete as unknown as string);
@@ -245,14 +248,14 @@ export class ContractService implements IContractService{
     const storedContract: Contract = await this.getContractByID(contract.ID);
 
     if(storedContract.status.status.toLowerCase() != 'pending review'){
-      throw new Error('Contract is not pending review and cannot be accepted or declined.');
+      throw new BadRequestError('Contract is not pending review and cannot be accepted or declined.');
     }
 
     contract.dueDate = new Date(contract.dueDate);
     let currentDate: Date = new Date();
 
     if(contract.dueDate.getTime() < currentDate.getTime()){
-      throw new Error('The validation window for this contract is expired and cannot be accepted or declined');
+      throw new BadRequestError('The validation window for this contract is expired and cannot be accepted or declined');
     }
 
     let status: Status = await ((isAccepted) ? this.statusService.findStatusByName("Accepted") : this.statusService.findStatusByName("Rejected"));
@@ -267,7 +270,7 @@ export class ContractService implements IContractService{
     const storedContract: Contract = await this.getContractByID(contract.ID);
 
     if(storedContract.status.status.toLowerCase() != 'expired'){
-      throw new Error('Contract is not expired and cannot be requested for renewal');
+      throw new BadRequestError('Contract is not expired and cannot be requested for renewal');
     }
 
     let pendingStatus: Status = await this.statusService.findStatusByName("Draft");
@@ -301,34 +304,26 @@ export class ContractService implements IContractService{
       return savedContract;
     }
     catch (e) {
-      throw new Error('Internal server error');
+      throw new InternalServerError('Error during update of contract');
     }
 
   }
 
   async delete(ID: number) {
-
-    if(ID == null || ID <= 0){
-      throw new Error('Contract ID must be instantiated or valid');
-    }
-
-    try{
-      await this.contractRepository.createQueryBuilder().delete().from(ContractEntity).andWhere(`ID = :ID`, { ID: `${ID}`}).execute();
-    }
-    catch (e) {
-      throw new Error('Internal server error')
-    }
+    if(ID == null || ID <= 0){throw new BadRequestError('Contract ID must be instantiated or valid');}
+    try{await this.contractRepository.createQueryBuilder().delete().from(ContractEntity).andWhere(`ID = :ID`, { ID: `${ID}`}).execute();}
+    catch (e) {throw new InternalServerError('Error during delete of contract')}
   }
 
   verifyContractEntity(contract: Contract) {
-    if(contract == null) {throw new Error('Contract must be instantiated');}
-    if(contract.ID == null || contract.ID < 0){throw new Error('Contract must have a valid ID')}
-    if(contract.title == null || contract.title.trim().length == 0){throw new Error('Contract must have a valid title');}
-    if(contract.description == null || contract.description.length > 500){throw new Error('Contract must have a valid description under 500 characters');}
-    if(contract.status == null || contract.status.ID <= 0){throw new Error('Contract must have a valid status');}
-    if(contract.startDate == null ){throw new Error('Contract must contain a valid start date');}
-    if(contract.endDate == null ){throw new Error('Contract must contain a valid end date');}
-    if(contract.endDate.getTime() - contract.startDate.getTime() < 0 ){throw new Error('Start date cannot be after end date');}
+    if(contract == null) {throw new BadRequestError('Contract must be instantiated');}
+    if(contract.ID == null || contract.ID < 0){throw new BadRequestError('Contract must have a valid ID')}
+    if(contract.title == null || contract.title.trim().length == 0){throw new BadRequestError('Contract must have a valid title');}
+    if(contract.description == null || contract.description.length > 500){throw new BadRequestError('Contract must have a valid description under 500 characters');}
+    if(contract.status == null || contract.status.ID <= 0){throw new BadRequestError('Contract must have a valid status');}
+    if(contract.startDate == null ){throw new BadRequestError('Contract must contain a valid start date');}
+    if(contract.endDate == null ){throw new BadRequestError('Contract must contain a valid end date');}
+    if(contract.endDate.getTime() - contract.startDate.getTime() < 0 ){throw new BadRequestError('Start date cannot be after end date');}
   }
 
   async verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>{
@@ -347,8 +342,6 @@ export class ContractService implements IContractService{
         contract.status = completedStatus;
         this.contractRepository.createQueryBuilder().update(ContractEntity).set({status: completedStatus}).where("ID = :contractID", {contractID: contract.ID}).execute();
       }
-
-
     });
 
     return contracts;

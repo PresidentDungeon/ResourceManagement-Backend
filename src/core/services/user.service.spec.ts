@@ -19,8 +19,6 @@ import { UserStatusEntity } from "../../infrastructure/data-source/postgres/enti
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
-import { Contract } from "../models/contract";
-import crypto from "crypto";
 
 describe('UserService', () => {
   let service: UserService;
@@ -382,7 +380,7 @@ describe('UserService', () => {
 
      jest.spyOn(mockUserRepository, "save").mockImplementationOnce(resolve => {throw new Error()});
 
-     let errorStringToExcept: string = 'Internal server error';
+     let errorStringToExcept: string = 'Error saving user to database';
 
      let user: User = {
        ID: 0,
@@ -409,7 +407,7 @@ describe('UserService', () => {
 
       jest.spyOn(mockConfirmationTokenRepository, "save").mockImplementationOnce(resolve => {throw new Error()});
 
-      let errorStringToExcept: string = 'Internal server error';
+      let errorStringToExcept: string = 'Error saving user to database';
 
       let user: User = {
         ID: 0,
@@ -516,6 +514,7 @@ describe('UserService', () => {
    //#endregion
 
   //#region GetUserByID
+
   it('Find user with invalid ID results in error', async () => {
 
     let ID: number = 0;
@@ -838,41 +837,6 @@ describe('UserService', () => {
 
   });
 
-  it('Updating user with return value of null throws error', async () => {
-
-    let storedUser: UserEntity = {
-      ID: 1,
-      username: 'peter@gmail.com',
-      password: 'Password',
-      salt: 'someSalt',
-      status: {ID: 2, status: 'active'},
-      role: {ID: 1, role: 'user'}};
-
-    let userDTO: UserDTO = {ID: 1, username: null, status: {ID: 2, status: 'active'}, role: {ID: 2, role: 'admin'}};
-
-    jest
-      .spyOn(service, 'getUserByID')
-      .mockImplementationOnce((ID: number) => {return new Promise(resolve => {return resolve(storedUser);});});
-
-    jest
-      .spyOn(service, 'verifyUserEntity')
-      .mockImplementationOnce((user: UserEntity) => {});
-
-    jest
-      .spyOn(mockUserRepository, 'save')
-      .mockImplementationOnce((user: UserEntity) => {return new Promise(resolve => {return resolve(null);});});
-
-    let expectedErrorMessage: string = 'Error updating user'
-
-    await expect(service.updateUser(userDTO)).rejects.toThrow(expectedErrorMessage);
-    expect(service.getUserByID).toHaveBeenCalledTimes(1);
-    expect(service.getUserByID).toHaveBeenCalledWith(userDTO.ID);
-    expect(service.verifyUserEntity).toHaveBeenCalledTimes(1);
-    expect(service.verifyUserEntity).toHaveBeenCalledWith(storedUser);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockUserRepository.save).toHaveBeenCalledWith(storedUser);
-  });
-
   it('Error while updating user throws error', async () => {
 
     let storedUser: UserEntity = {
@@ -1023,7 +987,32 @@ describe('UserService', () => {
     expect(service.getUserByUsername).toHaveBeenCalledWith(username);
     expect(authenticationMock.validateLogin).toHaveBeenCalledTimes(1);
     expect(authenticationMock.validateLogin).toHaveBeenCalledWith(storedUser, password);
+  });
 
+  it('Login with existing user with status of pending throws error', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1,
+      username: 'Username@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 1, status: 'Pending'},
+      role: {ID: 1, role: 'user'}};
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
+
+    let username: string = 'Username@gmail.com';
+    let password: string = 'Password';
+
+    let errorStringToExcept = 'Email has not been confirmed for this user. Please confirm this account before logging in.';
+
+    await expect(service.login(username, password)).rejects.toThrow(errorStringToExcept);
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
+    expect(service.getUserByUsername).toHaveBeenCalledWith(username);
+    expect(authenticationMock.validateLogin).toHaveBeenCalledTimes(1);
+    expect(authenticationMock.validateLogin).toHaveBeenCalledWith(storedUser, password);
   });
 
   it('Login with existing user completes without error', async () => {
@@ -1118,7 +1107,7 @@ describe('UserService', () => {
       role: {ID: 1, role: 'admin'},
     }
 
-    let expectedErrorMessage: string = 'Internal server error';
+    let expectedErrorMessage: string = 'Error saving confirmation token to database';
 
     jest
       .spyOn(service, 'verifyUserEntity')
@@ -1178,7 +1167,7 @@ describe('UserService', () => {
 
     jest
       .spyOn(mockPasswordTokenRepository, 'save')
-      .mockImplementationOnce(() => {throw new Error('Error saving data to database')});
+      .mockImplementationOnce(() => {throw new Error()});
 
     let user: User = {
       ID: 1,
@@ -1188,7 +1177,7 @@ describe('UserService', () => {
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
-    let errorStringToExcept: string = 'Internal server error. Please try again later.';
+    let errorStringToExcept: string = 'Error saving new password token to database';
 
     await expect(service.generatePasswordResetToken(user.username)).rejects.toThrow(errorStringToExcept);
     expect(authenticationMock.generateToken).toHaveBeenCalledTimes(1);
@@ -1268,6 +1257,47 @@ describe('UserService', () => {
     expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
+    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(0);
+  });
+
+  it('Error during save on user verification throws correct error', async () => {
+
+    let storedUser: UserEntity = {
+      ID: 1, username: 'peter@gmail.com',
+      password: 'Password',
+      salt: 'someSalt',
+      status: {ID: 2, status: 'pending'},
+      role: {ID: 1, role: 'user'}};
+
+    let verificationCode = "2xY3b4";
+
+    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, salt: 'saltValue', hashedConfirmationToken: 'someHashedToken'};
+
+    jest
+      .spyOn(service, 'getUserByUsername')
+      .mockImplementationOnce((username: string) => {return new Promise(resolve => {resolve(storedUser);});});
+
+    jest
+      .spyOn(service, 'verifyUserConfirmationToken')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+
+    jest
+      .spyOn(service, 'deleteUserConfirmationToken')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+
+    jest.spyOn(mockUserRepository, 'save').mockImplementation((user: User) => {throw new Error()});
+
+    let username: string = "peter@gmail.com";
+
+    let expectedErrorMessage: string = 'Error verifying user'
+
+    await expect(service.verifyUser(username, verificationCode)).rejects.toThrowError(expectedErrorMessage);
+    expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
+    expect(service.getUserByUsername).toHaveBeenCalledWith(username);
+    expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
+    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
     expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(0);
   });
 
@@ -1528,7 +1558,7 @@ describe('UserService', () => {
 
     let ID: number = 1;
 
-    let errorStringToExcept = 'Internal server error';
+    let errorStringToExcept = 'Error deleting user confirmation token';
 
     jest.spyOn(mockConfirmationTokenRepository.createQueryBuilder().delete(), 'execute')
       .mockImplementationOnce(() => {return new Promise(resolve => {throw new Error();});})
@@ -1743,7 +1773,7 @@ describe('UserService', () => {
     let passwordToken: string = 'somePasswordToken';
     let password: string = 'password';
 
-    let errorStringToExcept: string = 'Internal server error';
+    let errorStringToExcept: string = 'Error updating password with password reset token';
 
     jest
       .spyOn(service, 'getUserByUsername')
@@ -1954,7 +1984,7 @@ describe('UserService', () => {
 
     let newPassword: string = 'password';
 
-    let errorStringToExcept: string = 'Internal server error';
+    let errorStringToExcept: string = 'Error saving new password';
 
     jest
       .spyOn(mockUserRepository, 'save')

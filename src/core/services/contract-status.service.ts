@@ -4,7 +4,7 @@ import { Repository } from "typeorm";
 import { Status } from "../models/status";
 import { IContractStatusService } from "../primary-ports/contract-status.service.interface";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
-import { Contract } from "../models/contract";
+import { BadRequestError, EntityNotFoundError } from "../../infrastructure/error-handling/errors";
 
 @Injectable()
 export class ContractStatusService implements IContractStatusService {
@@ -13,14 +13,10 @@ export class ContractStatusService implements IContractStatusService {
 
   async findStatusByName(status: string): Promise<Status> {
 
-    if(status == undefined || status == null || status.length <= 0)
-    {
-      throw 'Status must be instantiated';
-    }
+    if(status == undefined || status == null || status.length <= 0) {throw new BadRequestError('Status must be instantiated');}
+    const foundStatus = await this.statusRepository.findOne({where: `"status" ILIKE '${status}'`});
 
-    const foundStatus = await this.statusRepository.findOne({where: `"status" ILIKE '${status}'`})
-
-    if(foundStatus == null || foundStatus == undefined){throw 'The specified status could not be found'}
+    if(foundStatus == null || foundStatus == undefined){throw new EntityNotFoundError('The specified status could not be found');}
     return foundStatus;
   }
 

@@ -1,5 +1,4 @@
 import { Contract } from "../models/contract";
-import { Resume } from "../models/resume";
 import { Status } from "../models/status";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";

@@ -47,11 +47,12 @@ describe('UserStatusService', () => {
   it('Calling findStatusByName with invalid name returns error', async () => {
 
     let role: string = '';
+
     let errorStringToExcept: string = 'Status must be instantiated';
 
-    await expect(service.findStatusByName(null)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findStatusByName(undefined)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findStatusByName(role)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findStatusByName(null)).rejects.toThrowError(errorStringToExcept);
+    await expect(service.findStatusByName(undefined)).rejects.toThrowError(errorStringToExcept);
+    await expect(service.findStatusByName(role)).rejects.toThrowError(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
   });
 
@@ -73,7 +74,7 @@ describe('UserStatusService', () => {
 
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
 
-    await expect(service.findStatusByName(status)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findStatusByName(status)).rejects.toThrowError(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
   });
 

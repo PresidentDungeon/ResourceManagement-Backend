@@ -1,14 +1,14 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Post, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { GetResumesDTO } from "../dtos/get.resumes.dto";
-import { IContractService, IContractServiceProvider } from "../../core/primary-ports/contract.service.interface";
 import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/resume.service.interface";
-import { Contract } from "../../core/models/contract";
 import { Resume } from "../../core/models/resume";
 import { FilterList } from "../../core/models/filterList";
 import { Roles } from "../../auth/roles.decorator";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
+import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
 
 @Controller('resume')
+@UseInterceptors(ErrorInterceptor)
 export class ResumeController {
 
   constructor(@Inject(IResumeServiceProvider) private resumeService: IResumeService) {}
@@ -17,25 +17,15 @@ export class ResumeController {
   @UseGuards(JwtAuthGuard)
   @Post('getResumes')
   async getResumes(@Body() getResumeDTO: GetResumesDTO){
-    try {
-      let resumeFiler: FilterList<Resume> = await this.resumeService.getResumes(getResumeDTO);
-      return resumeFiler;
-    }
-    catch (e) {console.log(e);
-      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
-    }
+    let resumeFiler: FilterList<Resume> = await this.resumeService.getResumes(getResumeDTO);
+    return resumeFiler;
   }
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getResumeByID')
   async getResumeByID(@Query() resumeID: any){
-    try {
-      return await this.resumeService.getResumeByID(resumeID.ID, false);
-    }
-    catch (e) {
-        throw new HttpException(e.message, HttpStatus.NOT_FOUND);
-      }
+    return await this.resumeService.getResumeByID(resumeID.ID, false);
   }
 
   @UseGuards(JwtAuthGuard)
