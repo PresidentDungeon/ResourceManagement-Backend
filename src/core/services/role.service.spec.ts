@@ -50,9 +50,9 @@ describe('RoleService', () => {
     let role: string = '';
     let errorStringToExcept: string = 'Role must be instantiated';
 
-    await expect(service.findRoleByName(null)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findRoleByName(undefined)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findRoleByName(null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.findRoleByName(undefined)).rejects.toThrow(errorStringToExcept);
+    await expect(service.findRoleByName(role)).rejects.toThrow(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
   });
 
@@ -70,12 +70,11 @@ describe('RoleService', () => {
   it('Calling findRoleByName with valid name but without any results throws error', async () => {
 
     let role: string = 'Admin';
-    let mockRole: Role = {ID: 1, role: 'User'};
     let errorStringToExcept: string = 'The specified role could not be found';
 
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
 
-    await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findRoleByName(role)).rejects.toThrow(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
   });
 

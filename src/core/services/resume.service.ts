@@ -8,12 +8,10 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
 import { Repository } from "typeorm";
 import { Status } from "../models/status";
-import {
-  IContractStatusService,
-  IContractStatusServiceProvider
-} from "../primary-ports/contract-status.service.interface";
+import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
 import { IResumeService } from "../primary-ports/resume.service.interface";
 import { GetResumesDTO } from "../../api/dtos/get.resumes.dto";
+import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 
 @Injectable()
 export class ResumeService implements IResumeService{
@@ -29,7 +27,7 @@ export class ResumeService implements IResumeService{
     let axiosResume: AxiosResponse<Resume>;
 
     try{axiosResume = await this.http.get(this.configService.get('MOCK_API_URL') + `/resume/getResumeByID?ID=${resumeID}`).toPromise();}
-    catch (e) {throw new Error('No resume found with such an ID');}
+    catch (e) {throw new EntityNotFoundError('No resume found with such an ID');}
 
     let resume: Resume = axiosResume.data;
     return (redact) ? this.redactResume(resume) : resume;
@@ -41,7 +39,7 @@ export class ResumeService implements IResumeService{
     let axiosResume: AxiosResponse<Resume[]>;
 
     try{axiosResume = await this.http.post(this.configService.get('MOCK_API_URL') + `/resume/getResumesByID`, IDs).toPromise();}
-    catch (e) {throw new Error('Internal server error');}
+    catch (e) {throw new InternalServerError('Error loading resumes');}
 
     let resumes: Resume[] = axiosResume.data;
 
@@ -51,8 +49,14 @@ export class ResumeService implements IResumeService{
   }
 
   async getResumes(getResumeDTO: GetResumesDTO): Promise<FilterList<Resume>>{
-    const axiosResume: AxiosResponse<FilterList<Resume>> = await this.http.get(this.configService.get('MOCK_API_URL') + `/resume/getResumes` + getResumeDTO.searchFilter).toPromise();
+
+    let axiosResume: AxiosResponse<FilterList<Resume>>;
+
+    try{axiosResume = await this.http.get(this.configService.get('MOCK_API_URL') + `/resume/getResumes` + getResumeDTO.searchFilter).toPromise();}
+    catch (e) {throw new InternalServerError('Error loading resumes');}
+
     const resumes: FilterList<Resume> = axiosResume.data;
+
     if(getResumeDTO.shouldLoadResumeCount && resumes.list.length > 0){
       await this.getResumesCount(resumes.list, getResumeDTO)
     }
@@ -63,7 +67,7 @@ export class ResumeService implements IResumeService{
   async getResumeCount(ID: number): Promise<number> {
 
     if(ID == null || ID <= 0){
-      throw new Error('Resume ID must be instantiated or valid');
+      throw new BadRequestError('Resume ID must be instantiated or valid');
     }
 
     let pendingStatus: Status = await this.statusService.findStatusByName('Pending review');

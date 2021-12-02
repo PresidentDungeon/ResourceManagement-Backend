@@ -173,7 +173,7 @@ describe('ContractService', () => {
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {throw new Error()});
 
-    let errorStringToExcept: string = 'Internal server error';
+    let errorStringToExcept: string = 'Error saving contract to database';
 
     await expect(service.addContract(contract)).rejects.toThrow(errorStringToExcept);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
@@ -236,7 +236,7 @@ describe('ContractService', () => {
     connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)})
 
 
-    let errorStringToExcept: string = 'Internal server error';
+    let errorStringToExcept: string = 'Error saving contract request';
 
     await expect(service.addRequestContract(contract)).rejects.toThrow(errorStringToExcept);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
@@ -277,6 +277,19 @@ describe('ContractService', () => {
   //#endregion
 
   //#region SaveComment
+
+  it('Error during save throws correct error message', async () => {
+
+    let commentDTO: CommentDTO = {comment: 'The contract was perfect and I really enjoyed the selected contractors!', contractID: 1, userID: 0};
+    jest.spyOn(mockCommentRepository, 'save').mockImplementation((comment: Comment) => {return new Promise(resolve => {throw new Error()});})
+
+    let expectedErrorMessage: string = 'Error saving comment to database';
+
+    await expect(service.saveComment(commentDTO)).rejects.toThrow(expectedErrorMessage);
+    expect(mockCommentRepository.create).toHaveBeenCalledTimes(1);
+    expect(mockCommentRepository.create).toHaveBeenCalledWith(commentDTO);
+    expect(mockCommentRepository.save).toHaveBeenCalledTimes(1);
+  });
 
   it('Save comment calls comment repository', async () => {
 
@@ -368,8 +381,6 @@ describe('ContractService', () => {
 
     let contractID: number = 1;
     let errorStringToExcept = 'No contracts registered with such ID';
-
-
 
     await expect(service.getContractByID(contractID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
@@ -1035,7 +1046,7 @@ describe('ContractService', () => {
 
     connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
 
-    let expectedErrorMessage: string = 'Internal server error'
+    let expectedErrorMessage: string = 'Error during update of contract'
 
     await expect(service.update(contractToUpdate)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
@@ -1112,7 +1123,7 @@ describe('ContractService', () => {
   it('Error during delete throws correct error', async () => {
 
     let ID: number = 1;
-    let expectedErrorMessage: string = 'Internal server error';
+    let expectedErrorMessage: string = 'Error during delete of contract';
 
 
     jest.spyOn(mockDeleteQueryBuilder, 'execute').mockImplementationOnce(() => {throw new Error()});
