@@ -123,8 +123,6 @@ describe('ContractService', () => {
     mockDeleteQueryBuilder = deleteQueryBuilder;
     mockStatusService = module.get<ContractStatusService>(IContractStatusServiceProvider);
     connection = module.get<Connection>(Connection);
-
-    let mockManager = mockedManager;
   });
 
   it('Contract service be defined', () => {

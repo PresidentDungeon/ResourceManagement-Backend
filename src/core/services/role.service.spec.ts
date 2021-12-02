@@ -4,6 +4,7 @@ import { Repository } from "typeorm";
 import { RoleEntity } from "../../infrastructure/data-source/postgres/entities/role.entity";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { Role } from "../models/role";
+import theoretically from "jest-theories";
 
 describe('RoleService', () => {
   let service: RoleService;
@@ -76,6 +77,23 @@ describe('RoleService', () => {
 
     await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Calling find role by name finds role with inserted role title', () => {
+
+    let roleTitle: string;
+
+    const theories = [
+      { input: roleTitle = 'User'},
+      { input: roleTitle = 'Admin'},
+    ];
+
+    theoretically('Correct calls are performed', theories, async theory => {
+
+      await expect(await service.findRoleByName(theory.input)).resolves;
+      expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({where: `"role" ILIKE '${theory.input}'`});
+    })
   });
 
   //#endregion
