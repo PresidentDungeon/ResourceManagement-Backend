@@ -92,12 +92,7 @@ export class ContractController {
   @UseGuards(JwtAuthGuard)
   @Get('getContractByUserID')
   async getContractByUserID(@Query() statusID: any, @Req() request) {
-    try {
-      return await this.contractService.getContractByUserID(request.user.userID, statusID.ID);
-    }
-    catch (e) {
-      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    return await this.contractService.getContractsByUserID(request.user.userID, statusID.ID);
   }
 
   @Roles('Admin')
@@ -148,12 +143,7 @@ export class ContractController {
   @UseGuards(JwtAuthGuard)
   @Get('getAllUserStatuses')
   async getAllUserStatuses() {
-    try {
-      return await this.contractService.getAllUserStatuses();
-    }
-    catch (e) {
-      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+    return await this.contractService.getAllUserStatuses();
   }
 
 }

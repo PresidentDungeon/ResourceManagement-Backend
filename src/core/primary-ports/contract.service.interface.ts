@@ -13,13 +13,13 @@ export interface IContractService{
   saveComment(commentDTO: CommentDTO): Promise<void>
   getContractComments(ID: number): Promise<Comment[]>
   getContractByID(ID: number, redact?: boolean, userID?: number): Promise<Contract>
-  getContractByUserID(userID: number, statusID: number): Promise<Contract[]>
+  getContractsByUserID(userID: number, statusID: number): Promise<Contract[]>
   getContractsByResume(ID: number): Promise<Contract[]>
   getContracts(filter: Filter): Promise<FilterList<Contract>>
   confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>
   requestRenewal(contract: Contract): Promise<Contract>
   update(contract: Contract): Promise<Contract>
-  delete(ID: number)
+  delete(ID: number): Promise<void>
 
   verifyContractEntity(contract: Contract)
   verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>;
