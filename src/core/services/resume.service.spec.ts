@@ -169,7 +169,7 @@ describe('ResumeService', () => {
     jest.spyOn(mockHTTPService, 'post').mockImplementation((url: string) => {return throwError('');});
     jest.spyOn(service, 'redactResume').mockImplementation((resume: Resume) => {return resume});
 
-    let expectedErrorMessage = 'Internal server error';
+    let expectedErrorMessage = 'Error loading resumes';
 
     await expect(service.getResumesByID(simpleResumes, true)).rejects.toThrow(expectedErrorMessage);
     expect(mockConfigService.get).toHaveBeenCalledWith('MOCK_API_URL');
@@ -215,12 +215,27 @@ describe('ResumeService', () => {
 
   //#region GetResumes
 
+  it('Get resumes throws correct error on request fail', async () => {
+
+    let getResumeDTO: GetResumesDTO = {searchFilter: '?currentPage=0&itemsPrPage=25', shouldLoadResumeCount: false, excludeContract: 1};
+
+    jest.spyOn(mockHTTPService, 'get').mockImplementation((url: string) => {return throwError('');});
+    jest.spyOn(service, 'getResumesCount').mockImplementation();
+
+    let expectedErrorMessage: string = 'Error loading resumes';
+
+    await expect(service.getResumes(getResumeDTO)).rejects.toThrow(expectedErrorMessage);
+    expect(mockConfigService.get).toHaveBeenCalledTimes(1);
+    expect(mockConfigService.get).toHaveBeenCalledWith('MOCK_API_URL');
+    expect(mockHTTPService.get).toHaveBeenCalledTimes(1);
+    expect(mockHTTPService.get).toHaveBeenCalledWith(mockConfigService.get('MOCK_API_URL') + `/resume/getResumes` + getResumeDTO.searchFilter);
+    expect(service.getResumesCount).toHaveBeenCalledTimes(0);
+  });
+
   it('Get resumes calls mock API with filter', async () => {
 
     let getResumeDTO: GetResumesDTO = {searchFilter: '?currentPage=0&itemsPrPage=25', shouldLoadResumeCount: false, excludeContract: 1};
     let resumes: FilterList<Resume>;
-
-
 
     jest.spyOn(service, 'getResumesCount').mockImplementation();
 

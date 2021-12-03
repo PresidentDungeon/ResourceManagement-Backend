@@ -4,6 +4,7 @@ import { Repository } from "typeorm";
 import { RoleEntity } from "../../infrastructure/data-source/postgres/entities/role.entity";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { Role } from "../models/role";
+import theoretically from "jest-theories";
 
 describe('RoleService', () => {
   let service: RoleService;
@@ -49,9 +50,9 @@ describe('RoleService', () => {
     let role: string = '';
     let errorStringToExcept: string = 'Role must be instantiated';
 
-    await expect(service.findRoleByName(null)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findRoleByName(undefined)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findRoleByName(null)).rejects.toThrow(errorStringToExcept);
+    await expect(service.findRoleByName(undefined)).rejects.toThrow(errorStringToExcept);
+    await expect(service.findRoleByName(role)).rejects.toThrow(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
   });
 
@@ -69,13 +70,29 @@ describe('RoleService', () => {
   it('Calling findRoleByName with valid name but without any results throws error', async () => {
 
     let role: string = 'Admin';
-    let mockRole: Role = {ID: 1, role: 'User'};
     let errorStringToExcept: string = 'The specified role could not be found';
 
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
 
-    await expect(service.findRoleByName(role)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findRoleByName(role)).rejects.toThrow(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Calling find role by name finds role with inserted role title', () => {
+
+    let roleTitle: string;
+
+    const theories = [
+      { input: roleTitle = 'User'},
+      { input: roleTitle = 'Admin'},
+    ];
+
+    theoretically('Correct calls are performed', theories, async theory => {
+
+      await expect(await service.findRoleByName(theory.input)).resolves;
+      expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({where: `"role" ILIKE '${theory.input}'`});
+    })
   });
 
   //#endregion

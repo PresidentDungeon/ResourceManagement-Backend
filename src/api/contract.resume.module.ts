@@ -15,6 +15,7 @@ import { IContractServiceProvider } from "../core/primary-ports/contract.service
 import { ResumeRequestEntity } from "../infrastructure/data-source/postgres/entities/resume-request.entity";
 import { SocketModule } from "./socket.module";
 import { CommentEntity } from "src/infrastructure/data-source/postgres/entities/comment.entity";
+
 import { WhitelistModule } from './whitelist.module';
 import { WhitelistController } from './controllers/whitelist.controller';
 

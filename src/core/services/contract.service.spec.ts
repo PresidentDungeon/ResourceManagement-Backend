@@ -61,11 +61,11 @@ describe('ContractService', () => {
     const createQueryBuilder: any = {
       leftJoinAndSelect: jest.fn(() => createQueryBuilder),
       leftJoin: () => createQueryBuilder,
-      andWhere: () => createQueryBuilder,
       select: () => createQueryBuilder,
       addSelect: () => createQueryBuilder,
       groupBy: () => createQueryBuilder,
       addGroupBy: () => createQueryBuilder,
+      andWhere: jest.fn(() => createQueryBuilder),
       getOne: jest.fn(() => {}),
       getMany: jest.fn(() => {}),
       getRawOne: jest.fn(() => {}),
@@ -173,7 +173,7 @@ describe('ContractService', () => {
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {throw new Error()});
 
-    let errorStringToExcept: string = 'Internal server error';
+    let errorStringToExcept: string = 'Error saving contract to database';
 
     await expect(service.addContract(contract)).rejects.toThrow(errorStringToExcept);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
@@ -257,7 +257,7 @@ describe('ContractService', () => {
     connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)})
 
 
-    let errorStringToExcept: string = 'Internal server error';
+    let errorStringToExcept: string = 'Error saving contract request';
 
     await expect(service.addRequestContract(contract, status)).rejects.toThrow(errorStringToExcept);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
@@ -299,6 +299,19 @@ describe('ContractService', () => {
   //#endregion
 
   //#region SaveComment
+
+  it('Error during save throws correct error message', async () => {
+
+    let commentDTO: CommentDTO = {comment: 'The contract was perfect and I really enjoyed the selected contractors!', contractID: 1, userID: 0};
+    jest.spyOn(mockCommentRepository, 'save').mockImplementation((comment: Comment) => {return new Promise(resolve => {throw new Error()});})
+
+    let expectedErrorMessage: string = 'Error saving comment to database';
+
+    await expect(service.saveComment(commentDTO)).rejects.toThrow(expectedErrorMessage);
+    expect(mockCommentRepository.create).toHaveBeenCalledTimes(1);
+    expect(mockCommentRepository.create).toHaveBeenCalledWith(commentDTO);
+    expect(mockCommentRepository.save).toHaveBeenCalledTimes(1);
+  });
 
   it('Save comment calls comment repository', async () => {
 
@@ -391,8 +404,6 @@ describe('ContractService', () => {
     let contractID: number = 1;
     let errorStringToExcept = 'No contracts registered with such ID';
 
-
-
     await expect(service.getContractByID(contractID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(0);
@@ -483,12 +494,14 @@ describe('ContractService', () => {
   it('Find contract with invalid userID results in error', async () => {
 
     let ID: number = 0;
+    let statusID: number = 0;
+
     let errorStringToExcept = 'User ID must be instantiated or valid';
 
     jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
-    await expect(service.getContractByUserID(null)).rejects.toThrow(errorStringToExcept);
-    await expect(service.getContractByUserID(ID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractByUserID(null, statusID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractByUserID(ID, statusID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
@@ -498,6 +511,7 @@ describe('ContractService', () => {
     let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
     let userID: number = 1;
+    let statusID: number = 0;
 
     jest
       .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
@@ -507,13 +521,37 @@ describe('ContractService', () => {
 
     let foundContract: Contract[];
 
-    await expect(foundContract = await service.getContractByUserID(userID)).resolves;
+    await expect(foundContract = await service.getContractByUserID(userID, statusID)).resolves;
     expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContract);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(2);
   });
 
+  it('Find existing contracts by user ID and status ID returns valid contract information', async () => {
+
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let userID: number = 1;
+    let statusID: number = 2;
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract1, storedContract2]);});});
+
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
+    let foundContract: Contract[];
+
+    await expect(foundContract = await service.getContractByUserID(userID, statusID)).resolves;
+    expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContract);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(3);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith(`status.ID = :statusID`, { statusID: `${statusID}` });
+  });
 
   //#endregion
 
@@ -1030,7 +1068,7 @@ describe('ContractService', () => {
 
     connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
 
-    let expectedErrorMessage: string = 'Internal server error'
+    let expectedErrorMessage: string = 'Error during update of contract'
 
     await expect(service.update(contractToUpdate)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
@@ -1107,7 +1145,7 @@ describe('ContractService', () => {
   it('Error during delete throws correct error', async () => {
 
     let ID: number = 1;
-    let expectedErrorMessage: string = 'Internal server error';
+    let expectedErrorMessage: string = 'Error during delete of contract';
 
 
     jest.spyOn(mockDeleteQueryBuilder, 'execute').mockImplementationOnce(() => {throw new Error()});

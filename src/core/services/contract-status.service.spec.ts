@@ -2,10 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Repository } from "typeorm";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserStatusService } from "./user-status.service";
-import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
 import { Status } from "../models/status";
 import { ContractStatusService } from "./contract-status.service";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
+import { Contract } from "../models/contract";
+import theoretically from "jest-theories";
 
 describe('UserStatusService', () => {
   let service: ContractStatusService;
@@ -23,7 +24,7 @@ describe('UserStatusService', () => {
 
     const createQueryBuilder: any = {
       leftJoinAndSelect: () => createQueryBuilder,
-      andWhere: () => createQueryBuilder,
+      andWhere: jest.fn(() => createQueryBuilder),
       getOne: jest.fn(() => {}),
       getMany: jest.fn(() => {}),
     };
@@ -51,9 +52,9 @@ describe('UserStatusService', () => {
     let role: string = '';
     let errorStringToExcept: string = 'Status must be instantiated';
 
-    await expect(service.findStatusByName(null)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findStatusByName(undefined)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findStatusByName(role)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findStatusByName(null)).rejects.toThrowError(errorStringToExcept);
+    await expect(service.findStatusByName(undefined)).rejects.toThrowError(errorStringToExcept);
+    await expect(service.findStatusByName(role)).rejects.toThrowError(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
   });
 
@@ -75,8 +76,25 @@ describe('UserStatusService', () => {
 
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
 
-    await expect(service.findStatusByName(status)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findStatusByName(status)).rejects.toThrowError(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Calling find status by name finds status with inserted status title', () => {
+
+    let statusTitle: string;
+    const theories = [
+      { input: statusTitle = 'Pending review'},
+      { input: statusTitle = 'Accepted'},
+      { input: statusTitle = 'Declined'},
+    ];
+
+    theoretically('Correct calls are performed', theories, async theory => {
+
+      await expect(await service.findStatusByName(theory.input)).resolves;
+      expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({where: `"status" ILIKE '${theory.input}'`});
+    })
   });
 
   //#endregion
@@ -99,6 +117,31 @@ describe('UserStatusService', () => {
     await expect(foundStatuses = await service.getStatuses()).resolves;
     expect(mockRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(foundStatuses).toBe(statuses);
+  });
+
+  //#endregion
+
+  //#region GetUserStatus
+
+  it('Calling get user statuses inserts correct andwhere statement', async () => {
+
+    const storedStatuses: Status[] = [
+      {ID: 3, status: 'Pending review'},
+      {ID: 5, status: 'Accepted'},
+      {ID: 7, status: 'Completed'},
+    ]
+
+    jest
+      .spyOn(mockRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedStatuses);});});
+
+    let foundStatuses: Status[];
+
+    await expect(foundStatuses = await service.getUserStatus()).resolves;
+    expect(foundStatuses).toEqual(storedStatuses);
+    expect(mockRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(1);
+    expect(mockRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith('status.status IN (:...statuses)', {statuses: ['Pending review', 'Accepted', 'Completed']});
+    expect(mockRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
   });
 
   //#endregion

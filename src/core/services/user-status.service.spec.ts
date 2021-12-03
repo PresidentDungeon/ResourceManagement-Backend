@@ -4,6 +4,7 @@ import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserStatusService } from "./user-status.service";
 import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
 import { Status } from "../models/status";
+import theoretically from "jest-theories";
 
 describe('UserStatusService', () => {
   let service: UserStatusService;
@@ -47,11 +48,12 @@ describe('UserStatusService', () => {
   it('Calling findStatusByName with invalid name returns error', async () => {
 
     let role: string = '';
+
     let errorStringToExcept: string = 'Status must be instantiated';
 
-    await expect(service.findStatusByName(null)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findStatusByName(undefined)).rejects.toEqual(errorStringToExcept);
-    await expect(service.findStatusByName(role)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findStatusByName(null)).rejects.toThrowError(errorStringToExcept);
+    await expect(service.findStatusByName(undefined)).rejects.toThrowError(errorStringToExcept);
+    await expect(service.findStatusByName(role)).rejects.toThrowError(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
   });
 
@@ -73,8 +75,27 @@ describe('UserStatusService', () => {
 
     jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
 
-    await expect(service.findStatusByName(status)).rejects.toEqual(errorStringToExcept);
+    await expect(service.findStatusByName(status)).rejects.toThrowError(errorStringToExcept);
     expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Calling find user status by name finds role with inserted user status title', () => {
+
+    let roleTitle: string;
+
+    const theories = [
+      { input: roleTitle = 'Pending'},
+      { input: roleTitle = 'Active'},
+      { input: roleTitle = 'Whitelisted'},
+      { input: roleTitle = 'Disabled'},
+    ];
+
+    theoretically('Correct calls are performed', theories, async theory => {
+
+      await expect(await service.findStatusByName(theory.input)).resolves;
+      expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(mockRepository.findOne).toHaveBeenCalledWith({where: `"status" ILIKE '${theory.input}'`});
+    })
   });
 
   //#endregion
