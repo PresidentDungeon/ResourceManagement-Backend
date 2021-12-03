@@ -33,11 +33,9 @@ export class UserService implements IUserService {
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
     @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
-    @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService),
     @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService,
     @Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService,
-  ) {
-  }
+    ) {}
 
   async createUser(username: string, password: string): Promise<User> {
 
