@@ -1,22 +1,22 @@
 export interface Resume {
   ID: number
-  firstName?: string,
-  middleName?: string,
-  lastName?: string,
-  middleLastName?: string,
-  dateOfBirth?: Date, //date
-  nationality?: string, //ISO 3166 Alpha-3 country code
-  occupation?: string,
-  summary?: summary,
-  workExperience?: workExperience[],
-  education?: education[],
-  certificates?: certificates[],
-  otherInformation?: string,
+  firstName?: string
+  middleName?: string
+  lastName?: string
+  middleLastName?: string
+  dateOfBirth?: Date //date
+  nationality?: string //ISO 3166 Alpha-3 country code
+  occupation?: string
+  summary?: Summary
+  workExperience?: WorkExperience[]
+  education?: Education[]
+  certificates?: Certificates[]
+  otherInformation?: string
   count?: number
 }
 
 
-export interface certificates {
+export interface Certificates {
   issueDate: string, //date
   expiryDate: string, //date
   certificateTypeID: string,
@@ -25,7 +25,7 @@ export interface certificates {
   certificateType: string //Allowed values: 'mandatory', 'induction', 'roleSpecific', 'siteSpecific', 'other'
 }
 
-export interface education {
+export interface Education {
   nameOfInstitution: string,
   cityOfInstitution: string,
   language: string,
@@ -33,12 +33,12 @@ export interface education {
   comments?: string
 }
 
-export interface summary {
+export interface Summary {
   summaryHeadline: string,
   summaryBody: string
 }
 
-export interface workExperience {
+export interface WorkExperience {
   fromDate: string, //date
   toDate: string, //date
   client: string,

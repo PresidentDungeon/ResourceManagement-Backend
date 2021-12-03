@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContractService } from './contract.service';
 import { getRepositoryToken } from "@nestjs/typeorm";
-import { Connection, DeleteQueryBuilder, EntityManager, FindManyOptions, Repository } from "typeorm";
+import { Connection, Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 import { User } from "../models/user";
 import theoretically from "jest-theories";
@@ -16,81 +16,23 @@ import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/e
 import { Comment } from "../models/comment";
 import { CommentEntity } from "../../infrastructure/data-source/postgres/entities/comment.entity";
 import { CommentDTO } from "../../api/dtos/comment.dto";
+import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
 
 describe('ContractService', () => {
   let service: ContractService;
   let mockContractRepository: Repository<ContractEntity>;
   let mockResumeRequestRepository: Repository<ResumeRequestEntity>;
   let mockCommentRepository: Repository<CommentEntity>;
-  let mockDeleteQueryBuilder: DeleteQueryBuilder<ContractEntity>;
   let mockStatusService: ContractStatusService;
   let connection: Connection;
 
+  let mockContractFactory = new MockRepositories();
+
   beforeEach(async () => {
 
-    const MockContractRepository = {
-      provide: getRepositoryToken(ContractEntity),
-      useFactory: () => ({
-        count: jest.fn((options: FindManyOptions<ContractEntity>) => {}),
-        save: jest.fn((contractEntity: ContractEntity) => { return new Promise(resolve => {resolve(contractEntity);});}),
-        create: jest.fn((contractEntity: ContractEntity) => {return new Promise(resolve => {resolve(contractEntity);});}),
-        execute: jest.fn(() => {}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    }
-
-    const MockResumeRequestRepository = {
-      provide: getRepositoryToken(ResumeRequestEntity),
-      useFactory: () => ({
-        save: jest.fn((resumeRequestEntity: ResumeRequestEntity) => { return new Promise(resolve => {resolve(resumeRequestEntity);});}),
-        create: jest.fn((resumeRequestEntity: ResumeRequestEntity) => {return new Promise(resolve => {resolve(resumeRequestEntity);});}),
-        execute: jest.fn(() => {}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    }
-
-    const MockCommentRepository = {
-      provide: getRepositoryToken(CommentEntity),
-      useFactory: () => ({
-        create: jest.fn((commentEntity: CommentEntity) => { return new Promise(resolve => {resolve(commentEntity);});}),
-        save: jest.fn((commentEntity: CommentEntity) => { return new Promise(resolve => {resolve(commentEntity);});}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    }
-
-    const createQueryBuilder: any = {
-      leftJoinAndSelect: jest.fn(() => createQueryBuilder),
-      leftJoin: () => createQueryBuilder,
-      select: () => createQueryBuilder,
-      addSelect: () => createQueryBuilder,
-      groupBy: () => createQueryBuilder,
-      addGroupBy: () => createQueryBuilder,
-      andWhere: jest.fn(() => createQueryBuilder),
-      getOne: jest.fn(() => {}),
-      getMany: jest.fn(() => {}),
-      getRawOne: jest.fn(() => {}),
-      getRawMany: jest.fn(() => {}),
-      getCount: jest.fn(() => {}),
-      offset: jest.fn(() => {}),
-      limit: jest.fn(() => {}),
-      orderBy: jest.fn(() => {}),
-      update: jest.fn(() => {return updateQueryBuilder}),
-      delete: jest.fn(() => {return deleteQueryBuilder}),
-    };
-
-    const deleteQueryBuilder: any = {
-      set: () => deleteQueryBuilder,
-      where: () => deleteQueryBuilder,
-      from: () => deleteQueryBuilder,
-      andWhere: () => deleteQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
-
-    const updateQueryBuilder: any = {
-      set: () => deleteQueryBuilder,
-      where: () => deleteQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
+    const MockContractRepository = mockContractFactory.getMockRepository(ContractEntity);
+    const MockResumeRequestRepository = mockContractFactory.getMockRepository(ResumeRequestEntity);
+    const MockCommentRepository = mockContractFactory.getMockRepository(CommentEntity);
 
     const StatusServiceMock = {
       provide: IContractStatusServiceProvider,
@@ -107,10 +49,7 @@ describe('ContractService', () => {
       })
     };
 
-    const mockedManager = {
-      save: jest.fn(() => {}),
-      createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-    }
+    const mockedManager = { save: jest.fn(() => {}), }
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [ContractService, MockContractRepository, MockResumeRequestRepository, MockCommentRepository, StatusServiceMock, mockConnection],
@@ -120,7 +59,6 @@ describe('ContractService', () => {
     mockContractRepository = module.get<Repository<ContractEntity>>(getRepositoryToken(ContractEntity));
     mockResumeRequestRepository = module.get<Repository<ResumeRequestEntity>>(getRepositoryToken(ResumeRequestEntity));
     mockCommentRepository = module.get<Repository<CommentEntity>>(getRepositoryToken(CommentEntity));
-    mockDeleteQueryBuilder = deleteQueryBuilder;
     mockStatusService = module.get<ContractStatusService>(IContractStatusServiceProvider);
     connection = module.get<Connection>(Connection);
   });
@@ -349,13 +287,13 @@ describe('ContractService', () => {
 
     jest
       .spyOn(mockCommentRepository.createQueryBuilder(), 'getMany')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedComments);});});
+      .mockImplementation(() => {return new Promise(resolve => {resolve(storedComments);});});
 
     let result: Comment[];
 
     await expect(result = await service.getContractComments(ID)).resolves;
     expect(result).toEqual(expectedComments);
-    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockCommentRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
@@ -500,8 +438,8 @@ describe('ContractService', () => {
 
     jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
-    await expect(service.getContractByUserID(null, statusID)).rejects.toThrow(errorStringToExcept);
-    await expect(service.getContractByUserID(ID, statusID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractsByUserID(null, statusID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractsByUserID(ID, statusID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
@@ -521,7 +459,7 @@ describe('ContractService', () => {
 
     let foundContract: Contract[];
 
-    await expect(foundContract = await service.getContractByUserID(userID, statusID)).resolves;
+    await expect(foundContract = await service.getContractsByUserID(userID, statusID)).resolves;
     expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
@@ -544,7 +482,7 @@ describe('ContractService', () => {
 
     let foundContract: Contract[];
 
-    await expect(foundContract = await service.getContractByUserID(userID, statusID)).resolves;
+    await expect(foundContract = await service.getContractsByUserID(userID, statusID)).resolves;
     expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
@@ -1148,7 +1086,9 @@ describe('ContractService', () => {
     let expectedErrorMessage: string = 'Error during delete of contract';
 
 
-    jest.spyOn(mockDeleteQueryBuilder, 'execute').mockImplementationOnce(() => {throw new Error()});
+    jest.spyOn(mockContractRepository.createQueryBuilder().delete(), 'execute').mockImplementationOnce(() => {throw new Error()});
+    jest.spyOn(mockContractRepository.createQueryBuilder(), 'delete').mockClear()
+
     await expect(service.delete(ID)).rejects.toThrow(expectedErrorMessage);
     expect(mockContractRepository.createQueryBuilder().delete).toHaveBeenCalledTimes(1);
 
