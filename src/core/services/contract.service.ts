@@ -40,13 +40,17 @@ export class ContractService implements IContractService{
     catch (e) {throw new InternalServerError('Error saving contract to database')}
   }
 
-  async addRequestContract(contract: Contract): Promise<Contract> {
+  async addRequestContract(contract: Contract, status: string): Promise<Contract> {
+
+    if(status.toLowerCase() != 'whitelisted'){
+      throw new Error('The user must be whitelisted by an admin to request');
+    }
 
     contract.startDate = new Date(contract.startDate);
     contract.endDate = new Date(contract.endDate);
 
-    let status: Status = await this.statusService.findStatusByName('Request');
-    contract.status = status;
+    let requestStatus: Status = await this.statusService.findStatusByName('Request');
+    contract.status = requestStatus;
 
     this.verifyContractEntity(contract);
 
@@ -212,6 +216,7 @@ export class ContractService implements IContractService{
     {
       qb.andWhere(`status.ID = :statusID`, { statusID: `${filter.statusID}` });
     }
+
 
     if(enableCommentCount){
       qb.leftJoin('contract.comments', 'comments');

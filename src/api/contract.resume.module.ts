@@ -16,15 +16,16 @@ import { ResumeRequestEntity } from "../infrastructure/data-source/postgres/enti
 import { SocketModule } from "./socket.module";
 import { CommentEntity } from "src/infrastructure/data-source/postgres/entities/comment.entity";
 
+import { WhitelistModule } from './whitelist.module';
+import { WhitelistController } from './controllers/whitelist.controller';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([ContractEntity, ResumeEntity, ContractStatusEntity, ResumeRequestEntity, CommentEntity]), HttpModule, SocketModule],
-  controllers: [ContractController, ResumeController],
-  providers: [{
-    provide: IContractServiceProvider,
-    useClass: ContractService
-  }, { provide: IContractStatusServiceProvider, useClass: ContractStatusService }, {
-    provide: IResumeServiceProvider,
-    useClass: ResumeService
+  imports: [TypeOrmModule.forFeature([ContractEntity, ResumeEntity, ContractStatusEntity, ResumeRequestEntity, CommentEntity]), HttpModule, SocketModule, WhitelistModule],
+  controllers: [ContractController, ResumeController, WhitelistController],
+  providers: [
+    { provide: IContractServiceProvider, useClass: ContractService },
+    { provide: IContractStatusServiceProvider, useClass: ContractStatusService },
+    { provide: IResumeServiceProvider, useClass: ResumeService
   }],
   exports: [IContractServiceProvider, IContractStatusServiceProvider, IResumeServiceProvider]
 })

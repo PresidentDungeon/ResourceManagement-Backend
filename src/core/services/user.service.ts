@@ -16,6 +16,7 @@ import { Status } from "../models/status";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
+import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
 import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 
 @Injectable()
@@ -32,7 +33,8 @@ export class UserService implements IUserService {
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
     @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
-    @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService
+    @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService,
+    @Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService,
   ) {
   }
 
@@ -210,13 +212,13 @@ export class UserService implements IUserService {
     let limitCount = 5;
 
     let qb = this.userRepository.createQueryBuilder("user");
+
     qb.andWhere(`username ILIKE :userUsername`, { userUsername: `%${username}%` });
     qb.limit(limitCount);
     const result = await qb.getMany();
     return result.map((value) => {return value.username;});
   }
-
-  //Changed slightly might fail
+  
   async updateUser(userDTO: UserDTO): Promise<User> {
 
     const foundUser = await this.getUserByID(userDTO.ID);
@@ -293,6 +295,7 @@ export class UserService implements IUserService {
     return passwordResetString;
   }
 
+  //Calling whitelist if confirm is correct -> calling correct find status by username
   async verifyUser(username: string, verificationCode: string) {
 
     let foundUser = await this.getUserByUsername(username);
@@ -303,8 +306,10 @@ export class UserService implements IUserService {
 
     await this.verifyUserConfirmationToken(foundUser, verificationCode);
 
-    const activeStatus: Status = await this.statusService.findStatusByName("active");
-    foundUser.status = activeStatus;
+    const isWhitelisted: boolean = await this.whitelistService.verifyUserWhitelist(foundUser.username);
+    const userStatus: Status = (isWhitelisted) ? await this.statusService.findStatusByName('whitelisted') : await this.statusService.findStatusByName('active');
+
+    foundUser.status = userStatus;
 
     try{
       await this.userRepository.save(foundUser);
@@ -464,6 +469,11 @@ export class UserService implements IUserService {
     }
   }
 
+  verifyUserDomain(user: User) {
+
+
+
+  }
 
   async getAllUserRoles(): Promise<Role[]> {
     return await this.roleService.getRoles();
