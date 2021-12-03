@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { IWhitelistService } from "../primary-ports/whitelist.service.interface";
@@ -8,6 +8,7 @@ import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { UserDTO } from "../../api/dtos/user.dto";
 import { User } from "../models/user";
+import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 
 @Injectable()
 export class WhitelistService implements IWhitelistService {
@@ -16,7 +17,6 @@ export class WhitelistService implements IWhitelistService {
 
   constructor(@InjectRepository(WhitelistDomainEntity) private whitelistRepository: Repository<WhitelistDomainEntity>) {}
 
-  //Missing test
   async addWhitelist(whitelist: Whitelist): Promise<Whitelist> {
 
     this.verifyWhitelist(whitelist);
@@ -25,7 +25,7 @@ export class WhitelistService implements IWhitelistService {
 
     if(existingWhitelistCount > 0)
     {
-      throw new Error('Whitelist with the same domain already exists');
+      throw new EntityNotFoundError('Whitelist with the same domain already exists');
     }
 
     try{
@@ -34,11 +34,10 @@ export class WhitelistService implements IWhitelistService {
       return savedWhitelist;
     }
     catch (e) {
-      throw new Error('Internal server error');
+      throw new BadRequestError('Internal server error');
     }
   }
 
-  //Missing test
   async deleteWhitelist(whitelist: Whitelist): Promise<void> { //
     const foundWhitelist = await this.getWhitelistByID(whitelist.ID);
 
@@ -48,23 +47,23 @@ export class WhitelistService implements IWhitelistService {
       let updatedWhitelist = await this.whitelistRepository.delete(foundWhitelist);
     }
     catch (e){
-      throw new Error('Internal server error');
+      throw new BadRequestError('Internal server error');
     }
 
   }
 
-  async getWhitelist(filter: Filter): Promise<FilterList<Whitelist>> {
+  async getWhitelists(filter: Filter): Promise<FilterList<Whitelist>> {
 
     if (filter == null || filter == undefined) {
-      throw new Error("Invalid filter entered");
+      throw new BadRequestError("Invalid filter entered");
     }
 
     if (filter.itemsPrPage == null || filter.itemsPrPage == undefined || filter.itemsPrPage <= 0) {
-      throw new Error("Invalid items pr. page entered");
+      throw new BadRequestError("Invalid items pr. page entered");
     }
 
     if (filter.currentPage == null || filter.currentPage == undefined || filter.currentPage < 0) {
-      throw new Error("Invalid current page entered");
+      throw new BadRequestError("Invalid current page entered");
     }
     let qb = this.whitelistRepository.createQueryBuilder("whitelist");
 
@@ -83,11 +82,10 @@ export class WhitelistService implements IWhitelistService {
 }
 
 
-  //Missing test
   async getWhitelistByID(ID: number): Promise<Whitelist> {
 
     if (ID == null || ID == undefined || ID <= 0) {
-      throw new Error("Whitelist ID must be instantiated or valid");
+      throw new BadRequestError("Whitelist ID must be instantiated or valid");
     }
 
     let qb = this.whitelistRepository.createQueryBuilder("whitelist");
@@ -95,12 +93,11 @@ export class WhitelistService implements IWhitelistService {
     const foundWhitelist: WhitelistDomainEntity = await qb.getOne();
 
     if (foundWhitelist == null) {
-      throw new Error("No whitelist registered with such ID");
+      throw new EntityNotFoundError("No whitelist registered with such ID");
     }
     return foundWhitelist;
   }
 
-  //Missing test
   async updateWhitelist(whitelist: Whitelist): Promise<Whitelist> {
 
     const foundWhitelist = await this.getWhitelistByID(whitelist.ID);
@@ -114,18 +111,16 @@ export class WhitelistService implements IWhitelistService {
       return updatedWhitelist;
     }
     catch (e){
-      throw new Error('Internal server error');
+      throw new InternalServerError('Internal server error');
     }
   }
 
-  //Missing test
   verifyWhitelist(whiteList: Whitelist): void {
-    if(whiteList == null) {throw new Error('Whitelist must be instantiated');}
-    if(whiteList.ID == null || whiteList.ID < 0){throw new Error('Whitelist must have a valid ID')}
-    if(whiteList.domain == null || !this.whitelistRegex.test(whiteList.domain)){throw new Error('Whitelist domain must be valid');}
+    if(whiteList == null) {throw new BadRequestError('Whitelist must be instantiated');}
+    if(whiteList.ID == null || whiteList.ID < 0){throw new BadRequestError('Whitelist must have a valid ID')}
+    if(whiteList.domain == null || !this.whitelistRegex.test(whiteList.domain)){throw new BadRequestError('Whitelist domain must be valid');}
   }
 
-  //Missing test
   async verifyUserWhitelist(username: string): Promise<boolean> {
 
     let indexOfAt = username.indexOf('@');

@@ -40,7 +40,7 @@ export class ContractService implements IContractService{
     catch (e) {throw new InternalServerError('Error saving contract to database')}
   }
 
-  async addRequestContract(contract: Contract, status: string): Promise<Contract> {
+  async addRequestContract(contract: Contract): Promise<Contract> {
 
     if(status.toLowerCase() != 'whitelisted'){
       throw new Error('The user must be whitelisted by an admin to request');
