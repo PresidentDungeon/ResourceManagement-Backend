@@ -1,4 +1,47 @@
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Post, Put, Query, UseGuards, UseInterceptors } from "@nestjs/common";
+import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
+import { Whitelist } from "../../core/models/whitelist";
+import { Roles } from "../../auth/roles.decorator";
+import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
+import { query } from "express";
+import { Filter } from "../../core/models/filter";
+import { IWhitelistService, IWhitelistServiceProvider } from "../../core/primary-ports/whitelist.service.interface";
 
 @Controller('whitelist')
-export class WhitelistController {}
+@UseInterceptors(ErrorInterceptor)
+export class WhitelistController {
+
+  constructor(@Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService) {
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Post('createWhitelist')
+  async createWhitelist(@Body() whitelist: Whitelist) {
+    let newWhitelist = await this.whitelistService.addWhitelist(whitelist);
+    return newWhitelist;
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Get('getWhitelists')
+  async getWhitelists(@Query() filter: Filter) {
+    return await this.whitelistService.getWhitelists(filter);
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Put('updateWhitelists')
+  async updateWhitelists(@Body() whitelist: Whitelist) {
+    let updatedWhitelist = await this.whitelistService.updateWhitelist(whitelist);
+    return updatedWhitelist;
+  }
+
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @Delete('deleteWhitelists')
+  async deleteWhitelist(@Body() whitelist: Whitelist) {
+    await this.whitelistService.deleteWhitelist(whitelist);
+  }
+
+}

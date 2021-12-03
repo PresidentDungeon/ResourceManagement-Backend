@@ -142,7 +142,7 @@ describe("WhitelistService", () => {
     ];
 
     theoretically("The correct error message is thrown during user filtering", theories, async theory => {
-      await expect(service.getWhitelist(theory.filter)).rejects.toThrow(theory.expectedError);
+      await expect(service.getWhitelists(theory.filter)).rejects.toThrow(theory.expectedError);
       expect(mockWhitelistRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
       expect(mockWhitelistRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(0);
     });
@@ -177,7 +177,7 @@ describe("WhitelistService", () => {
       });
 
     let filterList: FilterList<WhitelistDomainEntity>;
-    await expect(filterList = await service.getWhitelist(filter)).resolves;
+    await expect(filterList = await service.getWhitelists(filter)).resolves;
     expect(filterList.list).toStrictEqual(storedWhitelist);
     expect(filterList.list.length).toBe(expectedListSize);
     expect(filterList.totalItems).toBe(expectedTotalListSize);
