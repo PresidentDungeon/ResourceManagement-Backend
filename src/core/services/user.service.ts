@@ -35,8 +35,6 @@ export class UserService implements IUserService {
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
     @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService,
     @Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService,
-  ) {}
-    @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService
   ) {
   }
 
