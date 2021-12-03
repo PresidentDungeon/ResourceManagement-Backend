@@ -206,9 +206,29 @@ describe('ContractService', () => {
 
   //#region AddRequestContract
 
+  it('Add contract with status of active throws error', async () => {
+
+    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let status: string = 'Active';
+
+    jest.spyOn(service, 'verifyContractEntity').mockImplementation();
+    const mockedManager = { save: jest.fn(() => {}) }
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)})
+
+    let errorStringToExcept: string = 'The user must be whitelisted by an admin to request';
+
+    await expect(service.addRequestContract(contract, status)).rejects.toThrow(errorStringToExcept);
+    expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
+    expect(service.verifyContractEntity).toHaveBeenCalledTimes(0);
+    expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
+    expect(mockedManager.save).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
+  });
+
   it('Add invalid contract doesnt save contract to database', async () => {
 
     let contract: Contract = {ID: 0, title: '', description: 'Some company', status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let status: string = 'Whitelisted';
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {throw new Error('Contract must have a valid title')})
     const mockedManager = { save: jest.fn(() => {}) }
@@ -216,7 +236,7 @@ describe('ContractService', () => {
 
     let errorStringToExcept: string = 'Contract must have a valid title';
 
-    await expect(service.addRequestContract(contract)).rejects.toThrow(errorStringToExcept);
+    await expect(service.addRequestContract(contract, status)).rejects.toThrow(errorStringToExcept);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Request');
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
@@ -229,6 +249,7 @@ describe('ContractService', () => {
   it('Error during save throw correct error message', async () => {
 
     let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [{ID: 0, occupation: 'Electrician', count: 3}]};
+    let status: string = 'Whitelisted';
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
 
@@ -238,7 +259,7 @@ describe('ContractService', () => {
 
     let errorStringToExcept: string = 'Error saving contract request';
 
-    await expect(service.addRequestContract(contract)).rejects.toThrow(errorStringToExcept);
+    await expect(service.addRequestContract(contract, status)).rejects.toThrow(errorStringToExcept);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Request');
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
@@ -254,6 +275,7 @@ describe('ContractService', () => {
 
     let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
     let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let status: string = 'Whitelisted';
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     const mockedManager = { save: jest.fn(() => {return new Promise(resolve => {resolve(contractSaveReturns)});}) }
@@ -261,7 +283,7 @@ describe('ContractService', () => {
 
     let savedContract: Contract;
 
-    await expect(savedContract = await service.addRequestContract(contract)).resolves;
+    await expect(savedContract = await service.addRequestContract(contract, status)).resolves;
     expect(savedContract).not.toBe(contract);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Request');
