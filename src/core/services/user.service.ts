@@ -35,8 +35,7 @@ export class UserService implements IUserService {
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
     @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService,
     @Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService,
-  ) {
-  }
+    ) {}
 
   async createUser(username: string, password: string): Promise<User> {
 
@@ -218,7 +217,7 @@ export class UserService implements IUserService {
     const result = await qb.getMany();
     return result.map((value) => {return value.username;});
   }
-  
+
   async updateUser(userDTO: UserDTO): Promise<User> {
 
     const foundUser = await this.getUserByID(userDTO.ID);

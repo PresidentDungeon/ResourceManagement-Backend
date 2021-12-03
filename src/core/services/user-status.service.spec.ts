@@ -5,42 +5,33 @@ import { UserStatusService } from "./user-status.service";
 import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
 import { Status } from "../models/status";
 import theoretically from "jest-theories";
+import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
+import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
 
 describe('UserStatusService', () => {
   let service: UserStatusService;
-  let mockRepository: Repository<UserStatusEntity>;
+  let mockUserStatusRepository: Repository<UserStatusEntity>;
+
+  let mockContractFactory = new MockRepositories();
 
   beforeEach(async () => {
 
-    const MockProvider = {
-      provide: getRepositoryToken(UserStatusEntity),
-      useFactory: () => ({
-        findOne: jest.fn(() => {let statusEntity: UserStatusEntity = {ID: 1, status: 'Pending'}; return new Promise(resolve => {resolve(statusEntity);});}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    }
-
-    const createQueryBuilder: any = {
-      leftJoinAndSelect: () => createQueryBuilder,
-      andWhere: () => createQueryBuilder,
-      getOne: jest.fn(() => {}),
-      getMany: jest.fn(() => {}),
-    };
+    const MockUserStatusRepository = mockContractFactory.getMockRepository(UserStatusEntity);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserStatusService, MockProvider],
+      providers: [UserStatusService, MockUserStatusRepository],
     }).compile();
 
     service = module.get<UserStatusService>(UserStatusService);
-    mockRepository = module.get<Repository<UserStatusEntity>>(getRepositoryToken(UserStatusEntity));
+    mockUserStatusRepository = module.get<Repository<UserStatusEntity>>(getRepositoryToken(UserStatusEntity));
   });
 
-  it('service should be defined', () => {
+  it('User status service should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it('mock repository should be defined', () => {
-    expect(mockRepository).toBeDefined();
+  it('Mock user status repository should be defined', () => {
+    expect(mockUserStatusRepository).toBeDefined();
   });
 
   //#region FindStatusByName
@@ -54,7 +45,7 @@ describe('UserStatusService', () => {
     await expect(service.findStatusByName(null)).rejects.toThrowError(errorStringToExcept);
     await expect(service.findStatusByName(undefined)).rejects.toThrowError(errorStringToExcept);
     await expect(service.findStatusByName(role)).rejects.toThrowError(errorStringToExcept);
-    expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
+    expect(mockUserStatusRepository.findOne).toHaveBeenCalledTimes(0);
   });
 
   it('Calling findStatusByName with valid name returns role', async () => {
@@ -62,10 +53,10 @@ describe('UserStatusService', () => {
     let status: string = 'Pending';
     let mockstatus: Status = {ID: 1, status: 'Pending'};
 
-    jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(mockstatus);
+    jest.spyOn(mockUserStatusRepository, "findOne").mockResolvedValueOnce(mockstatus);
 
     await expect(await service.findStatusByName(status)).toBe(mockstatus);
-    expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+    expect(mockUserStatusRepository.findOne).toHaveBeenCalledTimes(1);
   });
 
   it('Calling findStatusByName with valid name but without any results throws error', async () => {
@@ -73,10 +64,10 @@ describe('UserStatusService', () => {
     let status: string = 'Pending';
     let errorStringToExcept: string = 'The specified status could not be found';
 
-    jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
+    jest.spyOn(mockUserStatusRepository, "findOne").mockResolvedValueOnce(null);
 
     await expect(service.findStatusByName(status)).rejects.toThrowError(errorStringToExcept);
-    expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+    expect(mockUserStatusRepository.findOne).toHaveBeenCalledTimes(1);
   });
 
   describe('Calling find user status by name finds role with inserted user status title', () => {
@@ -92,9 +83,11 @@ describe('UserStatusService', () => {
 
     theoretically('Correct calls are performed', theories, async theory => {
 
+      jest.spyOn(mockUserStatusRepository, 'findOne').mockImplementation(() => {let statusEntity: UserStatusEntity = {ID: 1, status: 'Pending'}; return new Promise(resolve => {resolve(statusEntity);});})
+
       await expect(await service.findStatusByName(theory.input)).resolves;
-      expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
-      expect(mockRepository.findOne).toHaveBeenCalledWith({where: `"status" ILIKE '${theory.input}'`});
+      expect(mockUserStatusRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(mockUserStatusRepository.findOne).toHaveBeenCalledWith({where: `"status" ILIKE '${theory.input}'`});
     })
   });
 
@@ -110,13 +103,13 @@ describe('UserStatusService', () => {
     ]
 
     jest
-      .spyOn(mockRepository.createQueryBuilder(), 'getMany')
+      .spyOn(mockUserStatusRepository.createQueryBuilder(), 'getMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(statuses);});});
 
     let foundStatuses: Status[];
 
     await expect(foundStatuses = await service.getStatuses()).resolves;
-    expect(mockRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockUserStatusRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(foundStatuses).toBe(statuses);
   });
 

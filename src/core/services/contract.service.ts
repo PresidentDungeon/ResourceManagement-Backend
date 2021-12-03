@@ -75,7 +75,7 @@ export class ContractService implements IContractService{
     }
   }
 
-  async saveComment(commentDTO: CommentDTO) {
+  async saveComment(commentDTO: CommentDTO): Promise<void> {
     const commentEntity = this.commentRepository.create(commentDTO);
     commentEntity.user = JSON.parse(JSON.stringify({ID: commentDTO.userID}));
     commentEntity.contract = JSON.parse(JSON.stringify({ID: commentDTO.contractID}));
@@ -137,7 +137,7 @@ export class ContractService implements IContractService{
     return foundContract;
   }
 
-  async getContractByUserID(userID: number, statusID: number) {
+  async getContractsByUserID(userID: number, statusID: number): Promise<Contract[]> {
 
     if(userID == null || userID <= 0){
       throw new BadRequestError('User ID must be instantiated or valid');
@@ -159,7 +159,7 @@ export class ContractService implements IContractService{
     return foundContract;
   }
 
-  async getContractsByResume(ID: number) {
+  async getContractsByResume(ID: number): Promise<Contract[]> {
 
     if(ID == null || ID <= 0){
       throw new BadRequestError('Resume ID must be instantiated or valid');
@@ -319,7 +319,7 @@ export class ContractService implements IContractService{
 
   }
 
-  async delete(ID: number) {
+  async delete(ID: number): Promise<void> {
     if(ID == null || ID <= 0){throw new BadRequestError('Contract ID must be instantiated or valid');}
     try{await this.contractRepository.createQueryBuilder().delete().from(ContractEntity).andWhere(`ID = :ID`, { ID: `${ID}`}).execute();}
     catch (e) {throw new InternalServerError('Error during delete of contract')}
