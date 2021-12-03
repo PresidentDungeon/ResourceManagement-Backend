@@ -3,7 +3,6 @@ import { ErrorInterceptor } from "../../infrastructure/error-handling/error-inte
 import { Whitelist } from "../../core/models/whitelist";
 import { Roles } from "../../auth/roles.decorator";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
-import { query } from "express";
 import { Filter } from "../../core/models/filter";
 import { IWhitelistService, IWhitelistServiceProvider } from "../../core/primary-ports/whitelist.service.interface";
 
@@ -31,15 +30,15 @@ export class WhitelistController {
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
-  @Put('updateWhitelists')
-  async updateWhitelists(@Body() whitelist: Whitelist) {
+  @Put('updateWhitelist')
+  async updateWhitelist(@Body() whitelist: Whitelist) {
     let updatedWhitelist = await this.whitelistService.updateWhitelist(whitelist);
     return updatedWhitelist;
   }
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
-  @Delete('deleteWhitelists')
+  @Post('deleteWhitelist')
   async deleteWhitelist(@Body() whitelist: Whitelist) {
     await this.whitelistService.deleteWhitelist(whitelist);
   }

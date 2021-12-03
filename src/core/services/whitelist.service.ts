@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { IWhitelistService } from "../primary-ports/whitelist.service.interface";
@@ -6,8 +6,6 @@ import { WhitelistDomainEntity } from "../../infrastructure/data-source/postgres
 import { Whitelist } from "../models/whitelist";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
-import { UserDTO } from "../../api/dtos/user.dto";
-import { User } from "../models/user";
 import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 
 @Injectable()
