@@ -13,6 +13,7 @@ import { CommentDTO } from "src/api/dtos/comment.dto";
 import { Comment } from "../models/comment";
 import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 import { Inject, Injectable } from "@nestjs/common";
+import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
 
 @Injectable()
 export class ContractService implements IContractService{
@@ -23,6 +24,7 @@ export class ContractService implements IContractService{
     @InjectRepository(CommentEntity) private commentRepository: Repository<CommentEntity>,
     @InjectConnection() private readonly connection: Connection,
     @Inject(IContractStatusServiceProvider) private statusService: IContractStatusService,
+    @Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService,
   ) {}
 
   async addContract(contract: Contract): Promise<Contract> {
@@ -40,10 +42,11 @@ export class ContractService implements IContractService{
     catch (e) {throw new InternalServerError('Error saving contract to database')}
   }
 
-  async addRequestContract(contract: Contract, status: string): Promise<Contract> {
+  async addRequestContract(contract: Contract, username: string, status: string): Promise<Contract> {
 
-    if(status.toLowerCase() != 'whitelisted'){
-      throw new Error('The user must be whitelisted by an admin to request');
+    if(status.toLowerCase() != 'approved'){
+      let isWhitelisted: boolean = await this.whitelistService.verifyUserWhitelist(username)
+      if(!isWhitelisted){throw new BadRequestError('The user must be whitelisted by an admin to request contracts');}
     }
 
     contract.startDate = new Date(contract.startDate);

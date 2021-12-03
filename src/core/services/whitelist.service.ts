@@ -69,6 +69,9 @@ export class WhitelistService implements IWhitelistService {
       qb.andWhere(`domain ILIKE :domain`, { domain: `%${filter.domain}%` });
     }
 
+    qb.orderBy('whitelist.ID')
+
+
     qb.offset((filter.currentPage) * filter.itemsPrPage);
     qb.limit(filter.itemsPrPage);
 

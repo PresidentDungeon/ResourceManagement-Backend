@@ -33,7 +33,7 @@ export class ContractController {
   @Post('requestContract')
 
   async requestContract(@Body() contract: Contract, @Req() request) {
-    let createdContract: Contract = await this.contractService.addRequestContract(contract, request.user.status);
+    let createdContract: Contract = await this.contractService.addRequestContract(contract, request.user.username, request.user.status);
     return createdContract;
   }
 
