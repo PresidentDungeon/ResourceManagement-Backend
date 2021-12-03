@@ -3,7 +3,7 @@ import { UserService } from './user.service';
 import { AuthenticationHelper } from "../../auth/authentication.helper";
 import { User } from "../models/user";
 import theoretically from "jest-theories";
-import { FindManyOptions, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { UnauthorizedException } from "@nestjs/common";
@@ -19,6 +19,7 @@ import { UserStatusEntity } from "../../infrastructure/data-source/postgres/enti
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
+import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
 
 describe('UserService', () => {
   let service: UserService;
@@ -29,7 +30,13 @@ describe('UserService', () => {
   let mockRoleService: RoleService
   let mockStatusService: UserStatusService
 
+  let mockContractFactory = new MockRepositories();
+
   beforeEach(async () => {
+
+    const MockUserRepository = mockContractFactory.getMockRepository(UserEntity);
+    const MockPasswordTokenRepository = mockContractFactory.getMockRepository(PasswordTokenEntity);
+    const MockConfirmationTokenRepository = mockContractFactory.getMockRepository(ConfirmationTokenEntity);
 
     const AuthenticationMock = {
       provide: AuthenticationHelper,
@@ -38,75 +45,10 @@ describe('UserService', () => {
         generateHash: jest.fn((password: string, salt: string) => {return 'hashValue';}),
         validateLogin: jest.fn((user: User, password: string) => {return true;}),
         generateJWTToken: jest.fn((user: User) => {return 'signedToken';}),
-        generateVerificationToken: jest.fn(() => {return 'verificationToken';}),
         validateJWTToken: jest.fn((token: string) => {return true;}),
         validatePasswordToken: jest.fn((token: string) => {return true;}),
       })
     }
-
-    const MockUserRepository = {
-      provide: getRepositoryToken(UserEntity),
-      useFactory: () => ({
-        count: jest.fn((options: FindManyOptions<UserEntity>) => {}),
-        save: jest.fn((userEntity: UserEntity) => { return new Promise(resolve => {resolve(userEntity);});}),
-        create: jest.fn((userEntity: UserEntity) => {return new Promise(resolve => {resolve(userEntity);});}),
-        execute: jest.fn(() => {}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    }
-
-    const MockPasswordTokenRepository = {
-      provide: getRepositoryToken(PasswordTokenEntity),
-      useFactory: () => ({
-        count: jest.fn((options: FindManyOptions<PasswordTokenEntity>) => {}),
-        save: jest.fn((passwordTokenEntity: PasswordTokenEntity) => { return new Promise(resolve => {resolve(PasswordTokenEntity);});}),
-        create: jest.fn((passwordTokenEntity: PasswordTokenEntity) => {return new Promise(resolve => {resolve(PasswordTokenEntity);});}),
-        execute: jest.fn(() => {}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    }
-
-    const MockConfirmationTokenRepository = {
-      provide: getRepositoryToken(ConfirmationTokenEntity),
-      useFactory: () => ({
-        count: jest.fn((options: FindManyOptions<ConfirmationTokenEntity>) => {}),
-        save: jest.fn((confirmationTokenEntity: ConfirmationTokenEntity) => { return new Promise(resolve => {resolve(ConfirmationTokenEntity);});}),
-        create: jest.fn((confirmationTokenEntity: ConfirmationTokenEntity) => {return new Promise(resolve => {resolve(ConfirmationTokenEntity);});}),
-        execute: jest.fn(() => {}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    }
-
-    const createQueryBuilder: any = {
-      leftJoinAndSelect: () => createQueryBuilder,
-      andWhere: () => createQueryBuilder,
-      update: jest.fn(() => {return updateQueryBuilder}),
-      delete: jest.fn(() => {return deleteQueryBuilder}),
-      select: jest.fn(() => {return selectQueryBuilder}),
-      getOne: jest.fn(() => {}),
-      getMany: jest.fn(() => {}),
-      getCount: jest.fn(() => {}),
-      offset: jest.fn(() => {}),
-      limit: jest.fn(() => {}),
-    };
-
-    const selectQueryBuilder: any = {
-      getMany: jest.fn(() => {}),
-    };
-
-    const updateQueryBuilder: any = {
-      set: () => updateQueryBuilder,
-      where: () => updateQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
-
-    const deleteQueryBuilder: any = {
-      set: () => deleteQueryBuilder,
-      where: () => deleteQueryBuilder,
-      from: () => deleteQueryBuilder,
-      andWhere: () => deleteQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
 
     const RoleServiceMock = {
       provide: IRoleServiceProvider,

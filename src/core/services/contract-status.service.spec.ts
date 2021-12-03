@@ -1,48 +1,37 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Repository } from "typeorm";
+import { FindOneOptions, Repository } from "typeorm";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserStatusService } from "./user-status.service";
 import { Status } from "../models/status";
 import { ContractStatusService } from "./contract-status.service";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
-import { Contract } from "../models/contract";
 import theoretically from "jest-theories";
+import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
 
 describe('UserStatusService', () => {
   let service: ContractStatusService;
-  let mockRepository: Repository<ContractStatusEntity>;
+  let mockStatusRepository: Repository<ContractStatusEntity>;
+
+  let mockContractFactory = new MockRepositories();
 
   beforeEach(async () => {
 
-    const MockProvider = {
-      provide: getRepositoryToken(ContractStatusEntity),
-      useFactory: () => ({
-        findOne: jest.fn(() => {let contractStatusEntity: ContractStatusEntity = {ID: 1, status: 'Draft'}; return new Promise(resolve => {resolve(contractStatusEntity);});}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    }
-
-    const createQueryBuilder: any = {
-      leftJoinAndSelect: () => createQueryBuilder,
-      andWhere: jest.fn(() => createQueryBuilder),
-      getOne: jest.fn(() => {}),
-      getMany: jest.fn(() => {}),
-    };
+    const MockStatusRepository = mockContractFactory.getMockRepository(ContractStatusEntity);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ContractStatusService, MockProvider],
+      providers: [ContractStatusService, MockStatusRepository],
     }).compile();
 
     service = module.get<ContractStatusService>(ContractStatusService);
-    mockRepository = module.get<Repository<ContractStatusEntity>>(getRepositoryToken(ContractStatusEntity));
+    mockStatusRepository = module.get<Repository<ContractStatusEntity>>(getRepositoryToken(ContractStatusEntity));
   });
 
-  it('service should be defined', () => {
+  it('Contract status service should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it('mock repository should be defined', () => {
-    expect(mockRepository).toBeDefined();
+  it('Mock status repository should be defined', () => {
+    expect(mockStatusRepository).toBeDefined();
   });
 
   //#region FindStatusByName
@@ -55,7 +44,7 @@ describe('UserStatusService', () => {
     await expect(service.findStatusByName(null)).rejects.toThrowError(errorStringToExcept);
     await expect(service.findStatusByName(undefined)).rejects.toThrowError(errorStringToExcept);
     await expect(service.findStatusByName(role)).rejects.toThrowError(errorStringToExcept);
-    expect(mockRepository.findOne).toHaveBeenCalledTimes(0);
+    expect(mockStatusRepository.findOne).toHaveBeenCalledTimes(0);
   });
 
   it('Calling findStatusByName with valid name returns role', async () => {
@@ -63,10 +52,10 @@ describe('UserStatusService', () => {
     let status: string = 'Draft';
     let mockstatus: Status = {ID: 1, status: 'Draft'};
 
-    jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(mockstatus);
+    jest.spyOn(mockStatusRepository, "findOne").mockResolvedValueOnce(mockstatus);
 
     await expect(await service.findStatusByName(status)).toBe(mockstatus);
-    expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+    expect(mockStatusRepository.findOne).toHaveBeenCalledTimes(1);
   });
 
   it('Calling findStatusByName with valid name but without any results throws error', async () => {
@@ -74,10 +63,10 @@ describe('UserStatusService', () => {
     let status: string = 'Draft';
     let errorStringToExcept: string = 'The specified status could not be found';
 
-    jest.spyOn(mockRepository, "findOne").mockResolvedValueOnce(null);
+    jest.spyOn(mockStatusRepository, "findOne").mockResolvedValueOnce(null);
 
     await expect(service.findStatusByName(status)).rejects.toThrowError(errorStringToExcept);
-    expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
+    expect(mockStatusRepository.findOne).toHaveBeenCalledTimes(1);
   });
 
   describe('Calling find status by name finds status with inserted status title', () => {
@@ -91,9 +80,11 @@ describe('UserStatusService', () => {
 
     theoretically('Correct calls are performed', theories, async theory => {
 
+      jest.spyOn(mockStatusRepository, 'findOne').mockImplementation(() => {{let contractStatusEntity: ContractStatusEntity = {ID: 1, status: 'Draft'}; return new Promise(resolve => {resolve(contractStatusEntity);});}})
+
       await expect(await service.findStatusByName(theory.input)).resolves;
-      expect(mockRepository.findOne).toHaveBeenCalledTimes(1);
-      expect(mockRepository.findOne).toHaveBeenCalledWith({where: `"status" ILIKE '${theory.input}'`});
+      expect(mockStatusRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(mockStatusRepository.findOne).toHaveBeenCalledWith({where: `"status" ILIKE '${theory.input}'`});
     })
   });
 
@@ -109,13 +100,13 @@ describe('UserStatusService', () => {
     ]
 
     jest
-      .spyOn(mockRepository.createQueryBuilder(), 'getMany')
+      .spyOn(mockStatusRepository.createQueryBuilder(), 'getMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(statuses);});});
 
     let foundStatuses: Status[];
 
     await expect(foundStatuses = await service.getStatuses()).resolves;
-    expect(mockRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockStatusRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
     expect(foundStatuses).toBe(statuses);
   });
 
@@ -132,16 +123,16 @@ describe('UserStatusService', () => {
     ]
 
     jest
-      .spyOn(mockRepository.createQueryBuilder(), 'getMany')
+      .spyOn(mockStatusRepository.createQueryBuilder(), 'getMany')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(storedStatuses);});});
 
     let foundStatuses: Status[];
 
     await expect(foundStatuses = await service.getUserStatus()).resolves;
     expect(foundStatuses).toEqual(storedStatuses);
-    expect(mockRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(1);
-    expect(mockRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith('status.status IN (:...statuses)', {statuses: ['Pending review', 'Accepted', 'Completed']});
-    expect(mockRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(mockStatusRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(1);
+    expect(mockStatusRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith('status.status IN (:...statuses)', {statuses: ['Pending review', 'Accepted', 'Completed']});
+    expect(mockStatusRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
   });
 
   //#endregion

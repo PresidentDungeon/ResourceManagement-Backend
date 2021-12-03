@@ -15,6 +15,7 @@ import { AxiosResponse } from "axios";
 import { Observable, of, throwError } from "rxjs";
 import { FilterList } from "../models/filterList";
 import { GetResumesDTO } from "../../api/dtos/get.resumes.dto";
+import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
 
 describe('ResumeService', () => {
 
@@ -24,18 +25,11 @@ describe('ResumeService', () => {
   let mockHTTPService: HttpService;
   let mockConfigService: ConfigService;
 
+  let mockContractFactory = new MockRepositories();
+
   beforeEach(async () => {
 
-    const MockResumeRepository = {
-      provide: getRepositoryToken(ResumeEntity),
-      useFactory: () => ({
-        count: jest.fn((options: FindManyOptions<ResumeEntity>) => {}),
-        save: jest.fn((contractorEntity: ResumeEntity) => { return new Promise(resolve => {resolve(contractorEntity);});}),
-        create: jest.fn((contractorEntity: ResumeEntity) => {return new Promise(resolve => {resolve(contractorEntity);});}),
-        execute: jest.fn(() => {}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
-      })
-    };
+    const MockResumeRepository = mockContractFactory.getMockRepository(ResumeEntity);
 
     const MockHTTPService = {
       provide: HttpService,
@@ -50,22 +44,6 @@ describe('ResumeService', () => {
       useFactory: () => ({
         get: jest.fn((keyValue: string) => {return 'http://localhost:3150'}),
       })
-    };
-
-    const createQueryBuilder: any = {
-      leftJoinAndSelect: () => createQueryBuilder,
-      leftJoin: () => createQueryBuilder,
-      andWhere: () => createQueryBuilder,
-      select: () => createQueryBuilder,
-      addSelect: () => createQueryBuilder,
-      groupBy: () => createQueryBuilder,
-      getOne: jest.fn(() => {}),
-      getRawOne: jest.fn(() => {}),
-      getMany: jest.fn(() => {}),
-      getRawMany: jest.fn(() => {}),
-      getCount: jest.fn(() => {}),
-      offset: jest.fn(() => {}),
-      limit: jest.fn(() => {}),
     };
 
     const StatusServiceMock = {
