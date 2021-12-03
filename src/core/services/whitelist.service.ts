@@ -7,6 +7,7 @@ import { Whitelist } from "../models/whitelist";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { UserDTO } from "../../api/dtos/user.dto";
+import { User } from "../models/user";
 
 @Injectable()
 export class WhitelistService implements IWhitelistService {
@@ -125,9 +126,19 @@ export class WhitelistService implements IWhitelistService {
   }
 
   //Missing test
-  verifyUserWhitelist(username: string): Promise<boolean> {
+  async verifyUserWhitelist(username: string): Promise<boolean> {
 
-    return Promise.resolve(false);
+    let indexOfAt = username.indexOf('@');
+    if(indexOfAt == -1) {
+      return false;
+    }
+    let domainName = username.slice(indexOfAt, username.length);
+
+    let amountOfWhitelistDomains: number = await this.whitelistRepository.createQueryBuilder("whitelist")
+      .andWhere(`whitelist.domain ILIKE :whitelist`, { whitelist: `${domainName}` }).getCount();
+
+    return (amountOfWhitelistDomains > 0) ? true : false;
+
   }
 
 
