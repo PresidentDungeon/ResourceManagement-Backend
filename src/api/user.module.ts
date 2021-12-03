@@ -15,13 +15,14 @@ import { UserStatusService } from "../core/services/user-status.service";
 import { RoleEntity } from "../infrastructure/data-source/postgres/entities/role.entity";
 import { UserStatusEntity } from "../infrastructure/data-source/postgres/entities/user-status.entity";
 import { ConfirmationTokenEntity } from "../infrastructure/data-source/postgres/entities/confirmation-token.entity";
+import { WhitelistModule } from "./whitelist.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserEntity, ConfirmationTokenEntity, PasswordTokenEntity, RoleEntity, UserStatusEntity]), AuthModule, MailModule, SocketModule],
+  imports: [TypeOrmModule.forFeature([UserEntity, ConfirmationTokenEntity, PasswordTokenEntity, RoleEntity, UserStatusEntity]), AuthModule, MailModule, SocketModule, WhitelistModule],
   providers: [
     {provide: IUserServiceProvider, useClass: UserService},
     {provide: IRoleServiceProvider, useClass: RoleService},
-    {provide: IUserStatusServiceProvider, useClass: UserStatusService}
+    {provide: IUserStatusServiceProvider, useClass: UserStatusService},
   ],
   controllers: [UserController],
   exports: [IUserServiceProvider, IRoleServiceProvider, IUserStatusServiceProvider]

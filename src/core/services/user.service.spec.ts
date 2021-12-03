@@ -20,6 +20,8 @@ import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgr
 import { ConfirmationToken } from "../models/confirmation.token";
 import { IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
 import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
+import { WhitelistService } from "./whitelist.service";
+import { IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
 
 describe('UserService', () => {
   let service: UserService;
@@ -29,6 +31,7 @@ describe('UserService', () => {
   let mockConfirmationTokenRepository: Repository<ConfirmationTokenEntity>
   let mockRoleService: RoleService
   let mockStatusService: UserStatusService
+  let mockWhitelistService: WhitelistService
 
   let mockContractFactory = new MockRepositories();
 
@@ -66,8 +69,15 @@ describe('UserService', () => {
       })
     }
 
+    const WhitelistServiceMock = {
+      provide: IWhitelistServiceProvider,
+      useFactory: () => ({
+        verifyUserWhitelist: jest.fn((user: User) => {return new Promise(resolve => {resolve(false);});})
+      })
+    }
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService, AuthenticationMock, MockUserRepository, MockConfirmationTokenRepository, MockPasswordTokenRepository, RoleServiceMock, StatusServiceMock],
+      providers: [UserService, AuthenticationMock, MockUserRepository, MockConfirmationTokenRepository, MockPasswordTokenRepository, RoleServiceMock, StatusServiceMock, WhitelistServiceMock],
     }).compile();
 
     service = module.get<UserService>(UserService);
@@ -77,6 +87,7 @@ describe('UserService', () => {
     mockConfirmationTokenRepository = module.get<Repository<ConfirmationTokenEntity>>(getRepositoryToken(ConfirmationTokenEntity));
     mockRoleService = module.get<RoleService>(IRoleServiceProvider);
     mockStatusService = module.get<UserStatusService>(IUserStatusServiceProvider);
+    mockWhitelistService = module.get<WhitelistService>(IWhitelistServiceProvider);
   });
 
     it('User service Should be defined', () => {
@@ -105,6 +116,10 @@ describe('UserService', () => {
 
     it('Mock status service Should be defined', () => {
       expect(mockStatusService).toBeDefined();
+    });
+
+    it('Mock whitelisted service Should be defined', () => {
+      expect(mockWhitelistService).toBeDefined();
     });
 
   //#region CreateUser
@@ -2198,13 +2213,3 @@ describe('UserService', () => {
   //#endregion
 
 });
-
-
-
-
-
-
-
-
-
-

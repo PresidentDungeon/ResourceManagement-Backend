@@ -8,6 +8,7 @@ export interface Filter{
   contractUser?: string
   sortingType?: string
   sorting?: string
+  domain?: string
 
   enableCommentCount?: boolean
   enableMatchComplete?: boolean
