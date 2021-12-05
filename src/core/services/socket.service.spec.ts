@@ -39,7 +39,7 @@ describe('SocketService', () => {
 
   it('Calling emit contract create event resolves correctly', () => {
 
-    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
 
     const websocket: any = { emit: jest.fn(() => {}) }
     service.server = websocket;
@@ -55,7 +55,7 @@ describe('SocketService', () => {
 
   it('Calling emit contract update event resolves correctly', () => {
 
-    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
 
     jest.spyOn(service, 'redactContract').mockImplementation((contract: Contract) => {return contract});
     const websocket: any = { emit: jest.fn(() => {})}
@@ -73,7 +73,7 @@ describe('SocketService', () => {
 
   it('Calling emit contract delete event resolves correctly', () => {
 
-    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
 
     const websocket: any = { emit: jest.fn(() => {}) }
     service.server = websocket;
@@ -94,23 +94,23 @@ describe('SocketService', () => {
 
     const theories = [
       { input: contractToRedact =
-          {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [
+          {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [
               {ID: 1, firstName: 'Hans', middleName: 'Joachim', lastName: 'Madsen', middleLastName: 'Joachim Madsen'},
               {ID: 2, firstName: 'Lars', middleName: 'Elis', lastName: 'Hansen', middleLastName: 'Elis Hansen'},
               {ID: 3, firstName: 'Jacob', middleName: 'Geert', lastName: 'Olsen', middleLastName: 'Geert Olsen'}
-            ], users: [],resumeRequests: []},
+            ], users: [],resumeRequests: [], whitelists: []},
         expectedRedactedResumes: [
           {ID: 1, firstName: '', middleName: '', lastName: '', middleLastName: ''},
           {ID: 2, firstName: '', middleName: '', lastName: '', middleLastName: ''},
           {ID: 3, firstName: '', middleName: '', lastName: '', middleLastName: ''}
         ]},
       { input: contractToRedact =
-          {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [],resumeRequests: []},
+          {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [],resumeRequests: [], whitelists: []},
         expectedRedactedResumes: []},
       { input: contractToRedact =
-          {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [
+          {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [
               {ID: 1, firstName: 'Hans', middleName: 'Joachim', lastName: 'Madsen', middleLastName: 'Joachim Madsen'}
-            ], users: [],resumeRequests: []},
+            ], users: [],resumeRequests: [], whitelists: []},
         expectedRedactedResumes: [
           {ID: 1, firstName: '', middleName: '', lastName: '', middleLastName: ''}
         ]},

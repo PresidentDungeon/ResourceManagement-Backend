@@ -125,16 +125,13 @@ export class WhitelistService implements IWhitelistService {
   async verifyUserWhitelist(username: string): Promise<boolean> {
 
     let indexOfAt = username.indexOf('@');
-    if(indexOfAt == -1) {
-      return false;
-    }
+    if(indexOfAt == -1) {return false;}
     let domainName = username.slice(indexOfAt, username.length);
 
     let amountOfWhitelistDomains: number = await this.whitelistRepository.createQueryBuilder("whitelist")
       .andWhere(`whitelist.domain ILIKE :whitelist`, { whitelist: `${domainName}` }).getCount();
 
     return (amountOfWhitelistDomains > 0) ? true : false;
-
   }
 
 

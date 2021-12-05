@@ -19,6 +19,7 @@ import { CommentDTO } from "../../api/dtos/comment.dto";
 import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
 import { WhitelistService } from "./whitelist.service";
 import { IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
+import { GetUserContractsDTO } from "../../api/dtos/get.user.contracts.dto";
 
 describe('ContractService', () => {
   let service: ContractService;
@@ -102,7 +103,7 @@ describe('ContractService', () => {
 
   it('Add invalid contract doesnt save contract to database', async () => {
 
-    let contract: Contract = {ID: 0, title: '', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 0, title: '', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {throw new Error('Contract must have a valid title')})
 
@@ -117,7 +118,7 @@ describe('ContractService', () => {
 
   it('Error during save throws correct error message', async () => {
 
-    let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {throw new Error()});
@@ -134,8 +135,8 @@ describe('ContractService', () => {
 
   it('Saving contract resolves correctly', async () => {
 
-    let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
+    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []};
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
     jest.spyOn(mockContractRepository, 'save').mockImplementationOnce(() => {return new Promise(resolve => {resolve(contractSaveReturns)});});
@@ -157,7 +158,7 @@ describe('ContractService', () => {
 
   it('Add contract with status of active and invalid domain throws error', async () => {
 
-    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
     let username: string = 'someMail@gmail.com';
     let status: string = 'Active';
 
@@ -179,8 +180,8 @@ describe('ContractService', () => {
 
   it('Add contract with status of active and valid domain doesnt throw error', async () => {
 
-    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let contract: Contract = {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
+    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []};
     let username: string = 'someMail@total.dk';
     let status: string = 'Active';
 
@@ -205,7 +206,7 @@ describe('ContractService', () => {
 
   it('Add invalid contract doesnt save contract to database', async () => {
 
-    let contract: Contract = {ID: 0, title: '', description: 'Some company', status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 0, title: '', description: 'Some company', isVisibleToDomainUsers: false, status: null, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
     let username: string = 'someMail@total.dk';
     let status: string = 'Approved';
 
@@ -227,7 +228,7 @@ describe('ContractService', () => {
 
   it('Error during save throw correct error message', async () => {
 
-    let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [{ID: 0, occupation: 'Electrician', count: 3}]};
+    let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [{ID: 0, occupation: 'Electrician', count: 3}], whitelists: []};
     let username: string = 'someMail@total.dk';
     let status: string = 'Appproved';
 
@@ -253,8 +254,8 @@ describe('ContractService', () => {
 
   it('Saving contract resolves correctly', async () => {
 
-    let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
+    let contractSaveReturns: ContractEntity = {ID: 1, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []};
     let username: string = 'someMail@total.dk';
     let status: string = 'Approved';
 
@@ -394,7 +395,7 @@ describe('ContractService', () => {
 
   it('Find existing contract returns valid contract information', async () => {
 
-    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []};
     let contractID: number = 1;
 
     jest
@@ -416,7 +417,7 @@ describe('ContractService', () => {
 
   it('Get contract by ID selects users if redacted is false', async () => {
 
-    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []};
     let contractID: number = 1;
 
     jest
@@ -431,19 +432,19 @@ describe('ContractService', () => {
     expect(foundContract).toStrictEqual(storedContract);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(0);
-    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(4);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(5);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledWith([foundContract]);
   });
 
-  it('Get contract by ID selects selects personal resume if valid personal ID is entered', async () => {
+  it('Get contract by ID selects personal resume if valid personal ID is entered', async () => {
 
     let userID: number = 2;
     let personalComment: string = 'The contract went good as expected. Everything is fine.'
     let comments: CommentEntity[] = [{comment: 'A bit left to be desired. The contractors were a fine selection but I had a slight problem with Husam...', contract: JSON.parse('{"ID": "1"}'), user: JSON.parse('{"ID": "1"}')}, {comment: personalComment, contract: JSON.parse('{"ID": "1"}'), user: JSON.parse('{"ID": "2"}')}]
 
-    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 4, status: 'Completed'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: comments};
-    let storedContractRaw: any = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 4, status: 'Completed'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: comments, personal_comment: personalComment};
+    let storedContract: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 4, status: 'Completed'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: comments};
+    let storedContractRaw: any = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 4, status: 'Completed'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: comments, personal_comment: personalComment};
     let contractID: number = 1;
 
     jest
@@ -463,36 +464,41 @@ describe('ContractService', () => {
     expect(foundContract.personalComment).toEqual({comment: storedContractRaw.personal_comment});
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.createQueryBuilder().getRawOne).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(4);
+    expect(mockContractRepository.createQueryBuilder().leftJoinAndSelect).toHaveBeenCalledTimes(5);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
     expect(service.verifyContractStatuses).toHaveBeenCalledWith([foundContract]);
   });
 
   //#endregion
 
-  //#region GetContractByUserID
+  //#region GetContractsByUserID
 
   it('Find contract with invalid userID results in error', async () => {
 
     let ID: number = 0;
+    let username: string = 'Somemail@gmail.com';
     let statusID: number = 0;
+    let displayDomainContract: boolean = false;
+
 
     let errorStringToExcept = 'User ID must be instantiated or valid';
 
     jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
-    await expect(service.getContractsByUserID(null, statusID)).rejects.toThrow(errorStringToExcept);
-    await expect(service.getContractsByUserID(ID, statusID)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractsByUserID(null, username, statusID, displayDomainContract)).rejects.toThrow(errorStringToExcept);
+    await expect(service.getContractsByUserID(ID, username, statusID, displayDomainContract)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
     expect(service.verifyContractStatuses).toHaveBeenCalledTimes(0);
   });
 
   it('Find existing contracts by user ID returns valid contract information', async () => {
 
-    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
-    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: []};
     let userID: number = 1;
+    let username: string = 'Somemail@gmail.com';
     let statusID: number = 0;
+    let displayDomainContract: boolean = false;
 
     jest
       .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
@@ -500,38 +506,109 @@ describe('ContractService', () => {
 
     jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
-    let foundContract: Contract[];
+    let foundContracts: GetUserContractsDTO;
 
-    await expect(foundContract = await service.getContractsByUserID(userID, statusID)).resolves;
-    expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
+    await expect(foundContracts = await service.getContractsByUserID(userID, username, statusID, displayDomainContract)).resolves;
+    expect(foundContracts.personalContract).toStrictEqual([storedContract1, storedContract2]);
+    expect(foundContracts.domainContracts).toStrictEqual([]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
-    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
-    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContract);
-    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(2);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(2);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContracts.personalContract);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContracts.domainContracts);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(5);
   });
 
   it('Find existing contracts by user ID and status ID returns valid contract information', async () => {
 
-    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
-    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: []};
     let userID: number = 1;
-    let statusID: number = 2;
+    let username: string = 'Somemail@gmail.com';
+    let statusID: number = 5;
+    let displayDomainContract: boolean = false;
 
     jest
       .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract1, storedContract2]);});});
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract2]);});});
 
     jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
-    let foundContract: Contract[];
+    let foundContracts: GetUserContractsDTO;
 
-    await expect(foundContract = await service.getContractsByUserID(userID, statusID)).resolves;
-    expect(foundContract).toStrictEqual([storedContract1, storedContract2]);
+    await expect(foundContracts = await service.getContractsByUserID(userID, username, statusID, displayDomainContract)).resolves;
+    expect(foundContracts.personalContract).toStrictEqual([storedContract2]);
+    expect(foundContracts.domainContracts).toStrictEqual([]);
     expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
-    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(1);
-    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContract);
-    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(3);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(2);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContracts.personalContract);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContracts.domainContracts);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(7);
     expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith(`status.ID = :statusID`, { statusID: `${statusID}` });
+  });
+
+  it('Find existing contracts by user ID and status ID with displayDomainContracts of true with invalid domain name returns only valid personal contracts', async () => {
+
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: []};
+
+    let userID: number = 1;
+    let username: string = 'Somemailgmail.com';
+    let statusID: number = 5;
+    let displayDomainContract: boolean = true;
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract2]);});});
+
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
+    let foundContracts: GetUserContractsDTO;
+
+    await expect(foundContracts = await service.getContractsByUserID(userID, username, statusID, displayDomainContract)).resolves;
+    expect(foundContracts.personalContract).toStrictEqual([storedContract2]);
+    expect(foundContracts.domainContracts).toStrictEqual([]);
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(2);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContracts.personalContract);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContracts.domainContracts);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(7);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith(`status.ID = :statusID`, { statusID: `${statusID}` });
+  });
+
+  it('Find existing contracts by user ID and status ID with displayDomainContracts of true with valid domain name returns  valid personal contracts & domain contracts', async () => {
+
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [], comments: []};
+    let storedContract3: ContractEntity = {ID: 3, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [{ID: 1, domain: '@gmail.com', contracts: []}], comments: []};
+    let storedContract4: ContractEntity = {ID: 4, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: [{ID: 2, domain: '@total.dk', contracts: []}], comments: []};
+
+    let userID: number = 1;
+    let username: string = 'Somemail@total.dk';
+    let statusID: number = 5;
+    let displayDomainContract: boolean = true;
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract2, storedContract3]);});});
+
+    jest
+      .spyOn(mockContractRepository.createQueryBuilder(), 'getMany')
+      .mockImplementationOnce(() => {return new Promise(resolve => {resolve([storedContract4]);});});
+
+    jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
+
+    let foundContracts: GetUserContractsDTO;
+
+    await expect(foundContracts = await service.getContractsByUserID(userID, username, statusID, displayDomainContract)).resolves;
+    expect(foundContracts.personalContract).toStrictEqual([storedContract2, storedContract3]);
+    expect(foundContracts.domainContracts).toStrictEqual([storedContract4]);
+    expect(mockContractRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(2);
+    expect(service.verifyContractStatuses).toHaveBeenCalledTimes(2);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContracts.personalContract);
+    expect(service.verifyContractStatuses).toHaveBeenCalledWith(foundContracts.domainContracts);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(7);
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith(`status.ID = :statusID`, { statusID: `${statusID}` });
+    expect(mockContractRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith(`whitelists.domain ILIKE :userDomain`, { userDomain: '@total.dk'});
   });
 
   //#endregion
@@ -551,8 +628,8 @@ describe('ContractService', () => {
 
   it('Find existing contracts by resume ID returns valid contract information', async () => {
 
-    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
-    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: []};
+    let storedContract1: ContractEntity = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []};
+    let storedContract2: ContractEntity = {ID: 2, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Accepted'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []};
     let resumeID: number = 1;
 
     jest
@@ -605,9 +682,9 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: true, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: true, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
     ]
 
     let expectedTotalListSize: number = 3;
@@ -641,9 +718,9 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList when offset', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
     ]
 
     let expectedTotalListSize: number = 3;
@@ -691,9 +768,9 @@ describe('ContractService', () => {
   it('Get contracts returns valid filterList when limit', async () => {
 
     let storedContracts: ContractEntity[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comments: [], whitelists: []},
     ]
 
     let expectedTotalListSize: number = 3;
@@ -741,21 +818,21 @@ describe('ContractService', () => {
   it('Get contracts with enabled comment count returns valid filterList with comments', async () => {
 
     let storedContracts: any[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: []},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: []},
     ]
 
     let rawStoredContracts: any[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comment_count: '4'},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comment_count: '0'},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comment_count: '1'},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comment_count: '4'},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], comment_count: '0'},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], comment_count: '1'},
     ]
 
     let expectedContracts: Contract[] = [
-      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], commentCount: 4},
-      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], commentCount: 0},
-      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], commentCount: 1},
+      {ID: 1, title: 'Mærsk Contract', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], whitelists: [], commentCount: 4},
+      {ID: 2, title: 'O&J Brand og Sikring', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, resumes: [], users: [], resumeRequests: [], whitelists: [], commentCount: 0},
+      {ID: 3, title: 'Slik for voksne', description: 'Some company', startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-16-08T21:00:00'), isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, resumes: [], users: [], resumeRequests: [], whitelists: [], commentCount: 1},
     ]
 
     let expectedListSize = 3;
@@ -796,19 +873,22 @@ describe('ContractService', () => {
 
   it('Confirming contract with status not equal to pending review throws error', async () => {
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
-    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
 
+    let userID: number = 1;
     let isAccepted: boolean = true;
 
     jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
     jest.spyOn(service, 'update').mockImplementation();
+    jest.spyOn(service, 'verifyUserRegistrationToContract').mockImplementation();
 
     let expectedErrorMessage: string = 'Contract is not pending review and cannot be accepted or declined';
 
-    await expect(service.confirmContract(contract, isAccepted)).rejects.toThrow(expectedErrorMessage);
+    await expect(service.confirmContract(contract, userID, isAccepted)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(service.update).toHaveBeenCalledTimes(0);
   });
@@ -817,19 +897,22 @@ describe('ContractService', () => {
 
     let storedDate: Date = new Date('2021-11-08T21:00:00');
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
-    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
 
+    let userID: number = 1;
     let isAccepted: boolean = true;
 
     jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
     jest.spyOn(service, 'update').mockImplementation();
+    jest.spyOn(service, 'verifyUserRegistrationToContract').mockImplementation();
 
     let expectedErrorMessage: string = 'The validation window for this contract is expired and cannot be accepted or declined';
 
-    await expect(service.confirmContract(contract, isAccepted)).rejects.toThrow(expectedErrorMessage);
+    await expect(service.confirmContract(contract, userID, isAccepted)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(service.update).toHaveBeenCalledTimes(0);
   });
@@ -839,23 +922,28 @@ describe('ContractService', () => {
     let storedDate: Date = new Date();
     storedDate.setDate(storedDate.getDate() + 1);
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
-    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
 
     let storedStatus: Status = {ID: 3, status: 'Accepted'}
+
+    let userID: number = 1;
     let isAccepted: boolean = true;
 
     jest.spyOn(service, 'update').mockImplementationOnce((contract) => {return new Promise(resolve => {resolve(contract);});});
     jest.spyOn(mockStatusService, 'findStatusByName').mockImplementationOnce((status) => {return new Promise(resolve => {resolve(storedStatus);});});
     jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
+    jest.spyOn(service, 'verifyUserRegistrationToContract').mockImplementation();
 
     let updatedContract: Contract;
 
-    await expect(updatedContract = await service.confirmContract(contract, isAccepted)).resolves;
+    await expect(updatedContract = await service.confirmContract(contract, userID, isAccepted)).resolves;
     expect(updatedContract).toBeDefined();
     expect(updatedContract.status).toBe(storedStatus);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledWith(storedContract, userID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Accepted');
     expect(service.update).toHaveBeenCalledTimes(1);
@@ -867,23 +955,28 @@ describe('ContractService', () => {
     let storedDate: Date = new Date();
     storedDate.setDate(storedDate.getDate() + 1);
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
-    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), dueDate: storedDate, resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
 
     let storedStatus: Status = {ID: 3, status: 'Rejected'}
+
+    let userID: number = 1;
     let isAccepted: boolean = false;
 
     jest.spyOn(service, 'update').mockImplementationOnce((contract) => {return new Promise(resolve => {resolve(contract);});});
     jest.spyOn(mockStatusService, 'findStatusByName').mockImplementationOnce((status) => {return new Promise(resolve => {resolve(storedStatus);});});
     jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
+    jest.spyOn(service, 'verifyUserRegistrationToContract').mockImplementation();
 
     let updatedContract: Contract;
 
-    await expect(updatedContract = await service.confirmContract(contract, isAccepted)).resolves;
+    await expect(updatedContract = await service.confirmContract(contract, userID, isAccepted)).resolves;
     expect(updatedContract).toBeDefined();
     expect(updatedContract.status).toBe(storedStatus);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledWith(storedContract, userID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Rejected');
     expect(service.update).toHaveBeenCalledTimes(1);
@@ -896,17 +989,21 @@ describe('ContractService', () => {
 
   it('Requesting renewal for contract with different status throws error', async () => {
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
-    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Pending review'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+
+    let userID: number = 1;
 
     jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
     jest.spyOn(service, 'update').mockImplementation();
+    jest.spyOn(service, 'verifyUserRegistrationToContract').mockImplementation();
 
     let expectedErrorMessage: string = 'Contract is not expired and cannot be requested for renewal';
 
-    await expect(service.requestRenewal(contract)).rejects.toThrow(expectedErrorMessage);
+    await expect(service.requestRenewal(contract, userID)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(service.update).toHaveBeenCalledTimes(0);
 
@@ -914,20 +1011,25 @@ describe('ContractService', () => {
 
   it('Requesting renewal for contract with correct status is successful', async () => {
 
-    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
-    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Expired'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+
+    let userID: number = 1;
 
     jest.spyOn(service, 'getContractByID').mockImplementation((ID: number) => {return new Promise(resolve => {resolve(storedContract);});});
     jest.spyOn(service, 'update').mockImplementation((contract: Contract) => {return new Promise(resolve => {resolve(contract);});});
+    jest.spyOn(service, 'verifyUserRegistrationToContract').mockImplementation();
 
     let result: Contract;
 
-    await expect(result = await service.requestRenewal(contract)).resolves;
+    await expect(result = await service.requestRenewal(contract, userID)).resolves;
     expect(result).toBe(contract);
     expect(result.status.status).toEqual('Draft');
 
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledTimes(1);
+    expect(service.verifyUserRegistrationToContract).toHaveBeenCalledWith(storedContract, userID);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Draft');
     expect(service.update).toHaveBeenCalledTimes(1);
@@ -940,7 +1042,7 @@ describe('ContractService', () => {
 
   it('Update contract with invalid ID throws error', async () => {
 
-    let contract: Contract = {ID: 0, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let contract: Contract = {ID: 0, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
     let expectedErrorMessage: string = 'Contract ID must be instantiated or valid'
 
     jest
@@ -978,8 +1080,8 @@ describe('ContractService', () => {
 
   it('Update contract with invalid data throws error', async () => {
 
-    let storedContract: Contract = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
-    let contractToUpdate: Contract = {ID: 1, title: '', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+    let contractToUpdate: Contract = {ID: 1, title: '', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
 
     jest
       .spyOn(service, 'getContractByID')
@@ -1021,8 +1123,8 @@ describe('ContractService', () => {
 
   it('Error while updating contract throws error', async () => {
 
-    let storedContract: Contract = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
-    let contractToUpdate: Contract = {ID: 1, title: 'New contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
+    let contractToUpdate: Contract = {ID: 1, title: 'New contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [], whitelists: []};
 
     jest
       .spyOn(service, 'getContractByID')
@@ -1065,8 +1167,8 @@ describe('ContractService', () => {
 
   it('Updating contract with valid data resolves correctly', async () => {
 
-    let storedContract: Contract = {ID: 1, title: 'Contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
-    let contractToUpdate: Contract = {ID: 1, title: 'New contract title', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: []};
+    let storedContract: Contract = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
+    let contractToUpdate: Contract = {ID: 1, title: 'New contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [], resumeRequests: [], whitelists: []};
 
     jest
       .spyOn(service, 'getContractByID')
@@ -1156,33 +1258,35 @@ describe('ContractService', () => {
     const theories = [
       { input: contract = null, expected: "Contract must be instantiated" },
 
-      { input: contract = {ID: null, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: null, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid ID" },
-      { input: contract = {ID: -1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: -1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: true, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid ID" },
-      { input: contract = {ID: 0, title: null, description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 0, title: null, description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid title" },
-      { input: contract = {ID: 0, title: '', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 0, title: '', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid title" },
-      { input: contract = {ID: 0, title: ' ', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 0, title: ' ', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid title" },
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: null, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: null, isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid description under 500 characters" },
       { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'SomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTex' +
             'tSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSom' +
-            'eTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeT', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+            'eTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeTextSomeT', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid description under 500 characters" },
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: null, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: null, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
+        expected: "Contract must have valid visible status" },
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: null, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid status" },
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 0, status: ''}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 0, status: ''}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid status" },
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: -5, status: ' '}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: -5, status: ' '}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid status" },
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: null, endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: null, endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must contain a valid start date" },
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: null, users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: true, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must contain a valid end date" },
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-11-08T20:00:00'), users: [], resumes: [], resumeRequests: []},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: true, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-11-08T20:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Start date cannot be after end date" },
     ];
 
@@ -1194,21 +1298,51 @@ describe('ContractService', () => {
   describe('Validation of valid contract does not throw errors', () => {
     let contract: Contract;
     const theories = [
-      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: ' Mærsk Offshore ', description: 'Some company', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: '', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: ' ', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: '  Some Company  ', status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 2, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 2, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 2, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [{ID: 1, username: 'User@gmail.com', salt: 'saltValue', password: 'passwordValue', status: {ID: 1, status: 'Pending'}, role: {ID: 1, role: 'User'}}], resumes: [], resumeRequests: []}},
-      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 2, status: 'Accepted '}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [{ID: 1, username: 'User@gmail.com', salt: 'saltValue', password: 'passwordValue', status: {ID: 1, status: 'Pending'}, role: {ID: 1, role: 'User'}}], resumes: [{ID: 1}], resumeRequests: []}},
+      { input: contract = {ID: 0, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: ' Mærsk Offshore ', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: '', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: ' ', isVisibleToDomainUsers: true, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: '  Some Company  ', isVisibleToDomainUsers: true, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: true, status: {ID: 2, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: true, status: {ID: 2, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 2, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [{ID: 1, username: 'User@gmail.com', salt: 'saltValue', password: 'passwordValue', status: {ID: 1, status: 'Pending'}, role: {ID: 1, role: 'User'}}], resumes: [], resumeRequests: [], whitelists: []}},
+      { input: contract = {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: true, status: {ID: 2, status: 'Accepted '}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [{ID: 1, username: 'User@gmail.com', salt: 'saltValue', password: 'passwordValue', status: {ID: 1, status: 'Pending'}, role: {ID: 1, role: 'User'}}], resumes: [{ID: 1}], resumeRequests: [], whitelists: []}},
     ];
 
     theoretically('No error message is thrown using contract validation', theories, theory => {
       expect(service.verifyContractEntity(theory.input)).resolves;
     })
+  });
+
+  //#endregion
+
+  //#region VerifyUserRegistrationToContract
+
+  it('Error is thrown if user count is zero', async () => {
+
+    let contract: Contract = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [{ID: 1, username: 'Henrik@hotmail.com', salt: 'someValt', password: 'somePassword', status: {ID: 2, status: 'Active'}, role: {ID: 1, role: 'User'}}], resumeRequests: [], whitelists: []};
+    let userID: number = 2;
+
+    jest.spyOn(mockContractRepository.createQueryBuilder(), 'getCount').mockImplementation(() => {return new Promise(resolve => {return resolve(0);});});
+
+    let expectedErrorMessage: string = 'This user is not registered as part of the project';
+
+    await expect(service.verifyUserRegistrationToContract(contract, userID)).rejects.toThrow(expectedErrorMessage);
+    expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
+
+  });
+
+  it('Validation resolves if user is registered to project', async () => {
+
+    let contract: Contract = {ID: 1, title: 'Contract title', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [{ID: 1}, {ID: 3}], users: [{ID: 1, username: 'Henrik@hotmail.com', salt: 'someValt', password: 'somePassword', status: {ID: 2, status: 'Active'}, role: {ID: 1, role: 'User'}}], resumeRequests: [], whitelists: []};
+    let userID: number = 1;
+
+    jest.spyOn(mockContractRepository.createQueryBuilder(), 'getCount').mockImplementation(() => {return new Promise(resolve => {return resolve(1);});});
+
+    await expect(service.verifyUserRegistrationToContract(contract, userID)).resolves;
+    expect(mockContractRepository.createQueryBuilder().getCount).toHaveBeenCalledTimes(1);
+
   });
 
   //#endregion
@@ -1225,23 +1359,23 @@ describe('ContractService', () => {
 
     const theories = [
       { input: contracts = [
-        {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
-        {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: []},
-        {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: []},
+        {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: [], whitelists: []},
+        {ID: 2, title: 'Semco Maritime', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: [], whitelists: []},
+        {ID: 3, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: [], whitelists: []},
         ],
         expectedCalls: 2
       },
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
-          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 6, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: []},
-          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 6, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: [], whitelists: []},
         ],
         expectedCalls: 1
       },
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: []},
-          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 2), users: [], resumes: [], resumeRequests: []},
-          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 3), users: [], resumes: [], resumeRequests: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 2), users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 3), users: [], resumes: [], resumeRequests: [], whitelists: []},
         ],
         expectedCalls: 0
       },
@@ -1272,23 +1406,23 @@ describe('ContractService', () => {
 
     const theories = [
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: []},
-          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), -1), dueDate: null, users: [], resumes: [], resumeRequests: []},
-          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 0), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), -1), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 0), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
         ],
         expectedCalls: 2
       },
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: []},
-          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 6, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), -1), dueDate: null, users: [], resumes: [], resumeRequests: []},
-          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 0), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 6, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), -1), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 0), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
         ],
         expectedCalls: 1
       },
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: []},
-          {ID: 2, title: 'Semco Maritime', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 2), dueDate: null, users: [], resumes: [], resumeRequests: []},
-          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 3), dueDate: null, users: [], resumes: [], resumeRequests: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 2, title: 'Semco Maritime', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 2), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 3, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 3), dueDate: null, users: [], resumes: [], resumeRequests: [], whitelists: []},
         ],
         expectedCalls: 0
       },
@@ -1308,6 +1442,7 @@ describe('ContractService', () => {
       expect(mockContractRepository.createQueryBuilder().update).toHaveBeenCalledTimes(theory.expectedCalls);
     })
   });
+
   //#endregion
 
   //#region GetAllStatuses

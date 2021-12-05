@@ -17,7 +17,12 @@ import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
 import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
-import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
+import {
+  BadRequestError,
+  EntityNotFoundError,
+  InactiveError,
+  InternalServerError
+} from "../../infrastructure/error-handling/errors";
 
 @Injectable()
 export class UserService implements IUserService {
@@ -267,7 +272,7 @@ export class UserService implements IUserService {
     }
 
     if(foundUser.status.status.toLowerCase() == 'pending') {
-      throw new BadRequestError('Email has not been confirmed for this user. Please confirm this account before logging in.');
+      throw new InactiveError('Email has not been confirmed for this user. Please confirm this account before logging in.');
     }
 
     return foundUser;

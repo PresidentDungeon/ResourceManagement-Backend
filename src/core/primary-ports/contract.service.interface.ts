@@ -4,6 +4,7 @@ import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { CommentDTO } from "src/api/dtos/comment.dto";
 import { Comment } from "../models/comment";
+import { GetUserContractsDTO } from "../../api/dtos/get.user.contracts.dto";
 
 export const IContractServiceProvider = 'IContractServiceProvider'
 export interface IContractService{
@@ -13,15 +14,16 @@ export interface IContractService{
   saveComment(commentDTO: CommentDTO): Promise<void>
   getContractComments(ID: number): Promise<Comment[]>
   getContractByID(ID: number, redact?: boolean, userID?: number): Promise<Contract>
-  getContractsByUserID(userID: number, statusID: number): Promise<Contract[]>
+  getContractsByUserID(userID: number, username: string, statusID: number, displayDomainContract: boolean): Promise<GetUserContractsDTO>
   getContractsByResume(ID: number): Promise<Contract[]>
   getContracts(filter: Filter): Promise<FilterList<Contract>>
-  confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>
-  requestRenewal(contract: Contract): Promise<Contract>
+  confirmContract(contract: Contract, userID: number, isAccepted: boolean): Promise<Contract>
+  requestRenewal(contract: Contract, userID: number): Promise<Contract>
   update(contract: Contract): Promise<Contract>
   delete(ID: number): Promise<void>
 
   verifyContractEntity(contract: Contract)
+  verifyUserRegistrationToContract(contract: Contract, userID: number)
   verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>;
 
   getAllStatuses(): Promise<Status[]>

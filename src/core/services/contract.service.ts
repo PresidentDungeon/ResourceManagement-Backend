@@ -3,7 +3,6 @@ import { InjectConnection, InjectRepository } from "@nestjs/typeorm";
 import { Connection, Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
 import { Contract } from "../models/contract";
-import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
 import { Status } from "../models/status";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
@@ -13,7 +12,9 @@ import { CommentDTO } from "src/api/dtos/comment.dto";
 import { Comment } from "../models/comment";
 import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 import { Inject, Injectable } from "@nestjs/common";
+import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
 import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
+import { GetUserContractsDTO } from "../../api/dtos/get.user.contracts.dto";
 
 @Injectable()
 export class ContractService implements IContractService{
@@ -54,6 +55,7 @@ export class ContractService implements IContractService{
 
     let requestStatus: Status = await this.statusService.findStatusByName('Request');
     contract.status = requestStatus;
+    contract.isVisibleToDomainUsers = false;
 
     this.verifyContractEntity(contract);
 
@@ -83,7 +85,7 @@ export class ContractService implements IContractService{
     commentEntity.user = JSON.parse(JSON.stringify({ID: commentDTO.userID}));
     commentEntity.contract = JSON.parse(JSON.stringify({ID: commentDTO.contractID}));
     try{await this.commentRepository.save(commentEntity);}
-    catch (e) {throw new InternalServerError('Error saving comment to database');}
+    catch (e) {throw new InternalServerError('Error saving comment to database'); }
   }
 
   async getContractComments(ID: number): Promise<Comment[]>{
@@ -109,6 +111,7 @@ export class ContractService implements IContractService{
 
     let qb = this.contractRepository.createQueryBuilder("contract");
     if(redact != null && !redact){qb.leftJoinAndSelect('contract.users', 'users');}
+    if(redact != null && !redact){qb.leftJoinAndSelect('contract.whitelists', 'whitelists');}
 
     if(personalID != null){
 
@@ -140,26 +143,50 @@ export class ContractService implements IContractService{
     return foundContract;
   }
 
-  async getContractsByUserID(userID: number, statusID: number): Promise<Contract[]> {
+  async getContractsByUserID(userID: number, username: string, statusID: number, displayDomainContract: boolean): Promise<GetUserContractsDTO> {
 
     if(userID == null || userID <= 0){
       throw new BadRequestError('User ID must be instantiated or valid');
     }
 
-    let qb = this.contractRepository.createQueryBuilder("contract");
-    qb.leftJoin('contract.users', 'users');
-    qb.andWhere(`users.ID = :userID`, { userID: `${userID}`});
-    qb.leftJoinAndSelect('contract.status', 'status');
-    qb.andWhere(`status.status NOT IN (:...status)`, { status: ['Rejected', 'Draft']});
+    let loadDomainContracts: boolean = (displayDomainContract == null) ? false : JSON.parse(displayDomainContract as unknown as string);
+
+    let personalQB = this.contractRepository.createQueryBuilder("contract");
+    personalQB.leftJoin('contract.users', 'users');
+    personalQB.andWhere(`users.ID = :userID`, { userID: `${userID}`});
+    personalQB.leftJoinAndSelect('contract.status', 'status');
+    personalQB.andWhere(`status.status NOT IN (:...status)`, { status: ['Rejected', 'Draft']});
 
     if(statusID > 0)
     {
-      qb.andWhere(`status.ID = :statusID`, { statusID: `${statusID}` });
+      personalQB.andWhere(`status.ID = :statusID`, { statusID: `${statusID}` });
     }
 
-    const foundContract: ContractEntity[] = await qb.getMany();
-    await this.verifyContractStatuses(foundContract);
-    return foundContract;
+    let indexOfAt = username.indexOf('@');
+    if(indexOfAt == -1) {loadDomainContracts = false;}
+    let domainName = username.slice(indexOfAt, username.length);
+
+    let domainQB = this.contractRepository.createQueryBuilder("contract");
+    domainQB.leftJoin('contract.whitelists', 'whitelists');
+    domainQB.leftJoinAndSelect('contract.status', 'status');
+    domainQB.andWhere(`contract.isVisibleToDomainUsers = true`);
+    domainQB.andWhere(`whitelists.domain ILIKE :userDomain`, { userDomain: domainName});
+    domainQB.andWhere(`status.status NOT IN (:...status)`, { status: ['Rejected', 'Draft']});
+
+    if(statusID > 0)
+    {
+      domainQB.andWhere(`status.ID = :statusID`, { statusID: `${statusID}` });
+    }
+
+    const foundPersonalContracts: Contract[] = await personalQB.getMany();
+    const foundDomainContracts: Contract[] = (loadDomainContracts) ? await domainQB.getMany() : [];
+
+    const contracts: GetUserContractsDTO = {personalContract: foundPersonalContracts, domainContracts: foundDomainContracts};
+
+    await this.verifyContractStatuses(foundPersonalContracts);
+    await this.verifyContractStatuses(foundDomainContracts);
+
+    return contracts;
   }
 
   async getContractsByResume(ID: number): Promise<Contract[]> {
@@ -256,7 +283,7 @@ export class ContractService implements IContractService{
     return filterList;
   }
 
-  async confirmContract(contract: Contract, isAccepted: boolean): Promise<Contract>{
+  async confirmContract(contract: Contract, userID: number, isAccepted: boolean): Promise<Contract>{
 
     const storedContract: Contract = await this.getContractByID(contract.ID);
 
@@ -271,6 +298,8 @@ export class ContractService implements IContractService{
       throw new BadRequestError('The validation window for this contract is expired and cannot be accepted or declined');
     }
 
+    await this.verifyUserRegistrationToContract(storedContract, userID);
+
     let status: Status = await ((isAccepted) ? this.statusService.findStatusByName("Accepted") : this.statusService.findStatusByName("Rejected"));
     contract.status = status;
     contract.dueDate = null;
@@ -278,13 +307,15 @@ export class ContractService implements IContractService{
     return updatedContract;
   }
 
-  async requestRenewal(contract: Contract): Promise<Contract>{
+  async requestRenewal(contract: Contract, userID: number): Promise<Contract>{
 
     const storedContract: Contract = await this.getContractByID(contract.ID);
 
     if(storedContract.status.status.toLowerCase() != 'expired'){
       throw new BadRequestError('Contract is not expired and cannot be requested for renewal');
     }
+
+    await this.verifyUserRegistrationToContract(storedContract, userID);
 
     let pendingStatus: Status = await this.statusService.findStatusByName("Draft");
     contract.status = pendingStatus;
@@ -333,10 +364,22 @@ export class ContractService implements IContractService{
     if(contract.ID == null || contract.ID < 0){throw new BadRequestError('Contract must have a valid ID')}
     if(contract.title == null || contract.title.trim().length == 0){throw new BadRequestError('Contract must have a valid title');}
     if(contract.description == null || contract.description.length > 500){throw new BadRequestError('Contract must have a valid description under 500 characters');}
+    if(contract.isVisibleToDomainUsers == null){throw new BadRequestError('Contract must have valid visible status');}
     if(contract.status == null || contract.status.ID <= 0){throw new BadRequestError('Contract must have a valid status');}
     if(contract.startDate == null ){throw new BadRequestError('Contract must contain a valid start date');}
     if(contract.endDate == null ){throw new BadRequestError('Contract must contain a valid end date');}
     if(contract.endDate.getTime() - contract.startDate.getTime() < 0 ){throw new BadRequestError('Start date cannot be after end date');}
+  }
+
+  async verifyUserRegistrationToContract(contract: Contract, userID: number){
+
+    let qb = this.contractRepository.createQueryBuilder('contract');
+    qb.leftJoin('contract.users', 'users');
+    qb.andWhere('contract.ID = :contractID', {contractID: contract.ID});
+    qb.andWhere('users.ID = :userID', {userID: userID});
+
+    let count = await qb.getCount();
+    if(count == 0){throw new BadRequestError('This user is not registered as part of the project');}
   }
 
   async verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>{

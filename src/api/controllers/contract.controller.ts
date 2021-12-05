@@ -79,9 +79,9 @@ export class ContractController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('getContractByUserID')
-  async getContractByUserID(@Query() statusID: any, @Req() request) {
-    return await this.contractService.getContractsByUserID(request.user.userID, statusID.ID);
+  @Get('getContractsByUserID')
+  async getContractsByUserID(@Query() query: any, @Req() request) {
+      return await this.contractService.getContractsByUserID(request.user.userID, request.user.username, query.ID, query.displayDomainContract);
   }
 
   @Roles('Admin')
@@ -102,16 +102,16 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Post('contractStateReply')
-  async confirmContractState(@Body() contractStateReplyDTO: ContractStateReplyDTO) {
-    const updatedContract = await this.contractService.confirmContract(contractStateReplyDTO.contract, contractStateReplyDTO.isAccepted);
+  async confirmContractState(@Body() contractStateReplyDTO: ContractStateReplyDTO, @Req() request) {
+    const updatedContract = await this.contractService.confirmContract(contractStateReplyDTO.contract, request.user.userID, contractStateReplyDTO.isAccepted);
     this.contractService.getContractByID(contractStateReplyDTO.contract.ID, false).then((contract) => { this.socketService.emitContractUpdateEvent(contract) });
     return updatedContract;
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('requestRenewal')
-  async requestRenewal(@Body() contract: Contract) {
-    const updatedContract = await this.contractService.requestRenewal(contract);
+  async requestRenewal(@Body() contract: Contract, @Req() request) {
+    const updatedContract = await this.contractService.requestRenewal(contract, request.user.userID);
     this.contractService.getContractByID(contract.ID, false).then((contract) => { this.socketService.emitContractUpdateEvent(contract) });
     return updatedContract;
   }
