@@ -143,14 +143,14 @@ export class UserService implements IUserService {
   }
 
   async getUsersByWhitelistDomain(domain: string): Promise<User[]> {
-    if (domain == null || domain == undefined || domain.length <= 0) {
+    if (domain == null || domain.trim().length <= 0) {
       throw new BadRequestError("Domain must be instantiated or valid");
     }
 
     let qb = this.userRepository.createQueryBuilder("user");
     qb.leftJoinAndSelect("user.role", "role");
     qb.leftJoinAndSelect("user.status", "status");
-    qb.andWhere(`user.username ILIKE :Username`, { Username: `%${domain}` });
+    qb.andWhere(`user.username ILIKE :domainName`, { domainName: `%${domain}` });
     const foundUsers: UserEntity[] = await qb.getMany();
 
     return foundUsers;

@@ -22,6 +22,7 @@ import { IUserStatusServiceProvider } from "../primary-ports/user-status.service
 import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
 import { WhitelistService } from "./whitelist.service";
 import { IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
+import * as domain from "domain";
 
 describe('UserService', () => {
   let service: UserService;
@@ -469,6 +470,50 @@ describe('UserService', () => {
   });
 
    //#endregion
+
+  //#region GetUserByWhitelistDomain
+
+  describe('Get users with invalid domain name throws error', () => {
+    let domainName: string;
+    let expectedErrorMessage: string = 'Domain must be instantiated or valid';
+
+    const theories = [
+      { domain: domainName = null},
+      { domain: domainName = ''},
+      { domain: domainName = ' '},
+    ];
+
+    theoretically('Bad request error message is thrown when searching for users', theories, async theory => {
+      await expect(service.getUsersByWhitelistDomain(theory.domain)).rejects.toThrow(expectedErrorMessage);
+      expect(mockUserRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  it('Find existing user by domain returns valid user information', async () => {
+
+    let storedUsers: UserEntity[] = [
+      {ID: 1, username: 'user1@gmail.com', salt: 'someSalt', password: 'somePassword', status: {ID: 2, status: 'Active'}, role: {ID: 1, role: 'User'}},
+      {ID: 2, username: 'user2@hotmail.com', salt: 'someSalt', password: 'somePassword', status: {ID: 2, status: 'Active'}, role: {ID: 1, role: 'User'}},
+      {ID: 3, username: 'user3@gmail.com', salt: 'someSalt', password: 'somePassword', status: {ID: 2, status: 'Active'}, role: {ID: 2, role: 'Admin'}},
+    ]
+
+    let domainName: string = '@gmail.com';
+
+    let expectedUsers: UserEntity[] = [storedUsers[0], storedUsers[2]];
+
+    jest.spyOn(mockUserRepository.createQueryBuilder(), 'getMany')
+        .mockImplementation(() => {return new Promise(resolve => {resolve([storedUsers[0], storedUsers[2]]);})});
+
+    let foundUsers: User[]
+
+    await expect(foundUsers = await service.getUsersByWhitelistDomain(domainName)).resolves;
+    expect(foundUsers).toStrictEqual(expectedUsers);
+    expect(mockUserRepository.createQueryBuilder().andWhere).toHaveBeenCalledTimes(1);
+    expect(mockUserRepository.createQueryBuilder().andWhere).toHaveBeenCalledWith(`user.username ILIKE :domainName`, { domainName: `%${domainName}` });
+    expect(mockUserRepository.createQueryBuilder().getMany).toHaveBeenCalledTimes(1);
+  });
+
+  //#endregion
 
   //#region GetUserByID
 
