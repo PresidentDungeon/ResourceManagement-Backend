@@ -9,7 +9,6 @@ import { Filter } from "../models/filter";
 import theoretically from "jest-theories";
 import { FilterList } from "../models/filterList";
 
-
 describe("WhitelistService", () => {
   let service: WhitelistService;
   let mockWhitelistRepository: Repository<WhitelistDomainEntity>;
@@ -151,8 +150,8 @@ describe("WhitelistService", () => {
   it("Get whitelists with valid filterlist", async () => {
 
     let storedWhitelist: WhitelistDomainEntity[] = [
-      { ID: 1, domain: "@semcomaritime.com" },
-      { ID: 2, domain: "@easv365.dk" }
+      { ID: 1, domain: "@semcomaritime.com", contracts: []},
+      { ID: 2, domain: "@easv365.dk", contracts: []}
     ];
 
     let expectedTotalListSize: number = 2;
@@ -176,7 +175,8 @@ describe("WhitelistService", () => {
         });
       });
 
-    let filterList: FilterList<WhitelistDomainEntity>;
+    let filterList: FilterList<Whitelist>;
+
     await expect(filterList = await service.getWhitelists(filter)).resolves;
     expect(filterList.list).toStrictEqual(storedWhitelist);
     expect(filterList.list.length).toBe(expectedListSize);
@@ -207,7 +207,8 @@ describe("WhitelistService", () => {
 
     let storedWhitelist: WhitelistDomainEntity = {
       ID: 1,
-      domain: "@semcomaritime.com"
+      domain: "@semcomaritime.com",
+      contracts: []
     };
 
     jest
@@ -235,7 +236,7 @@ describe("WhitelistService", () => {
 
   it("Update invalid whitelist throws error", async () => {
 
-    let whitelistToUpdate: WhitelistDomainEntity = { ID: 0, domain: "@gmail.com" };
+    let whitelistToUpdate: WhitelistDomainEntity = { ID: 0, domain: "@gmail.com", contracts: [] };
     let expectedErrorMessage: string = "Whitelist must have a valid ID";
 
     jest
@@ -255,15 +256,17 @@ describe("WhitelistService", () => {
 
     let storedWhitelist: WhitelistDomainEntity = {
       ID: 1,
-      domain: "@semco.dk"
+      domain: "@semco.dk",
+      contracts: []
     };
 
     let expectedWhitelist: WhitelistDomainEntity = {
       ID: 1,
-      domain: "@semcomaritime.com"
+      domain: "@semcomaritime.com",
+      contracts: []
     };
 
-    let whitelistObject: WhitelistDomainEntity = { ID: 1, domain: "@semcomaritime.com" };
+    let whitelistObject: WhitelistDomainEntity = { ID: 1, domain: "@semcomaritime.com", contracts: [] };
 
     jest
       .spyOn(service, "getWhitelistByID")
@@ -307,7 +310,8 @@ describe("WhitelistService", () => {
 
     let storedWhitelist: WhitelistDomainEntity = {
       ID: 1,
-      domain: "@semco.dk"
+      domain: "@semco.dk",
+      contracts: []
     };
     jest
       .spyOn(service, "getWhitelistByID")
@@ -333,7 +337,8 @@ describe("WhitelistService", () => {
 
     let storedWhitelist: WhitelistDomainEntity = {
       ID: 1,
-      domain: "@semco.dk"
+      domain: "@semco.dk",
+      contracts: []
     };
     jest
       .spyOn(service, "getWhitelistByID")

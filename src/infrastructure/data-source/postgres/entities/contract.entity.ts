@@ -11,10 +11,10 @@ import {
 } from "typeorm";
 import { UserEntity } from "./user.entity";
 import { ResumeEntity } from "./resume.entity";
-import { UserStatusEntity } from "./user-status.entity";
 import { ContractStatusEntity } from "./contract-status.entity";
 import { ResumeRequestEntity } from "./resume-request.entity";
 import { CommentEntity } from "./comment.entity";
+import { WhitelistDomainEntity } from "./whitelist.domain.entity";
 
 @Entity()
 export class ContractEntity {
@@ -27,6 +27,9 @@ export class ContractEntity {
 
   @Column()
   public description: string;
+
+  @Column({default: false})
+  public isVisibleToDomainUsers: boolean;
 
   @Index()
   @ManyToOne(() => ContractStatusEntity, (contractStatusEntity: ContractStatusEntity) => contractStatusEntity.contracts)
@@ -54,4 +57,8 @@ export class ContractEntity {
   @ManyToMany(() => ResumeEntity, contractorEntity => contractorEntity.contracts, {cascade: ['insert']})
   @JoinTable()
   resumes: ResumeEntity[];
+
+  @ManyToMany(() => WhitelistDomainEntity, whitelistDomain => whitelistDomain.contracts, {cascade: ['remove']})
+  @JoinTable()
+  whitelists: WhitelistDomainEntity[];
 }

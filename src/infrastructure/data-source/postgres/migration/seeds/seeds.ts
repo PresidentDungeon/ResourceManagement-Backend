@@ -10,7 +10,7 @@ export const RoleSeed: RoleEntity[] = [
 export const UserStatusSeed: UserStatusEntity[] = [
   {ID: 1, status: 'Pending'},
   {ID: 2, status: 'Active'},
-  {ID: 3, status: 'Whitelisted'},
+  {ID: 3, status: 'Approved'},
   {ID: 4, status: 'Disabled'},
 ]
 

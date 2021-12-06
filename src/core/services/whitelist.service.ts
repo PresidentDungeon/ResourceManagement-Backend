@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { IWhitelistService } from "../primary-ports/whitelist.service.interface";
@@ -6,8 +6,6 @@ import { WhitelistDomainEntity } from "../../infrastructure/data-source/postgres
 import { Whitelist } from "../models/whitelist";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
-import { UserDTO } from "../../api/dtos/user.dto";
-import { User } from "../models/user";
 import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 
 @Injectable()
@@ -71,6 +69,9 @@ export class WhitelistService implements IWhitelistService {
       qb.andWhere(`domain ILIKE :domain`, { domain: `%${filter.domain}%` });
     }
 
+    qb.orderBy('whitelist.ID')
+
+
     qb.offset((filter.currentPage) * filter.itemsPrPage);
     qb.limit(filter.itemsPrPage);
 
@@ -124,16 +125,13 @@ export class WhitelistService implements IWhitelistService {
   async verifyUserWhitelist(username: string): Promise<boolean> {
 
     let indexOfAt = username.indexOf('@');
-    if(indexOfAt == -1) {
-      return false;
-    }
+    if(indexOfAt == -1) {return false;}
     let domainName = username.slice(indexOfAt, username.length);
 
     let amountOfWhitelistDomains: number = await this.whitelistRepository.createQueryBuilder("whitelist")
       .andWhere(`whitelist.domain ILIKE :whitelist`, { whitelist: `${domainName}` }).getCount();
 
     return (amountOfWhitelistDomains > 0) ? true : false;
-
   }
 
 
