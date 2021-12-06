@@ -142,7 +142,7 @@ export class UserService implements IUserService {
     return foundUser;
   }
 
-  async getUsersByWhitelistDomain(domain: string): Promise<User> {
+  async getUsersByWhitelistDomain(domain: string): Promise<User[]> {
     if (domain == null || domain == undefined || domain.length <= 0) {
       throw new BadRequestError("Domain must be instantiated or valid");
     }
@@ -151,10 +151,9 @@ export class UserService implements IUserService {
     qb.leftJoinAndSelect("user.role", "role");
     qb.leftJoinAndSelect("user.status", "status");
     qb.andWhere(`user.username ILIKE :Username`, { Username: `%${domain}` });
-    const foundUser: UserEntity = await qb.getOne();
+    const foundUsers: UserEntity[] = await qb.getMany();
 
-    if (foundUser == null) {throw new EntityNotFoundError("No user registered with such a domain");}
-    return foundUser;
+    return foundUsers;
   }
 
   async getUserByID(ID: number): Promise<User> {

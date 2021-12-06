@@ -12,7 +12,7 @@ export interface IUserService{
   registerUsers(users: User[]): Promise<[User[], User[], string[]]>
   addUser(user: User): Promise<[User, string]>
   getUserByUsername(username: string): Promise<User>
-  getUsersByWhitelistDomain(domain: string): Promise<User>
+  getUsersByWhitelistDomain(domain: string): Promise<User[]>
   getUserByID(ID: number): Promise<User>
   getUsers(filter: Filter): Promise<FilterList<UserDTO>>
   getUsernames(username: string): Promise<string[]>

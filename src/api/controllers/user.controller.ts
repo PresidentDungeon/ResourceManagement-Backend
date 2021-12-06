@@ -74,8 +74,8 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getUsersByDomain')
-  async getUsersByDomain(@Query() domain: any){
-    return await this.userService.getUsersByWhitelistDomain(domain.username);
+  async getUsersByDomain(@Query() query: any){
+    return await this.userService.getUsersByWhitelistDomain(query.title);
   }
 
   @Roles('Admin')
