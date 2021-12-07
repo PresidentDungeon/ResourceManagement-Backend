@@ -1,4 +1,4 @@
-import { IContractService } from "../primary-ports/contract.service.interface";
+import { IContractService } from "../primary-ports/application-services/contract.service.interface";
 import { InjectConnection, InjectRepository } from "@nestjs/typeorm";
 import { Connection, Repository } from "typeorm";
 import { ContractEntity } from "../../infrastructure/data-source/postgres/entities/contract.entity";
@@ -12,8 +12,8 @@ import { CommentDTO } from "src/api/dtos/comment.dto";
 import { Comment } from "../models/comment";
 import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 import { Inject, Injectable } from "@nestjs/common";
-import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
-import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
+import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/application-services/contract-status.service.interface";
+import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
 import { GetUserContractsDTO } from "../../api/dtos/get.user.contracts.dto";
 
 @Injectable()

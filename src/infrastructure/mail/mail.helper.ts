@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
-import { User } from "../../core/models/user";
-import { IMailService } from "../../core/primary-ports/mail.service.interface";
 import { ConfigService } from "@nestjs/config";
+import { IMailHelper } from "../../core/primary-ports/domain-services/mail.helper.interface";
 
 @Injectable()
-export class MailService implements IMailService{
+export class MailHelper implements IMailHelper{
 
   constructor(private mailerService: MailerService, private configService: ConfigService) {}
 
@@ -25,25 +24,21 @@ export class MailService implements IMailService{
     });
   }
 
-  async sendUsersRegistrationInvite(users: User[], confirmationCodes: string[]){
+  async sendUserRegistrationInvite(email: string, confirmationCode: string){
 
-    let emails: string[] = users.map(user => {return user.username});
+    const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
+    const verificationLink = `${frontendRoute}/verifyLink?type=setup&email=${email}&verificationCode=${confirmationCode}`;
 
-    for (let i = 0; i < emails.length; i++){
-
-      const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
-      const verificationLink = `${frontendRoute}/verifyLink?type=setup&email=${emails[i]}&verificationCode=${confirmationCodes[i]}`;
-
-      await this.mailerService.sendMail({
-        to: emails[i],
-        subject: 'Semco Maritime Resource Management Invitation Link',
-        template: './invitation',
-        context: {
-          url: verificationLink
-        }
-      });
-    }
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Semco Maritime Resource Management Invitation Link',
+      template: './invitation',
+      context: {
+        url: verificationLink
+      }
+    });
   }
+
 
   async sendUserPasswordReset(email: string, passwordResetToken: string){
 

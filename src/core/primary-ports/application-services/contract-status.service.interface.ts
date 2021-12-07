@@ -1,4 +1,4 @@
-import { Status } from "../models/status";
+import { Status } from "../../models/status";
 
 export const IContractStatusServiceProvider = 'IContractStatusServiceProvider'
 export interface IContractStatusService{

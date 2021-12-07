@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { FindOneOptions, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserStatusService } from "./user-status.service";
 import { Status } from "../models/status";

@@ -8,8 +8,8 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
 import { Repository } from "typeorm";
 import { Status } from "../models/status";
-import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
-import { IResumeService } from "../primary-ports/resume.service.interface";
+import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/application-services/contract-status.service.interface";
+import { IResumeService } from "../primary-ports/application-services/resume.service.interface";
 import { GetResumesDTO } from "../../api/dtos/get.resumes.dto";
 import { BadRequestError, EntityNotFoundError, InternalServerError } from "../../infrastructure/error-handling/errors";
 

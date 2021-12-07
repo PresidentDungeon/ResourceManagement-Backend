@@ -1,18 +1,18 @@
-import { User } from '../models/user';
-import { Filter } from "../models/filter";
-import { FilterList } from "../models/filterList";
-import { UserDTO } from "../../api/dtos/user.dto";
-import { Role } from "../models/role";
-import { Status } from "../models/status";
+import { User } from '../../models/user';
+import { Filter } from "../../models/filter";
+import { FilterList } from "../../models/filterList";
+import { UserDTO } from "../../../api/dtos/user.dto";
+import { Role } from "../../models/role";
+import { Status } from "../../models/status";
 
 export const IUserServiceProvider = 'IUserServiceProvider'
 export interface IUserService{
 
   createUser(username: string, password: string): Promise<User>
-  registerUsers(users: User[]): Promise<[User[], User[], string[]]>
+  registerUser(username: string): Promise<User>
   addUser(user: User): Promise<[User, string]>
   getUserByUsername(username: string): Promise<User>
-  getUsersByWhitelistDomain(domain: string): Promise<User>
+  getUsersByWhitelistDomain(domain: string): Promise<User[]>
   getUserByID(ID: number): Promise<User>
   getUsers(filter: Filter): Promise<FilterList<UserDTO>>
   getUsernames(username: string): Promise<string[]>

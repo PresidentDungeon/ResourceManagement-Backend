@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthenticationHelper } from './authentication.helper';
-import { User } from "../core/models/user";
+import { User } from "../../core/models/user";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import theoretically from "jest-theories";
-import { PasswordToken } from "../core/models/password.token";
+import { PasswordToken } from "../../core/models/password.token";
 
 describe('AuthenticationService', () => {
   let service: AuthenticationHelper;

@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Status } from "../models/status";
 import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
-import { IUserStatusService } from "../primary-ports/user-status.service.interface";
+import { IUserStatusService } from "../primary-ports/application-services/user-status.service.interface";
 import { BadRequestError, EntityNotFoundError } from "../../infrastructure/error-handling/errors";
 
 @Injectable()

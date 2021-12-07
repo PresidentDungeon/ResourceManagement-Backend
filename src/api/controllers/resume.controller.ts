@@ -1,10 +1,10 @@
 import { Body, Controller, Get, Inject, Post, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { GetResumesDTO } from "../dtos/get.resumes.dto";
-import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/resume.service.interface";
+import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/application-services/resume.service.interface";
 import { Resume } from "../../core/models/resume";
 import { FilterList } from "../../core/models/filterList";
-import { Roles } from "../../auth/roles.decorator";
-import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
+import { Roles } from "../../infrastructure/authentication/roles.decorator";
+import { JwtAuthGuard } from "../../infrastructure/authentication/jwt-auth-guard";
 import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
 
 @Controller('resume')

@@ -1,29 +1,16 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-  UseInterceptors
-} from "@nestjs/common";
-import { IUserService, IUserServiceProvider } from "../../core/primary-ports/user.service.interface";
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards, UseInterceptors } from "@nestjs/common";
+import { IUserService, IUserServiceProvider } from "../../core/primary-ports/application-services/user.service.interface";
 import { User } from "../../core/models/user";
-import { IMailService, IMailServiceProvider } from "../../core/primary-ports/mail.service.interface";
 import { LoginDTO } from "../dtos/login.dto";
 import { LoginResponseDTO } from "../dtos/login.response.dto";
 import { VerificationDTO } from "../dtos/verification.dto";
 import { VerificationRequestDTO } from "../dtos/verification.request.dto";
 import { PasswordChangeRequestDTO } from "../dtos/password.change.request.dto";
 import { Filter } from "../../core/models/filter";
-import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
-import { Roles } from "../../auth/roles.decorator";
+import { JwtAuthGuard } from "../../infrastructure/authentication/jwt-auth-guard";
+import { Roles } from "../../infrastructure/authentication/roles.decorator";
 import { UserDTO } from "../dtos/user.dto";
-import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/socket.service.interface";
+import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/application-services/socket.service.interface";
 import { UserPasswordUpdateDTO } from "../dtos/user.password.update.dto";
 import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
 
@@ -32,36 +19,26 @@ import { ErrorInterceptor } from "../../infrastructure/error-handling/error-inte
 export class UserController {
 
   constructor(@Inject(IUserServiceProvider) private userService: IUserService,
-              @Inject(IMailServiceProvider) private mailService: IMailService,
               @Inject(ISocketServiceProvider) private socketService: ISocketService) {}
 
   @Post('register')
   async register(@Body() loginDto: LoginDTO){
-    let createdUser: User = await this.userService.createUser(loginDto.username, loginDto.password);
-    let [savedUser, verificationCode] = await this.userService.addUser(createdUser);
-    this.mailService.sendUserConfirmation(savedUser.username, verificationCode);
+    await this.userService.createUser(loginDto.username, loginDto.password);
   }
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
-  @Post('registerUsers')
-  async registerUsers(@Body() unregisteredUsers: User[]){
-    let allUsers: User[];
-    let registeredUsers: User[];
-    let confirmationTokens: string[];
-
-    [allUsers, registeredUsers, confirmationTokens] = await this.userService.registerUsers(unregisteredUsers);
-
-    let allUsersConverted: UserDTO[] = allUsers.map(user => {return {ID: user.ID, username: user.username, status: user.status, role: user.role}});
-    this.mailService.sendUsersRegistrationInvite(registeredUsers, confirmationTokens);
-    return allUsersConverted;
+  @Get('registerUser')
+  async registerUser(@Query() query: any){
+    let user: User = await this.userService.registerUser(query.username);
+    let userConverted: UserDTO = {ID: user.ID, username: user.username, status: user.status, role: user.role};
+    return userConverted;
   }
 
   @Get('resendVerificationMail')
   async resendVerificationMail(@Query() verificationRequestDTO: VerificationRequestDTO){
     let foundUser = await this.userService.getUserByUsername(verificationRequestDTO.email);
-    let verificationCode = await this.userService.generateNewVerificationCode(foundUser);
-    this.mailService.sendUserConfirmation(foundUser.username, verificationCode);
+    await this.userService.generateNewVerificationCode(foundUser);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -74,8 +51,8 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getUsersByDomain')
-  async getUsersByDomain(@Query() domain: any){
-    return await this.userService.getUsersByWhitelistDomain(domain.username);
+  async getUsersByDomain(@Query() query: any){
+    return await this.userService.getUsersByWhitelistDomain(query.title);
   }
 
   @Roles('Admin')
@@ -113,8 +90,7 @@ export class UserController {
 
   @Get('requestPasswordMail')
   async requestPasswordResetMail(@Query() verificationRequestDTO: VerificationRequestDTO){
-    const passwordResetToken: string = await this.userService.generatePasswordResetToken(verificationRequestDTO.email);
-    this.mailService.sendUserPasswordReset(verificationRequestDTO.email, passwordResetToken);
+    await this.userService.generatePasswordResetToken(verificationRequestDTO.email);
   }
 
   @Post('verifyConfirmationToken')
@@ -132,7 +108,6 @@ export class UserController {
   @Post('requestPasswordChange')
   async requestPasswordChange(@Body() passwordChangeRequestDTO: PasswordChangeRequestDTO){
     await this.userService.updatePasswordWithToken(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
-    this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
   }
 
   @Roles('Admin')

@@ -1,6 +1,6 @@
-import { Resume } from "../models/resume";
-import { FilterList } from "../models/filterList";
-import { GetResumesDTO } from "../../api/dtos/get.resumes.dto";
+import { Resume } from "../../models/resume";
+import { FilterList } from "../../models/filterList";
+import { GetResumesDTO } from "../../../api/dtos/get.resumes.dto";
 
 export const IResumeServiceProvider = 'IResumeServiceProvider'
 export interface IResumeService{

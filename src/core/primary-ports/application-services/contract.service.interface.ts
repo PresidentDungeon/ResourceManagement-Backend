@@ -1,10 +1,10 @@
-import { Contract } from "../models/contract";
-import { Status } from "../models/status";
-import { Filter } from "../models/filter";
-import { FilterList } from "../models/filterList";
+import { Contract } from "../../models/contract";
+import { Status } from "../../models/status";
+import { Filter } from "../../models/filter";
+import { FilterList } from "../../models/filterList";
 import { CommentDTO } from "src/api/dtos/comment.dto";
-import { Comment } from "../models/comment";
-import { GetUserContractsDTO } from "../../api/dtos/get.user.contracts.dto";
+import { Comment } from "../../models/comment";
+import { GetUserContractsDTO } from "../../../api/dtos/get.user.contracts.dto";
 
 export const IContractServiceProvider = 'IContractServiceProvider'
 export interface IContractService{

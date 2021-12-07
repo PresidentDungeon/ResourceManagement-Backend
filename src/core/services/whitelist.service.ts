@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { IWhitelistService } from "../primary-ports/whitelist.service.interface";
+import { IWhitelistService } from "../primary-ports/application-services/whitelist.service.interface";
 import { WhitelistDomainEntity } from "../../infrastructure/data-source/postgres/entities/whitelist.domain.entity";
 import { Whitelist } from "../models/whitelist";
 import { Filter } from "../models/filter";
@@ -34,20 +34,6 @@ export class WhitelistService implements IWhitelistService {
     catch (e) {
       throw new BadRequestError('Internal server error');
     }
-  }
-
-  async deleteWhitelist(whitelist: Whitelist): Promise<void> { //
-    const foundWhitelist = await this.getWhitelistByID(whitelist.ID);
-
-    this.verifyWhitelist(foundWhitelist);
-
-    try{
-      let updatedWhitelist = await this.whitelistRepository.delete(foundWhitelist);
-    }
-    catch (e){
-      throw new BadRequestError('Internal server error');
-    }
-
   }
 
   async getWhitelists(filter: Filter): Promise<FilterList<Whitelist>> {
@@ -114,6 +100,20 @@ export class WhitelistService implements IWhitelistService {
     catch (e){
       throw new InternalServerError('Internal server error');
     }
+  }
+
+  async deleteWhitelist(whitelist: Whitelist): Promise<void> { //
+    const foundWhitelist = await this.getWhitelistByID(whitelist.ID);
+
+    this.verifyWhitelist(foundWhitelist);
+
+    try{
+      let updatedWhitelist = await this.whitelistRepository.delete(foundWhitelist);
+    }
+    catch (e){
+      throw new BadRequestError('Internal server error');
+    }
+
   }
 
   verifyWhitelist(whiteList: Whitelist): void {

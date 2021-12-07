@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { IMailServiceProvider } from "../../core/primary-ports/mail.service.interface";
-import { MailService } from "./mail.service";
+import { MailHelper } from "./mail.helper";
 import { MailerModule } from "@nestjs-modules/mailer";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { join } from 'path';
 import { HandlebarsAdapter } from "@nestjs-modules/mailer/dist/adapters/handlebars.adapter";
+import { IMailHelperProvider } from "../../core/primary-ports/domain-services/mail.helper.interface";
 
 @Module({
 
@@ -36,8 +36,8 @@ import { HandlebarsAdapter } from "@nestjs-modules/mailer/dist/adapters/handleba
       },
     }),
   })],
-  providers: [{provide: IMailServiceProvider, useClass: MailService}],
-  exports: [IMailServiceProvider]
+  providers: [{provide: IMailHelperProvider, useClass: MailHelper}],
+  exports: [IMailHelperProvider]
 })
 
 export class MailModule {}

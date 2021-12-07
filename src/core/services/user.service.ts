@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { IUserService } from "../primary-ports/user.service.interface";
+import { IUserService } from "../primary-ports/application-services/user.service.interface";
 import { User } from "../models/user";
-import { AuthenticationHelper } from "../../auth/authentication.helper";
+import { AuthenticationHelper } from "../../infrastructure/authentication/authentication.helper";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { Repository } from "typeorm";
@@ -10,19 +10,16 @@ import { PasswordToken } from "../models/password.token";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { UserDTO } from "../../api/dtos/user.dto";
-import { IRoleService, IRoleServiceProvider } from "../primary-ports/role.service.interface";
+import { IRoleService, IRoleServiceProvider } from "../primary-ports/application-services/role.service.interface";
 import { Role } from "../models/role";
 import { Status } from "../models/status";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
-import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
-import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
-import {
-  BadRequestError,
-  EntityNotFoundError,
-  InactiveError,
-  InternalServerError
-} from "../../infrastructure/error-handling/errors";
+import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/application-services/user-status.service.interface";
+import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
+import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
+import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
+import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
 
 @Injectable()
 export class UserService implements IUserService {
@@ -33,10 +30,11 @@ export class UserService implements IUserService {
   verificationTokenCount: number = 6;
 
   constructor(
-    private authenticationHelper: AuthenticationHelper,
     @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
     @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
+    @Inject(IAuthenticationHelperProvider) private authenticationHelper: IAuthenticationHelper,
+    @Inject(IMailHelperProvider) private mailHelper: IMailHelper,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
     @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService,
     @Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService,
@@ -57,46 +55,31 @@ export class UserService implements IUserService {
     let salt: string = this.generateSalt();
     let hashedPassword: string = this.generateHash(password, salt);
 
-    return { ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus };
+    let [user, verificationCode] = await this.addUser({ ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus });
+    this.mailHelper.sendUserConfirmation(username, verificationCode);
+    return user;
   }
 
-  async registerUsers(users: User[]): Promise<[User[], User[], string[]]> {
+  async registerUser(username: string): Promise<User> {
 
-    let allUsers: User[] = [];
-    let addedUsers: User[] = [];
-    let confirmationTokens: string[] = [];
+    if (username == null || !this.emailRegex.test(username)) {
+      throw new BadRequestError("Username must be a valid email");
+    }
 
     let userRole: Role = await this.roleService.findRoleByName("user");
     let userStatus: Status = await this.statusService.findStatusByName("pending");
 
-    for (let user of users) {
-      if (user == null || !this.emailRegex.test(user.username)) {
-        throw new BadRequestError(`Username ${user.username} must be a valid email`);
-      }
+    let foundUser: User = await this.userRepository.createQueryBuilder("user")
+      .andWhere(`user.username ILIKE :Username`, { Username: `${username}` }).getOne();
+
+    if(foundUser){
+      return foundUser
     }
-
-    for (let user of users) {
-
-      let foundUser: User = await this.userRepository.createQueryBuilder("user")
-        .andWhere(`user.username ILIKE :Username`, { Username: `${user.username}` }).getOne();
-
-      if (foundUser) {
-        allUsers.push(foundUser);
-      } else {
-        user.role = userRole;
-        user.status = userStatus;
-        user.password = "";
-        user.salt = this.generateSalt();
-
-        let [savedUser, verificationCode] = await this.addUser(user);
-
-        allUsers.push(savedUser);
-        addedUsers.push(savedUser);
-        confirmationTokens.push(verificationCode);
-      }
+    else{
+      const [newUser, confirmationCode] = await this.addUser({ID: 0, username: username, password: '', salt: this.generateSalt(), status: userStatus, role: userRole});
+      this.mailHelper.sendUserRegistrationInvite(username, confirmationCode);
+      return newUser
     }
-
-    return [allUsers, addedUsers, confirmationTokens];
   }
 
   async addUser(user: User): Promise<[User, string]> {
@@ -142,19 +125,18 @@ export class UserService implements IUserService {
     return foundUser;
   }
 
-  async getUsersByWhitelistDomain(domain: string): Promise<User> {
-    if (domain == null || domain == undefined || domain.length <= 0) {
+  async getUsersByWhitelistDomain(domain: string): Promise<User[]> {
+    if (domain == null || domain.trim().length <= 0) {
       throw new BadRequestError("Domain must be instantiated or valid");
     }
 
     let qb = this.userRepository.createQueryBuilder("user");
     qb.leftJoinAndSelect("user.role", "role");
     qb.leftJoinAndSelect("user.status", "status");
-    qb.andWhere(`user.username ILIKE :Username`, { Username: `%${domain}` });
-    const foundUser: UserEntity = await qb.getOne();
+    qb.andWhere(`user.username ILIKE :domainName`, { domainName: `%${domain}` });
+    const foundUsers: UserEntity[] = await qb.getMany();
 
-    if (foundUser == null) {throw new EntityNotFoundError("No user registered with such a domain");}
-    return foundUser;
+    return foundUsers;
   }
 
   async getUserByID(ID: number): Promise<User> {
@@ -291,6 +273,7 @@ export class UserService implements IUserService {
     const confirmationToken: ConfirmationToken = { user: user, salt: saltValue, hashedConfirmationToken: hashedVerificationCode };
     try {await this.confirmationTokenRepository.save(confirmationToken);}
     catch (e) {throw new InternalServerError("Error saving confirmation token to database");}
+    this.mailHelper.sendUserConfirmation(user.username, verificationCode);
     return verificationCode;
   }
 
@@ -311,6 +294,7 @@ export class UserService implements IUserService {
       await this.passwordTokenRepository.save(passwordToken);
     }
     catch (e) {throw new InternalServerError("Error saving new password token to database");}
+    this.mailHelper.sendUserPasswordReset(username, passwordResetString);
     return passwordResetString;
   }
 
@@ -419,7 +403,7 @@ export class UserService implements IUserService {
     catch (e) {
       throw new InternalServerError("Error updating password with password reset token");
     }
-
+    this.mailHelper.sendUserPasswordResetConfirmation(username);
     return success;
   }
 
@@ -486,12 +470,6 @@ export class UserService implements IUserService {
     if (user.status == undefined || user.status == null || user.status.ID <= 0) {
       throw new BadRequestError("An error occurred with user status");
     }
-  }
-
-  verifyUserDomain(user: User) {
-
-
-
   }
 
   async getAllUserRoles(): Promise<Role[]> {
