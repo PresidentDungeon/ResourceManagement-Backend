@@ -1,20 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { Hmac } from "crypto";
-import { User } from "../core/models/user";
+import { User } from "../../core/models/user";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
-import { PasswordToken } from "../core/models/password.token";
-import { BadRequestError } from "../infrastructure/error-handling/errors";
+import { PasswordToken } from "../../core/models/password.token";
+import { BadRequestError } from "../error-handling/errors";
+import { IAuthenticationHelper } from "../../core/primary-ports/domain-services/authentication.helper.interface";
 
 const crypto = require('crypto');
 
 @Injectable()
-export class AuthenticationHelper {
+export class AuthenticationHelper implements IAuthenticationHelper{
 
   secretKeyLength: number = 16;
   maxPasswordTokenAgeInSeconds: number = 60 * 60 * 1000;
   secretKey = this.generateToken(this.secretKeyLength);
 
   constructor(private jwtService: JwtService) {}
+
+  getSecretKey(): string{
+    return this.secretKey;
+  }
 
   generateToken(tokenLength: number): string{
 

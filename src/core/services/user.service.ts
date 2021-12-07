@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { IUserService } from "../primary-ports/application-services/user.service.interface";
 import { User } from "../models/user";
-import { AuthenticationHelper } from "../../auth/authentication.helper";
+import { AuthenticationHelper } from "../../infrastructure/authentication/authentication.helper";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { Repository } from "typeorm";
@@ -19,6 +19,7 @@ import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports
 import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
 import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
 import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
+import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
 
 @Injectable()
 export class UserService implements IUserService {
@@ -29,10 +30,10 @@ export class UserService implements IUserService {
   verificationTokenCount: number = 6;
 
   constructor(
-    private authenticationHelper: AuthenticationHelper,
     @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
     @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
+    @Inject(IAuthenticationHelperProvider) private authenticationHelper: IAuthenticationHelper,
     @Inject(IMailHelperProvider) private mailHelper: IMailHelper,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
     @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService,

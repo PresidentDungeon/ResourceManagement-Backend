@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Inject, Post, Put, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
 import { Whitelist } from "../../core/models/whitelist";
-import { Roles } from "../../auth/roles.decorator";
-import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
+import { Roles } from "../../infrastructure/authentication/roles.decorator";
+import { JwtAuthGuard } from "../../infrastructure/authentication/jwt-auth-guard";
 import { Filter } from "../../core/models/filter";
 import { IWhitelistService, IWhitelistServiceProvider } from "../../core/primary-ports/application-services/whitelist.service.interface";
 

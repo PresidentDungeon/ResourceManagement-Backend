@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, Inject, Post, Put, Query, Req, UseGuards
 import { IContractService, IContractServiceProvider } from "../../core/primary-ports/application-services/contract.service.interface";
 import { Contract } from "../../core/models/contract";
 import { Resume } from "../../core/models/resume";
-import { Roles } from "../../auth/roles.decorator";
-import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
+import { Roles } from "../../infrastructure/authentication/roles.decorator";
+import { JwtAuthGuard } from "../../infrastructure/authentication/jwt-auth-guard";
 import { Filter } from "../../core/models/filter";
 import { ContractStateReplyDTO } from "../dtos/contract.state.reply.dto";
 import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/application-services/resume.service.interface";

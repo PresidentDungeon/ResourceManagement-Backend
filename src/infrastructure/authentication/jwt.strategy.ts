@@ -1,15 +1,15 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
-import { Injectable } from '@nestjs/common';
-import { AuthenticationHelper } from './authentication.helper';
+import { Inject, Injectable } from "@nestjs/common";
+import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../../core/primary-ports/domain-services/authentication.helper.interface";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private authenticationHelper: AuthenticationHelper) {
+  constructor(@Inject(IAuthenticationHelperProvider) private authenticationHelper: IAuthenticationHelper) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: authenticationHelper.secretKey,
+      secretOrKey: authenticationHelper.getSecretKey(),
     });
   }
 
