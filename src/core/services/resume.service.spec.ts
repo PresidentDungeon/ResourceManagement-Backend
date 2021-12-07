@@ -1,18 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ResumeService } from './resume.service';
-import { FindManyOptions, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { ResumeEntity } from "../../infrastructure/data-source/postgres/entities/resume.entity";
-import { ContractStatusService } from "./contract-status.service";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { HttpService } from "@nestjs/axios";
 import { ConfigService } from "@nestjs/config";
-import { IContractStatusServiceProvider } from "../primary-ports/application-services/contract-status.service.interface";
+import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/application-services/contract-status.service.interface";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
 import { Contract } from "../models/contract";
 import theoretically from "jest-theories";
 import { Resume } from "../models/resume";
 import { AxiosResponse } from "axios";
-import { Observable, of, throwError } from "rxjs";
+import { of, throwError } from "rxjs";
 import { FilterList } from "../models/filterList";
 import { GetResumesDTO } from "../../api/dtos/get.resumes.dto";
 import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
@@ -21,7 +20,7 @@ describe('ResumeService', () => {
 
   let service: ResumeService;
   let mockResumeRepository: Repository<ResumeEntity>;
-  let mockStatusService: ContractStatusService;
+  let mockStatusService: IContractStatusService;
   let mockHTTPService: HttpService;
   let mockConfigService: ConfigService;
 
@@ -46,7 +45,7 @@ describe('ResumeService', () => {
       })
     };
 
-    const StatusServiceMock = {
+    const MockStatusService = {
       provide: IContractStatusServiceProvider,
       useFactory: () => ({
         findStatusByName: jest.fn((name: string) => {let statusEntity: ContractStatusEntity = {ID: 1, status: name}; return statusEntity;}),
@@ -55,12 +54,12 @@ describe('ResumeService', () => {
     }
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ResumeService, StatusServiceMock, MockResumeRepository, MockHTTPService, MockConfigService],
+      providers: [ResumeService, MockStatusService, MockResumeRepository, MockHTTPService, MockConfigService],
     }).compile();
 
     service = module.get<ResumeService>(ResumeService);
     mockResumeRepository = module.get<Repository<ResumeEntity>>(getRepositoryToken(ResumeEntity));
-    mockStatusService = module.get<ContractStatusService>(IContractStatusServiceProvider);
+    mockStatusService = module.get<IContractStatusService>(IContractStatusServiceProvider);
     mockHTTPService = module.get<HttpService>(HttpService);
     mockConfigService = module.get<ConfigService>(ConfigService);
   });

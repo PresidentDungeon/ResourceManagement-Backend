@@ -1,82 +1,23 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { WhitelistService } from "./whitelist.service";
-import { DeleteQueryBuilder, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { WhitelistDomainEntity } from "../../infrastructure/data-source/postgres/entities/whitelist.domain.entity";
 import { getRepositoryToken } from "@nestjs/typeorm";
-import { ResumeRequestEntity } from "../../infrastructure/data-source/postgres/entities/resume-request.entity";
 import { Whitelist } from "../models/whitelist";
 import { Filter } from "../models/filter";
 import theoretically from "jest-theories";
 import { FilterList } from "../models/filterList";
+import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
 
 describe("WhitelistService", () => {
   let service: WhitelistService;
   let mockWhitelistRepository: Repository<WhitelistDomainEntity>;
-  let mockDeleteQueryBuilder: DeleteQueryBuilder<WhitelistDomainEntity>;
+
+  let mockContractFactory = new MockRepositories();
 
   beforeEach(async () => {
 
-    const MockWhitelistRepository = {
-      provide: getRepositoryToken(WhitelistDomainEntity),
-      useFactory: () => ({
-        save: jest.fn((resumeRequestEntity: ResumeRequestEntity) => {
-          return new Promise(resolve => {
-            resolve(resumeRequestEntity);
-          });
-        }),
-        create: jest.fn((resumeRequestEntity: ResumeRequestEntity) => {
-          return new Promise(resolve => {
-            resolve(resumeRequestEntity);
-          });
-        }),
-        execute: jest.fn(() => {
-        }),
-        delete: jest.fn(() => {
-          return deleteQueryBuilder;
-        }),
-        count: jest.fn(() => {
-        }),
-        createQueryBuilder: jest.fn(() => {
-          return createQueryBuilder;
-        })
-      })
-    };
-
-    const createQueryBuilder: any = {
-      leftJoinAndSelect: jest.fn(() => createQueryBuilder),
-      leftJoin: () => createQueryBuilder,
-      andWhere: () => createQueryBuilder,
-      where: () => createQueryBuilder,
-      select: () => createQueryBuilder,
-      addSelect: () => createQueryBuilder,
-      groupBy: () => createQueryBuilder,
-      addGroupBy: () => createQueryBuilder,
-      getOne: jest.fn(() => {
-      }),
-      getMany: jest.fn(() => {
-      }),
-      getRawOne: jest.fn(() => {
-      }),
-      getRawMany: jest.fn(() => {
-      }),
-      getCount: jest.fn(() => {
-      }),
-      offset: jest.fn(() => {
-      }),
-      limit: jest.fn(() => {
-      }),
-      orderBy: jest.fn(() => {
-      })
-    };
-
-    const deleteQueryBuilder: any = {
-      set: () => deleteQueryBuilder,
-      where: () => deleteQueryBuilder,
-      from: () => deleteQueryBuilder,
-      andWhere: () => deleteQueryBuilder,
-      execute: jest.fn(() => {
-      })
-    };
+    const MockWhitelistRepository = mockContractFactory.getMockRepository(WhitelistDomainEntity);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [WhitelistService, MockWhitelistRepository]

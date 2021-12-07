@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { AuthenticationHelper } from "../../infrastructure/authentication/authentication.helper";
 import { User } from "../models/user";
 import theoretically from "jest-theories";
 import { Repository } from "typeorm";
@@ -11,31 +10,27 @@ import { PasswordTokenEntity } from "../../infrastructure/data-source/postgres/e
 import { Filter } from "../models/filter";
 import { UserDTO } from "../../api/dtos/user.dto";
 import { FilterList } from "../models/filterList";
-import { RoleService } from "./role.service";
-import { IRoleServiceProvider } from "../primary-ports/application-services/role.service.interface";
+import { IRoleService, IRoleServiceProvider } from "../primary-ports/application-services/role.service.interface";
 import { RoleEntity } from "../../infrastructure/data-source/postgres/entities/role.entity";
-import { UserStatusService } from "./user-status.service";
 import { UserStatusEntity } from "../../infrastructure/data-source/postgres/entities/user-status.entity";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { ConfirmationToken } from "../models/confirmation.token";
-import { IUserStatusServiceProvider } from "../primary-ports/application-services/user-status.service.interface";
+import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/application-services/user-status.service.interface";
 import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
-import { WhitelistService } from "./whitelist.service";
-import { IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
-import { IMailHelperProvider } from "../primary-ports/domain-services/mail.helper.interface";
-import { MailHelper } from "../../infrastructure/mail/mail.helper";
-import { IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
+import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
+import { IMailHelper, IMailHelperProvider } from "../primary-ports/domain-services/mail.helper.interface";
+import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
 
 describe('UserService', () => {
   let service: UserService;
-  let mockAuthenticationHelper: AuthenticationHelper;
-  let mockMailHelper: MailHelper;
+  let mockAuthenticationHelper: IAuthenticationHelper;
+  let mockMailHelper: IMailHelper;
   let mockUserRepository: Repository<UserEntity>;
   let mockPasswordTokenRepository: Repository<PasswordTokenEntity>;
   let mockConfirmationTokenRepository: Repository<ConfirmationTokenEntity>;
-  let mockRoleService: RoleService;
-  let mockStatusService: UserStatusService;
-  let mockWhitelistService: WhitelistService;
+  let mockRoleService: IRoleService;
+  let mockStatusService: IUserStatusService;
+  let mockWhitelistService: IWhitelistService;
 
   let mockContractFactory = new MockRepositories();
 
@@ -67,7 +62,7 @@ describe('UserService', () => {
       })
     }
 
-    const RoleServiceMock = {
+    const MockRoleService = {
       provide: IRoleServiceProvider,
       useFactory: () => ({
         findRoleByName: jest.fn((name: string) => {let roleEntity: RoleEntity = {ID: 1, role: name}; return roleEntity;}),
@@ -75,7 +70,7 @@ describe('UserService', () => {
       })
     }
 
-    const StatusServiceMock = {
+    const MockStatusService = {
       provide: IUserStatusServiceProvider,
       useFactory: () => ({
         findStatusByName: jest.fn((name: string) => {let statusEntity: UserStatusEntity = {ID: 1, status: name}; return statusEntity;}),
@@ -83,7 +78,7 @@ describe('UserService', () => {
       })
     }
 
-    const WhitelistServiceMock = {
+    const MockWhitelistService = {
       provide: IWhitelistServiceProvider,
       useFactory: () => ({
         verifyUserWhitelist: jest.fn((user: User) => {return new Promise(resolve => {resolve(false);});})
@@ -91,18 +86,18 @@ describe('UserService', () => {
     }
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService, MockAuthenticationHelper, MockMailHelper, MockUserRepository, MockConfirmationTokenRepository, MockPasswordTokenRepository, RoleServiceMock, StatusServiceMock, WhitelistServiceMock],
+      providers: [UserService, MockAuthenticationHelper, MockMailHelper, MockUserRepository, MockConfirmationTokenRepository, MockPasswordTokenRepository, MockRoleService, MockStatusService, MockWhitelistService],
     }).compile();
 
     service = module.get<UserService>(UserService);
-    mockAuthenticationHelper = module.get<AuthenticationHelper>(IAuthenticationHelperProvider);
-    mockMailHelper = module.get<MailHelper>(IMailHelperProvider);
+    mockAuthenticationHelper = module.get<IAuthenticationHelper>(IAuthenticationHelperProvider);
+    mockMailHelper = module.get<IMailHelper>(IMailHelperProvider);
     mockUserRepository = module.get<Repository<UserEntity>>(getRepositoryToken(UserEntity));
     mockPasswordTokenRepository = module.get<Repository<PasswordTokenEntity>>(getRepositoryToken(PasswordTokenEntity));
     mockConfirmationTokenRepository = module.get<Repository<ConfirmationTokenEntity>>(getRepositoryToken(ConfirmationTokenEntity));
-    mockRoleService = module.get<RoleService>(IRoleServiceProvider);
-    mockStatusService = module.get<UserStatusService>(IUserStatusServiceProvider);
-    mockWhitelistService = module.get<WhitelistService>(IWhitelistServiceProvider);
+    mockRoleService = module.get<IRoleService>(IRoleServiceProvider);
+    mockStatusService = module.get<IUserStatusService>(IUserStatusServiceProvider);
+    mockWhitelistService = module.get<IWhitelistService>(IWhitelistServiceProvider);
   });
 
     it('User service Should be defined', () => {

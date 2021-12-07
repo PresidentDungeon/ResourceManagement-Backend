@@ -10,7 +10,6 @@ import { MockRepositories } from "../../infrastructure/error-handling/mock-repos
 describe('RoleService', () => {
   let service: RoleService;
   let mockRoleRepository: Repository<RoleEntity>;
-
   let mockContractFactory = new MockRepositories();
 
   beforeEach(async () => {

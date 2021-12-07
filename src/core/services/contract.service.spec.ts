@@ -6,9 +6,8 @@ import { ContractEntity } from "../../infrastructure/data-source/postgres/entiti
 import { User } from "../models/user";
 import theoretically from "jest-theories";
 import { Contract } from "../models/contract";
-import { IContractStatusServiceProvider } from "../primary-ports/application-services/contract-status.service.interface";
+import { IContractStatusService, IContractStatusServiceProvider } from "../primary-ports/application-services/contract-status.service.interface";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
-import { ContractStatusService } from "./contract-status.service";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { Status } from "../models/status";
@@ -17,8 +16,7 @@ import { Comment } from "../models/comment";
 import { CommentEntity } from "../../infrastructure/data-source/postgres/entities/comment.entity";
 import { CommentDTO } from "../../api/dtos/comment.dto";
 import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
-import { WhitelistService } from "./whitelist.service";
-import { IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
+import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
 import { GetUserContractsDTO } from "../../api/dtos/get.user.contracts.dto";
 
 describe('ContractService', () => {
@@ -26,8 +24,8 @@ describe('ContractService', () => {
   let mockContractRepository: Repository<ContractEntity>;
   let mockResumeRequestRepository: Repository<ResumeRequestEntity>;
   let mockCommentRepository: Repository<CommentEntity>;
-  let mockStatusService: ContractStatusService;
-  let mockWhitelistService: WhitelistService
+  let mockStatusService: IContractStatusService;
+  let mockWhitelistService: IWhitelistService
   let connection: Connection;
 
   let mockContractFactory = new MockRepositories();
@@ -38,7 +36,7 @@ describe('ContractService', () => {
     const MockResumeRequestRepository = mockContractFactory.getMockRepository(ResumeRequestEntity);
     const MockCommentRepository = mockContractFactory.getMockRepository(CommentEntity);
 
-    const StatusServiceMock = {
+    const MockStatusService = {
       provide: IContractStatusServiceProvider,
       useFactory: () => ({
         findStatusByName: jest.fn((name: string) => {let statusEntity: ContractStatusEntity = {ID: 1, status: name}; return statusEntity;}),
@@ -46,32 +44,32 @@ describe('ContractService', () => {
       })
     }
 
-    const WhitelistServiceMock = {
+    const MockWhitelistService = {
       provide: IWhitelistServiceProvider,
       useFactory: () => ({
         verifyUserWhitelist: jest.fn((name: string) => {return new Promise(resolve => {resolve(true);});}),
       })
     }
 
-    const mockConnection = {
+    const MockConnection = {
       provide: Connection,
       useFactory: () => ({
-        transaction: jest.fn((fn) => {return fn(mockedManager)}),
+        transaction: jest.fn((fn) => {return fn(MockManager)}),
       })
     };
 
-    const mockedManager = { save: jest.fn(() => {}), }
+    const MockManager = { save: jest.fn(() => {}), }
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ContractService, MockContractRepository, MockResumeRequestRepository, MockCommentRepository, StatusServiceMock, WhitelistServiceMock, mockConnection],
+      providers: [ContractService, MockContractRepository, MockResumeRequestRepository, MockCommentRepository, MockStatusService, MockWhitelistService, MockConnection],
     }).compile();
 
     service = module.get<ContractService>(ContractService);
     mockContractRepository = module.get<Repository<ContractEntity>>(getRepositoryToken(ContractEntity));
     mockResumeRequestRepository = module.get<Repository<ResumeRequestEntity>>(getRepositoryToken(ResumeRequestEntity));
     mockCommentRepository = module.get<Repository<CommentEntity>>(getRepositoryToken(CommentEntity));
-    mockStatusService = module.get<ContractStatusService>(IContractStatusServiceProvider);
-    mockWhitelistService = module.get<WhitelistService>(IWhitelistServiceProvider);
+    mockStatusService = module.get<IContractStatusService>(IContractStatusServiceProvider);
+    mockWhitelistService = module.get<IWhitelistService>(IWhitelistServiceProvider);
     connection = module.get<Connection>(Connection);
   });
 

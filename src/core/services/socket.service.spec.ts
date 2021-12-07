@@ -1,9 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SocketService } from './socket.service';
-import { Server } from "socket.io";
-import { Connection } from "typeorm";
 import { Contract } from "../models/contract";
-import { Filter } from "../models/filter";
 import theoretically from "jest-theories";
 import { Resume } from "../models/resume";
 

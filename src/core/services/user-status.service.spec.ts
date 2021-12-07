@@ -6,7 +6,6 @@ import { UserStatusEntity } from "../../infrastructure/data-source/postgres/enti
 import { Status } from "../models/status";
 import theoretically from "jest-theories";
 import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
-import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
 
 describe('UserStatusService', () => {
   let service: UserStatusService;

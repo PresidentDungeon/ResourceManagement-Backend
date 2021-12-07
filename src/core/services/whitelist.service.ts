@@ -36,20 +36,6 @@ export class WhitelistService implements IWhitelistService {
     }
   }
 
-  async deleteWhitelist(whitelist: Whitelist): Promise<void> { //
-    const foundWhitelist = await this.getWhitelistByID(whitelist.ID);
-
-    this.verifyWhitelist(foundWhitelist);
-
-    try{
-      let updatedWhitelist = await this.whitelistRepository.delete(foundWhitelist);
-    }
-    catch (e){
-      throw new BadRequestError('Internal server error');
-    }
-
-  }
-
   async getWhitelists(filter: Filter): Promise<FilterList<Whitelist>> {
 
     if (filter == null || filter == undefined) {
@@ -114,6 +100,20 @@ export class WhitelistService implements IWhitelistService {
     catch (e){
       throw new InternalServerError('Internal server error');
     }
+  }
+
+  async deleteWhitelist(whitelist: Whitelist): Promise<void> { //
+    const foundWhitelist = await this.getWhitelistByID(whitelist.ID);
+
+    this.verifyWhitelist(foundWhitelist);
+
+    try{
+      let updatedWhitelist = await this.whitelistRepository.delete(foundWhitelist);
+    }
+    catch (e){
+      throw new BadRequestError('Internal server error');
+    }
+
   }
 
   verifyWhitelist(whiteList: Whitelist): void {
