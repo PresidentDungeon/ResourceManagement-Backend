@@ -1,16 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-  UseInterceptors
-} from "@nestjs/common";
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { IUserService, IUserServiceProvider } from "../../core/primary-ports/user.service.interface";
 import { User } from "../../core/models/user";
 import { IMailService, IMailServiceProvider } from "../../core/primary-ports/mail.service.interface";
@@ -44,17 +32,17 @@ export class UserController {
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
-  @Post('registerUsers')
-  async registerUsers(@Body() unregisteredUsers: User[]){
-    let allUsers: User[];
-    let registeredUsers: User[];
-    let confirmationTokens: string[];
+  @Get('registerUser')
+  async registerUser(@Query() query: any){
 
-    [allUsers, registeredUsers, confirmationTokens] = await this.userService.registerUsers(unregisteredUsers);
+    let [user, isRegistered, confirmationToken] = await this.userService.registerUser(query.username);
+    let userConverted: UserDTO = {ID: user.ID, username: user.username, status: user.status, role: user.role};
 
-    let allUsersConverted: UserDTO[] = allUsers.map(user => {return {ID: user.ID, username: user.username, status: user.status, role: user.role}});
-    this.mailService.sendUsersRegistrationInvite(registeredUsers, confirmationTokens);
-    return allUsersConverted;
+    if(isRegistered){
+      this.mailService.sendUserRegistrationInvite(user.username, confirmationToken);
+    }
+
+    return userConverted;
   }
 
   @Get('resendVerificationMail')

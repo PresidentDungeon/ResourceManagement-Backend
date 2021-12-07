@@ -9,7 +9,7 @@ export const IUserServiceProvider = 'IUserServiceProvider'
 export interface IUserService{
 
   createUser(username: string, password: string): Promise<User>
-  registerUsers(users: User[]): Promise<[User[], User[], string[]]>
+  registerUser(username: string): Promise<[User, boolean, string]>
   addUser(user: User): Promise<[User, string]>
   getUserByUsername(username: string): Promise<User>
   getUsersByWhitelistDomain(domain: string): Promise<User[]>

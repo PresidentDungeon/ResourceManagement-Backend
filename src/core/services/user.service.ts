@@ -60,47 +60,24 @@ export class UserService implements IUserService {
     return { ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus };
   }
 
-  async registerUsers(users: User[]): Promise<[User[], User[], string[]]> {
+  async registerUser(username: string): Promise<[User, boolean, string]> {
 
-    let allUsers: User[] = [];
-    let usersToAdd: User[] = [];
-    let addedUsers: User[] = [];
-    let confirmationTokens: string[] = [];
+    if (username == null || !this.emailRegex.test(username)) {
+      throw new BadRequestError("Username must be a valid email");
+    }
 
     let userRole: Role = await this.roleService.findRoleByName("user");
     let userStatus: Status = await this.statusService.findStatusByName("pending");
 
-    for (let user of users) {
-      if (user == null || !this.emailRegex.test(user.username)) {
-        throw new BadRequestError(`Username ${user.username} must be a valid email`);
-      }
-    }
+    let foundUser: User = await this.userRepository.createQueryBuilder("user")
+      .andWhere(`user.username ILIKE :Username`, { Username: `${username}` }).getOne();
 
-    for (let user of users) {
-
-      let foundUser: User = await this.userRepository.createQueryBuilder("user")
-        .andWhere(`user.username ILIKE :Username`, { Username: `${user.username}` }).getOne();
-
-      if (foundUser) {
-        allUsers.push(foundUser);
-      }
-      else {
-        user.role = userRole;
-        user.status = userStatus;
-        user.password = "";
-        user.salt = this.generateSalt();
-
-        usersToAdd.push(user);
-      }
-    }
-
-    if(usersToAdd.length == 0){
-      return [allUsers, [], []];
+    if(foundUser){
+      return [foundUser, false, ''];
     }
     else{
-      [addedUsers, confirmationTokens] = await this.addUsers(usersToAdd);
-      allUsers.push(...addedUsers);
-      return [allUsers, addedUsers, confirmationTokens];
+      const [newUser, verificationCode] = await this.addUser({ID: 0, username: username, password: '', salt: this.generateSalt(), status: userStatus, role: userRole});
+      return [newUser, true, verificationCode];
     }
   }
 
@@ -129,39 +106,6 @@ export class UserService implements IUserService {
       return [savedUser, verificationCode];
     }
     catch (e) {throw new InternalServerError("Error saving user to database");}
-  }
-
-  async addUsers(users: User[]): Promise<[User[], string[]]> {
-
-    let verificationCodes: string[] = [];
-    let tokenSalts: string[] = [];
-    let hashedVerificationCodes: string[] = [];
-
-    for(let user of users){
-      const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
-      const tokenSalt = this.authenticationHelper.generateToken(this.saltLength);
-      const hashedVerificationCode = this.generateHash(verificationCode, tokenSalt);
-
-      verificationCodes.push(verificationCode);
-      tokenSalts.push(tokenSalt);
-      hashedVerificationCodes.push(hashedVerificationCode);
-    }
-
-    try{
-      const newUsers = await this.userRepository.create(users);
-      const savedUsers = await this.userRepository.save(newUsers);
-
-      const confirmationTokens: ConfirmationToken[] = savedUsers.map((user, index) => {
-        return {
-          user: JSON.parse(JSON.stringify({ ID: user.ID })),
-          salt: tokenSalts[index],
-          hashedConfirmationToken: hashedVerificationCodes[index]
-        }});
-
-      await this.confirmationTokenRepository.save(confirmationTokens);
-      return [savedUsers, verificationCodes];
-    }
-    catch (e) {throw new InternalServerError("Error saving users to database");}
   }
 
   async getUserByUsername(username: string): Promise<User> {
@@ -523,12 +467,6 @@ export class UserService implements IUserService {
     if (user.status == undefined || user.status == null || user.status.ID <= 0) {
       throw new BadRequestError("An error occurred with user status");
     }
-  }
-
-  verifyUserDomain(user: User) {
-
-
-
   }
 
   async getAllUserRoles(): Promise<Role[]> {
