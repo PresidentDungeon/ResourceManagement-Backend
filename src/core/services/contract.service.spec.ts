@@ -1255,7 +1255,6 @@ describe('ContractService', () => {
     let contract: Contract;
     const theories = [
       { input: contract = null, expected: "Contract must be instantiated" },
-
       { input: contract = {ID: null, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},
         expected: "Contract must have a valid ID" },
       { input: contract = {ID: -1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: true, status: {ID: 1, status: 'Draft'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), users: [], resumes: [], resumeRequests: [], whitelists: []},

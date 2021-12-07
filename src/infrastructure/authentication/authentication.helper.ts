@@ -48,7 +48,7 @@ export class AuthenticationHelper implements IAuthenticationHelper{
   }
 
   generateJWTToken(user: User): string{
-    const payload = {ID: user.ID, username: user.username, role: user.role.role, status: user.status.status};
+    const payload = {userID: user.ID, username: user.username, role: user.role.role, status: user.status.status};
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     return this.jwtService.sign(payload, options);
   }
