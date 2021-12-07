@@ -63,6 +63,7 @@ export class UserService implements IUserService {
   async registerUsers(users: User[]): Promise<[User[], User[], string[]]> {
 
     let allUsers: User[] = [];
+    let usersToAdd: User[] = [];
     let addedUsers: User[] = [];
     let confirmationTokens: string[] = [];
 
@@ -82,21 +83,25 @@ export class UserService implements IUserService {
 
       if (foundUser) {
         allUsers.push(foundUser);
-      } else {
+      }
+      else {
         user.role = userRole;
         user.status = userStatus;
         user.password = "";
         user.salt = this.generateSalt();
 
-        let [savedUser, verificationCode] = await this.addUser(user);
-
-        allUsers.push(savedUser);
-        addedUsers.push(savedUser);
-        confirmationTokens.push(verificationCode);
+        usersToAdd.push(user);
       }
     }
 
-    return [allUsers, addedUsers, confirmationTokens];
+    if(usersToAdd.length == 0){
+      return [allUsers, [], []];
+    }
+    else{
+      [addedUsers, confirmationTokens] = await this.addUsers(usersToAdd);
+      allUsers.push(...addedUsers);
+      return [allUsers, addedUsers, confirmationTokens];
+    }
   }
 
   async addUser(user: User): Promise<[User, string]> {
@@ -124,6 +129,39 @@ export class UserService implements IUserService {
       return [savedUser, verificationCode];
     }
     catch (e) {throw new InternalServerError("Error saving user to database");}
+  }
+
+  async addUsers(users: User[]): Promise<[User[], string[]]> {
+
+    let verificationCodes: string[] = [];
+    let tokenSalts: string[] = [];
+    let hashedVerificationCodes: string[] = [];
+
+    for(let user of users){
+      const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
+      const tokenSalt = this.authenticationHelper.generateToken(this.saltLength);
+      const hashedVerificationCode = this.generateHash(verificationCode, tokenSalt);
+
+      verificationCodes.push(verificationCode);
+      tokenSalts.push(tokenSalt);
+      hashedVerificationCodes.push(hashedVerificationCode);
+    }
+
+    try{
+      const newUsers = await this.userRepository.create(users);
+      const savedUsers = await this.userRepository.save(newUsers);
+
+      const confirmationTokens: ConfirmationToken[] = savedUsers.map((user, index) => {
+        return {
+          user: JSON.parse(JSON.stringify({ ID: user.ID })),
+          salt: tokenSalts[index],
+          hashedConfirmationToken: hashedVerificationCodes[index]
+        }});
+
+      await this.confirmationTokenRepository.save(confirmationTokens);
+      return [savedUsers, verificationCodes];
+    }
+    catch (e) {throw new InternalServerError("Error saving users to database");}
   }
 
   async getUserByUsername(username: string): Promise<User> {
