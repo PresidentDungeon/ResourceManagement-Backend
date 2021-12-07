@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { IRoleService } from "../primary-ports/role.service.interface";
+import { IRoleService } from "../primary-ports/application-services/role.service.interface";
 import { Role } from "../models/role";
 import { InjectRepository } from "@nestjs/typeorm";
 import { RoleEntity } from "../../infrastructure/data-source/postgres/entities/role.entity";

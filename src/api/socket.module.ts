@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ISocketServiceProvider } from '../core/primary-ports/socket.service.interface';
+import { ISocketServiceProvider } from '../core/primary-ports/application-services/socket.service.interface';
 import { ManagementGateway } from "./gateways/management.gateway";
 import { SocketService } from "../core/services/socket.service";
 

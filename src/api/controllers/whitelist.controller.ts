@@ -4,7 +4,7 @@ import { Whitelist } from "../../core/models/whitelist";
 import { Roles } from "../../auth/roles.decorator";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 import { Filter } from "../../core/models/filter";
-import { IWhitelistService, IWhitelistServiceProvider } from "../../core/primary-ports/whitelist.service.interface";
+import { IWhitelistService, IWhitelistServiceProvider } from "../../core/primary-ports/application-services/whitelist.service.interface";
 
 @Controller('whitelist')
 @UseInterceptors(ErrorInterceptor)

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { IUserService } from "../primary-ports/user.service.interface";
+import { IUserService } from "../primary-ports/application-services/user.service.interface";
 import { User } from "../models/user";
 import { AuthenticationHelper } from "../../auth/authentication.helper";
 import { InjectRepository } from "@nestjs/typeorm";
@@ -10,19 +10,15 @@ import { PasswordToken } from "../models/password.token";
 import { Filter } from "../models/filter";
 import { FilterList } from "../models/filterList";
 import { UserDTO } from "../../api/dtos/user.dto";
-import { IRoleService, IRoleServiceProvider } from "../primary-ports/role.service.interface";
+import { IRoleService, IRoleServiceProvider } from "../primary-ports/application-services/role.service.interface";
 import { Role } from "../models/role";
 import { Status } from "../models/status";
 import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
-import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/user-status.service.interface";
-import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
-import {
-  BadRequestError,
-  EntityNotFoundError,
-  InactiveError,
-  InternalServerError
-} from "../../infrastructure/error-handling/errors";
+import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/application-services/user-status.service.interface";
+import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
+import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
+import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
 
 @Injectable()
 export class UserService implements IUserService {
@@ -37,6 +33,7 @@ export class UserService implements IUserService {
     @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
     @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
+    @Inject(IMailHelperProvider) private mailHelper: IMailHelper,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
     @Inject(IUserStatusServiceProvider) private statusService: IUserStatusService,
     @Inject(IWhitelistServiceProvider) private whitelistService: IWhitelistService,
@@ -57,10 +54,12 @@ export class UserService implements IUserService {
     let salt: string = this.generateSalt();
     let hashedPassword: string = this.generateHash(password, salt);
 
-    return { ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus };
+    let [user, verificationCode] = await this.addUser({ ID: 0, username: username, password: hashedPassword, salt: salt, role: userRole, status: userStatus });
+    this.mailHelper.sendUserConfirmation(username, verificationCode);
+    return user;
   }
 
-  async registerUser(username: string): Promise<[User, boolean, string]> {
+  async registerUser(username: string): Promise<User> {
 
     if (username == null || !this.emailRegex.test(username)) {
       throw new BadRequestError("Username must be a valid email");
@@ -73,11 +72,12 @@ export class UserService implements IUserService {
       .andWhere(`user.username ILIKE :Username`, { Username: `${username}` }).getOne();
 
     if(foundUser){
-      return [foundUser, false, ''];
+      return foundUser
     }
     else{
-      const [newUser, verificationCode] = await this.addUser({ID: 0, username: username, password: '', salt: this.generateSalt(), status: userStatus, role: userRole});
-      return [newUser, true, verificationCode];
+      const [newUser, confirmationCode] = await this.addUser({ID: 0, username: username, password: '', salt: this.generateSalt(), status: userStatus, role: userRole});
+      this.mailHelper.sendUserRegistrationInvite(username, confirmationCode);
+      return newUser
     }
   }
 
@@ -272,6 +272,7 @@ export class UserService implements IUserService {
     const confirmationToken: ConfirmationToken = { user: user, salt: saltValue, hashedConfirmationToken: hashedVerificationCode };
     try {await this.confirmationTokenRepository.save(confirmationToken);}
     catch (e) {throw new InternalServerError("Error saving confirmation token to database");}
+    this.mailHelper.sendUserConfirmation(user.username, verificationCode);
     return verificationCode;
   }
 
@@ -292,6 +293,7 @@ export class UserService implements IUserService {
       await this.passwordTokenRepository.save(passwordToken);
     }
     catch (e) {throw new InternalServerError("Error saving new password token to database");}
+    this.mailHelper.sendUserPasswordReset(username, passwordResetString);
     return passwordResetString;
   }
 
@@ -400,7 +402,7 @@ export class UserService implements IUserService {
     catch (e) {
       throw new InternalServerError("Error updating password with password reset token");
     }
-
+    this.mailHelper.sendUserPasswordResetConfirmation(username);
     return success;
   }
 

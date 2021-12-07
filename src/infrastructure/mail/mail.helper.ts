@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
-import { IMailService } from "../../core/primary-ports/mail.service.interface";
 import { ConfigService } from "@nestjs/config";
+import { IMailHelper } from "../../core/primary-ports/domain-services/mail.helper.interface";
 
 @Injectable()
-export class MailService implements IMailService{
+export class MailHelper implements IMailHelper{
 
   constructor(private mailerService: MailerService, private configService: ConfigService) {}
 

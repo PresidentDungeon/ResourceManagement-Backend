@@ -6,7 +6,7 @@ import { ContractStatusService } from "./contract-status.service";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { HttpService } from "@nestjs/axios";
 import { ConfigService } from "@nestjs/config";
-import { IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
+import { IContractStatusServiceProvider } from "../primary-ports/application-services/contract-status.service.interface";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
 import { Contract } from "../models/contract";
 import theoretically from "jest-theories";

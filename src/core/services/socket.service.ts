@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ISocketService } from "../primary-ports/socket.service.interface";
+import { ISocketService } from "../primary-ports/application-services/socket.service.interface";
 import { Server } from "socket.io";
 import { Contract } from "../models/contract";
 

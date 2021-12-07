@@ -1,5 +1,5 @@
-export const IMailServiceProvider = 'IMailServiceProvider'
-export interface IMailService{
+export const IMailHelperProvider = 'IMailHelperProvider'
+export interface IMailHelper{
   sendUserConfirmation(email: string, verificationCode: string)
   sendUserRegistrationInvite(email: string, confirmationCode: string)
   sendUserPasswordReset(email: string, passwordResetToken: string)

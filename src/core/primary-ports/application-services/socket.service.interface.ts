@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { Contract } from "../models/contract";
+import { Contract } from "../../models/contract";
 
 export const ISocketServiceProvider = 'ISocketServiceProvider'
 export interface ISocketService{

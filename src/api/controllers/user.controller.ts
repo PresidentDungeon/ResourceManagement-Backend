@@ -1,7 +1,6 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards, UseInterceptors } from "@nestjs/common";
-import { IUserService, IUserServiceProvider } from "../../core/primary-ports/user.service.interface";
+import { IUserService, IUserServiceProvider } from "../../core/primary-ports/application-services/user.service.interface";
 import { User } from "../../core/models/user";
-import { IMailService, IMailServiceProvider } from "../../core/primary-ports/mail.service.interface";
 import { LoginDTO } from "../dtos/login.dto";
 import { LoginResponseDTO } from "../dtos/login.response.dto";
 import { VerificationDTO } from "../dtos/verification.dto";
@@ -11,7 +10,7 @@ import { Filter } from "../../core/models/filter";
 import { JwtAuthGuard } from "../../auth/jwt-auth-guard";
 import { Roles } from "../../auth/roles.decorator";
 import { UserDTO } from "../dtos/user.dto";
-import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/socket.service.interface";
+import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/application-services/socket.service.interface";
 import { UserPasswordUpdateDTO } from "../dtos/user.password.update.dto";
 import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
 
@@ -20,36 +19,26 @@ import { ErrorInterceptor } from "../../infrastructure/error-handling/error-inte
 export class UserController {
 
   constructor(@Inject(IUserServiceProvider) private userService: IUserService,
-              @Inject(IMailServiceProvider) private mailService: IMailService,
               @Inject(ISocketServiceProvider) private socketService: ISocketService) {}
 
   @Post('register')
   async register(@Body() loginDto: LoginDTO){
-    let createdUser: User = await this.userService.createUser(loginDto.username, loginDto.password);
-    let [savedUser, verificationCode] = await this.userService.addUser(createdUser);
-    this.mailService.sendUserConfirmation(savedUser.username, verificationCode);
+    await this.userService.createUser(loginDto.username, loginDto.password);
   }
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('registerUser')
   async registerUser(@Query() query: any){
-
-    let [user, isRegistered, confirmationToken] = await this.userService.registerUser(query.username);
+    let user: User = await this.userService.registerUser(query.username);
     let userConverted: UserDTO = {ID: user.ID, username: user.username, status: user.status, role: user.role};
-
-    if(isRegistered){
-      this.mailService.sendUserRegistrationInvite(user.username, confirmationToken);
-    }
-
     return userConverted;
   }
 
   @Get('resendVerificationMail')
   async resendVerificationMail(@Query() verificationRequestDTO: VerificationRequestDTO){
     let foundUser = await this.userService.getUserByUsername(verificationRequestDTO.email);
-    let verificationCode = await this.userService.generateNewVerificationCode(foundUser);
-    this.mailService.sendUserConfirmation(foundUser.username, verificationCode);
+    await this.userService.generateNewVerificationCode(foundUser);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -101,8 +90,7 @@ export class UserController {
 
   @Get('requestPasswordMail')
   async requestPasswordResetMail(@Query() verificationRequestDTO: VerificationRequestDTO){
-    const passwordResetToken: string = await this.userService.generatePasswordResetToken(verificationRequestDTO.email);
-    this.mailService.sendUserPasswordReset(verificationRequestDTO.email, passwordResetToken);
+    await this.userService.generatePasswordResetToken(verificationRequestDTO.email);
   }
 
   @Post('verifyConfirmationToken')
@@ -120,7 +108,6 @@ export class UserController {
   @Post('requestPasswordChange')
   async requestPasswordChange(@Body() passwordChangeRequestDTO: PasswordChangeRequestDTO){
     await this.userService.updatePasswordWithToken(passwordChangeRequestDTO.username, passwordChangeRequestDTO.verificationCode, passwordChangeRequestDTO.password);
-    this.mailService.sendUserPasswordResetConfirmation(passwordChangeRequestDTO.username);
   }
 
   @Roles('Admin')

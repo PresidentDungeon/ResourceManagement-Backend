@@ -1,6 +1,6 @@
-import { Whitelist } from "../models/whitelist";
-import { Filter } from "../models/filter";
-import { FilterList } from "../models/filterList";
+import { Whitelist } from "../../models/whitelist";
+import { Filter } from "../../models/filter";
+import { FilterList } from "../../models/filterList";
 
 export const IWhitelistServiceProvider = 'IWhitelistServiceProvider'
 export interface IWhitelistService{

@@ -6,7 +6,7 @@ import { ContractEntity } from "../../infrastructure/data-source/postgres/entiti
 import { User } from "../models/user";
 import theoretically from "jest-theories";
 import { Contract } from "../models/contract";
-import { IContractStatusServiceProvider } from "../primary-ports/contract-status.service.interface";
+import { IContractStatusServiceProvider } from "../primary-ports/application-services/contract-status.service.interface";
 import { ContractStatusEntity } from "../../infrastructure/data-source/postgres/entities/contract-status.entity";
 import { ContractStatusService } from "./contract-status.service";
 import { Filter } from "../models/filter";
@@ -18,7 +18,7 @@ import { CommentEntity } from "../../infrastructure/data-source/postgres/entitie
 import { CommentDTO } from "../../api/dtos/comment.dto";
 import { MockRepositories } from "../../infrastructure/error-handling/mock-repositories";
 import { WhitelistService } from "./whitelist.service";
-import { IWhitelistServiceProvider } from "../primary-ports/whitelist.service.interface";
+import { IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
 import { GetUserContractsDTO } from "../../api/dtos/get.user.contracts.dto";
 
 describe('ContractService', () => {

@@ -9,9 +9,9 @@ import { ContractStatusService } from "../core/services/contract-status.service"
 import { ResumeController } from "./controllers/resume.controller";
 import { ResumeService } from "../core/services/resume.service";
 import { HttpModule } from "@nestjs/axios";
-import { IResumeServiceProvider } from "../core/primary-ports/resume.service.interface";
-import { IContractStatusServiceProvider } from "../core/primary-ports/contract-status.service.interface";
-import { IContractServiceProvider } from "../core/primary-ports/contract.service.interface";
+import { IResumeServiceProvider } from "../core/primary-ports/application-services/resume.service.interface";
+import { IContractStatusServiceProvider } from "../core/primary-ports/application-services/contract-status.service.interface";
+import { IContractServiceProvider } from "../core/primary-ports/application-services/contract.service.interface";
 import { ResumeRequestEntity } from "../infrastructure/data-source/postgres/entities/resume-request.entity";
 import { SocketModule } from "./socket.module";
 import { CommentEntity } from "src/infrastructure/data-source/postgres/entities/comment.entity";
