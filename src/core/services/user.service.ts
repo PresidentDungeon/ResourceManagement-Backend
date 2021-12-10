@@ -1,7 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { IUserService } from "../primary-ports/application-services/user.service.interface";
 import { User } from "../models/user";
-import { AuthenticationHelper } from "../../infrastructure/authentication/authentication.helper";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { Repository } from "typeorm";
