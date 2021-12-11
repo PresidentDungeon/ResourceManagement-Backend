@@ -1,4 +1,17 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, UseGuards, UseInterceptors } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors
+} from "@nestjs/common";
 import { IUserService, IUserServiceProvider } from "../../core/primary-ports/application-services/user.service.interface";
 import { User } from "../../core/models/user";
 import { LoginDTO } from "../dtos/login.dto";
@@ -143,6 +156,12 @@ export class UserController {
   @Get('getUserStatuses')
   async getAllStatuses(){
     return await this.userService.getAllStatuses();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('verifyUserApprovedStatus')
+  async verifyUserApprovedStatus(@Req() request){
+    return await this.userService.verifyUserApprovedStatus(request.user.userID);
   }
 
   @Roles('Admin')

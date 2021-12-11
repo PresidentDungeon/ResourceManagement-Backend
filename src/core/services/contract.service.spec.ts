@@ -169,6 +169,8 @@ describe('ContractService', () => {
     let errorStringToExcept: string = 'The user must be whitelisted by an admin to request contracts';
 
     await expect(service.addRequestContract(contract, username, status)).rejects.toThrow(errorStringToExcept);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledTimes(1);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledWith(username);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(0);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
@@ -191,6 +193,8 @@ describe('ContractService', () => {
 
     await expect(savedContract = await service.addRequestContract(contract, username, status)).resolves;
     expect(savedContract).not.toBe(contract);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledTimes(1);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledWith(username);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Request');
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
@@ -215,6 +219,7 @@ describe('ContractService', () => {
     let errorStringToExcept: string = 'Contract must have a valid title';
 
     await expect(service.addRequestContract(contract, username, status)).rejects.toThrow(errorStringToExcept);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Request');
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
@@ -228,7 +233,7 @@ describe('ContractService', () => {
 
     let contract: Contract = {ID: 0, title: 'Mærsk', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 1, status: 'Draft'}, startDate: new Date(), endDate: new Date(), resumes: [], users: [], resumeRequests: [{ID: 0, occupation: 'Electrician', count: 3}], whitelists: []};
     let username: string = 'someMail@total.dk';
-    let status: string = 'Appproved';
+    let status: string = 'Approved';
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce((contract: Contract) => {});
 
@@ -239,6 +244,7 @@ describe('ContractService', () => {
     let errorStringToExcept: string = 'Error saving contract request';
 
     await expect(service.addRequestContract(contract, username, status)).rejects.toThrow(errorStringToExcept);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Request');
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
@@ -265,6 +271,7 @@ describe('ContractService', () => {
 
     await expect(savedContract = await service.addRequestContract(contract, username, status)).resolves;
     expect(savedContract).not.toBe(contract);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('Request');
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);

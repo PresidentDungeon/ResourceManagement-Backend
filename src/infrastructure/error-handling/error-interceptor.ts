@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import { Observable } from 'rxjs';
 import { catchError, tap } from "rxjs/operators";
-import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "./errors";
+import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError, UnauthorizedError } from "./errors";
 
 @Injectable()
 export class ErrorInterceptor implements NestInterceptor {
@@ -21,6 +21,7 @@ export class ErrorInterceptor implements NestInterceptor {
         else if(error instanceof BadRequestError){throw new BadRequestException(error.message);}
         else if(error instanceof InternalServerError){throw new InternalServerErrorException(error.message);}
         else if(error instanceof InactiveError){throw new HttpException(error.message, 423);}
+        else if(error instanceof UnauthorizedError){throw new HttpException(error.message, 401);}
         else{throw new BadRequestException(error.message);}
 
       }),

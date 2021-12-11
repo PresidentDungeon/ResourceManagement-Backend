@@ -25,7 +25,7 @@ import { IMailHelperProvider } from "../../core/primary-ports/domain-services/ma
         },
       },
       defaults: {
-        from: '"No Reply" <noreply@example.com>',
+        from: '"No Reply" <noreply@gmail.com>',
       },
       template: {
         dir: join(__dirname, 'templates'),

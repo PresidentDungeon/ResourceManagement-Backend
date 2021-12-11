@@ -37,6 +37,7 @@ export interface IUserService{
   verifyJWTToken(token: string): boolean
 
   verifyUserEntity(user: User): void
+  verifyUserApprovedStatus(userID: number): Promise<boolean>
 
   getAllUserRoles(): Promise<Role[]>
   getAllStatuses(): Promise<Status[]>

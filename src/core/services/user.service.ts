@@ -16,7 +16,13 @@ import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/application-services/user-status.service.interface";
 import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
-import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
+import {
+  BadRequestError,
+  EntityNotFoundError,
+  InactiveError,
+  InternalServerError,
+  UnauthorizedError
+} from "../../infrastructure/error-handling/errors";
 import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
 import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
 
@@ -297,7 +303,6 @@ export class UserService implements IUserService {
     return passwordResetString;
   }
 
-  //Calling whitelist if confirm is correct -> calling correct find status by username
   async verifyUser(username: string, verificationCode: string) {
 
     let foundUser = await this.getUserByUsername(username);
@@ -469,6 +474,11 @@ export class UserService implements IUserService {
     if (user.status == undefined || user.status == null || user.status.ID <= 0) {
       throw new BadRequestError("An error occurred with user status");
     }
+  }
+
+  async verifyUserApprovedStatus(userID: number): Promise<boolean>{
+    let user: User = await this.getUserByID(userID);
+    return (user.status.status.toLowerCase() != 'approved') ? await this.whitelistService.verifyUserWhitelist(user.username) : true;
   }
 
   async getAllUserRoles(): Promise<Role[]> {
