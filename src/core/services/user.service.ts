@@ -21,7 +21,6 @@ import {
   EntityNotFoundError,
   InactiveError,
   InternalServerError,
-  UnauthorizedError
 } from "../../infrastructure/error-handling/errors";
 import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
 import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
