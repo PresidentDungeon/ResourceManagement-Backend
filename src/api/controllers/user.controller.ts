@@ -34,8 +34,7 @@ import { Status } from "src/core/models/status";
 @UseInterceptors(ErrorInterceptor)
 export class UserController {
 
-  constructor(@Inject(IUserServiceProvider) private userService: IUserService,
-              @Inject(ISocketServiceProvider) private socketService: ISocketService) {}
+  constructor(@Inject(IUserServiceProvider) private userService: IUserService) {}
 
   @Post('register')
   async register(@Body() loginDto: LoginDTO): Promise<void> {
