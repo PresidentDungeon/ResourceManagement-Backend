@@ -10,20 +10,20 @@ export class SocketService implements ISocketService{
 
   constructor() {}
 
-  setServer(socket: Server) {
+  setServer(socket: Server): void {
     this.server = socket;
   }
 
-  emitContractCreateEvent(contract: Contract) {
+  emitContractCreateEvent(contract: Contract): void {
     this.server.emit('contractCreated', contract);
   }
 
-  emitContractUpdateEvent(contract: Contract) {
+  emitContractUpdateEvent(contract: Contract): void {
     this.server.emit('contractUpdatedAdmin', contract);
     this.server.emit('contractUpdatedUser', this.redactContract(contract));
   }
 
-  emitContractDeleteEvent(contract: Contract) {
+  emitContractDeleteEvent(contract: Contract): void {
     this.server.emit('contractDeleted', contract);
   }
 

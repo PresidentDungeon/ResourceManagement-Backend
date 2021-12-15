@@ -16,12 +16,7 @@ import { ConfirmationToken } from "../models/confirmation.token";
 import { ConfirmationTokenEntity } from "../../infrastructure/data-source/postgres/entities/confirmation-token.entity";
 import { IUserStatusService, IUserStatusServiceProvider } from "../primary-ports/application-services/user-status.service.interface";
 import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/application-services/whitelist.service.interface";
-import {
-  BadRequestError,
-  EntityNotFoundError,
-  InactiveError,
-  InternalServerError,
-} from "../../infrastructure/error-handling/errors";
+import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
 import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
 import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
 
@@ -302,7 +297,7 @@ export class UserService implements IUserService {
     return passwordResetString;
   }
 
-  async verifyUser(username: string, verificationCode: string) {
+  async verifyUser(username: string, verificationCode: string): Promise<void> {
 
     let foundUser = await this.getUserByUsername(username);
 
@@ -324,7 +319,7 @@ export class UserService implements IUserService {
     catch (e) {throw new InternalServerError('Error verifying user')}
   }
 
-  async verifyUserConfirmationToken(user: User, confirmationCode: string) {
+  async verifyUserConfirmationToken(user: User, confirmationCode: string): Promise<void> {
 
     if (confirmationCode == null || confirmationCode == undefined || confirmationCode.length < this.verificationTokenCount) {
       throw new BadRequestError("Invalid verification code entered");
@@ -347,7 +342,7 @@ export class UserService implements IUserService {
     }
   }
 
-  async verifyPasswordToken(user: User, passwordToken: string) {
+  async verifyPasswordToken(user: User, passwordToken: string): Promise<void> {
 
     if (passwordToken == null || passwordToken == undefined || passwordToken.length < this.passwordResetStringCount) {
       throw new BadRequestError("Invalid password token entered");

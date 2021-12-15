@@ -22,8 +22,8 @@ export interface IContractService{
   update(contract: Contract): Promise<Contract>
   delete(ID: number): Promise<void>
 
-  verifyContractEntity(contract: Contract)
-  verifyUserRegistrationToContract(contract: Contract, userID: number)
+  verifyContractEntity(contract: Contract): void
+  verifyUserRegistrationToContract(contract: Contract, userID: number): Promise<void>
   verifyContractStatuses(contracts: Contract[]): Promise<Contract[]>;
 
   getAllStatuses(): Promise<Status[]>

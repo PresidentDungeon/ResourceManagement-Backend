@@ -9,7 +9,11 @@ import { ContractStateReplyDTO } from "../dtos/contract.state.reply.dto";
 import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/application-services/resume.service.interface";
 import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/application-services/socket.service.interface";
 import { CommentDTO } from "../dtos/comment.dto";
+import { Comment } from "../../core/models/comment";
 import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
+import { GetUserContractsDTO } from "../dtos/get.user.contracts.dto";
+import { FilterList } from "../../core/models/filterList";
+import { Status } from "../../core/models/status";
 
 @Controller('contract')
 @UseInterceptors(ErrorInterceptor)
@@ -23,7 +27,7 @@ export class ContractController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Post('create')
-  async create(@Body() contract: Contract) {
+  async create(@Body() contract: Contract): Promise<Contract> {
     let createdContract: Contract = await this.contractService.addContract(contract);
     this.socketService.emitContractCreateEvent(createdContract);
     return createdContract;
@@ -31,7 +35,7 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Post('requestContract')
-  async requestContract(@Body() contract: Contract, @Req() request) {
+  async requestContract(@Body() contract: Contract, @Req() request: any) {
     let createdContract: Contract = await this.contractService.addRequestContract(contract, request.user.username, request.user.status);
     this.socketService.emitContractCreateEvent(createdContract);
     return createdContract;
@@ -39,21 +43,21 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Post('saveComment')
-  async saveComment(@Body() commentDTO: CommentDTO) {
+  async saveComment(@Body() commentDTO: CommentDTO): Promise<void> {
     await this.contractService.saveComment(commentDTO);
   }
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getComments')
-  async getContractComments(@Query() commentID: any) {
+  async getContractComments(@Query() commentID: any): Promise<Comment[]> {
     return await this.contractService.getContractComments(commentID.ID);
   }
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getContractByID')
-  async getContractByID(@Query() contractID: any) {
+  async getContractByID(@Query() contractID: any): Promise<Contract> {
     const contract: Contract = await this.contractService.getContractByID(contractID.ID, false);
     const resumes: Resume[] = await this.resumeService.getResumesByID(contract.resumes, false);
     contract.resumes = resumes;
@@ -62,7 +66,7 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getContractByIDUser')
-  async getContractByIDUser(@Query() contractID: any, @Req() request) {
+  async getContractByIDUser(@Query() contractID: any, @Req() request: any): Promise<Contract> {
     let userID = request.user.userID;
     const contract: Contract = await this.contractService.getContractByID(contractID.ID, true, userID);
     const resumes: Resume[] = await this.resumeService.getResumesByID(contract.resumes, true);
@@ -73,28 +77,28 @@ export class ContractController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getContractsByResume')
-  async getContractsByResume(@Query() resumeID: any) {
+  async getContractsByResume(@Query() resumeID: any): Promise<Contract[]> {
     const contracts: Contract[] = await this.contractService.getContractsByResume(resumeID.ID);
     return contracts;
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('getContractsByUserID')
-  async getContractsByUserID(@Query() query: any, @Req() request) {
+  async getContractsByUserID(@Query() query: any, @Req() request: any): Promise<GetUserContractsDTO> {
       return await this.contractService.getContractsByUserID(request.user.userID, request.user.username, query.ID, query.displayDomainContract);
   }
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getContracts')
-  async getAllContracts(@Query() filter: Filter) {
+  async getAllContracts(@Query() filter: Filter): Promise<FilterList<Contract>> {
     return await this.contractService.getContracts(filter);
   }
 
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Put('update')
-  async updateContract(@Body() contract: Contract) {
+  async updateContract(@Body() contract: Contract): Promise<Contract> {
     const updatedContract = await this.contractService.update(contract);
     this.contractService.getContractByID(contract.ID, false).then((contract) => { this.socketService.emitContractUpdateEvent(contract) });
     return updatedContract;
@@ -102,7 +106,7 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Post('contractStateReply')
-  async confirmContractState(@Body() contractStateReplyDTO: ContractStateReplyDTO, @Req() request) {
+  async confirmContractState(@Body() contractStateReplyDTO: ContractStateReplyDTO, @Req() request: any): Promise<Contract> {
     const updatedContract = await this.contractService.confirmContract(contractStateReplyDTO.contract, request.user.userID, contractStateReplyDTO.isAccepted);
     this.contractService.getContractByID(contractStateReplyDTO.contract.ID, false).then((contract) => { this.socketService.emitContractUpdateEvent(contract) });
     return updatedContract;
@@ -110,14 +114,14 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Post('requestRenewal')
-  async requestRenewal(@Body() contract: Contract, @Req() request) {
+  async requestRenewal(@Body() contract: Contract, @Req() request: any): Promise<Contract> {
     const updatedContract = await this.contractService.requestRenewal(contract, request.user.userID);
     this.contractService.getContractByID(contract.ID, false).then((contract) => { this.socketService.emitContractUpdateEvent(contract) });
     return updatedContract;
   }
 
   @Delete('delete')
-  async deleteContract(@Body() contract: Contract) {
+  async deleteContract(@Body() contract: Contract): Promise<void>{
     const updatedContract = await this.contractService.delete(contract.ID);
     return updatedContract;
   }
@@ -125,13 +129,13 @@ export class ContractController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getContractStatuses')
-  async getAllStatuses() {
+  async getAllStatuses(): Promise<Status[]> {
     return await this.contractService.getAllStatuses();
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('getAllUserStatuses')
-  async getAllUserStatuses() {
+  async getAllUserStatuses(): Promise<Status[]> {
     return await this.contractService.getAllUserStatuses();
   }
 
