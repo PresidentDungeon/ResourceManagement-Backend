@@ -21,9 +21,9 @@ export interface IUserService{
   login(username: string, password: string): Promise<User>
   generateNewVerificationCode(user: User): Promise<string>
   generatePasswordResetToken(username: string): Promise<string>
-  verifyUser(username: string, verificationCode: string)
-  verifyUserConfirmationToken(user: User, confirmationCode: string)
-  verifyPasswordToken(user: User, passwordToken: string)
+  verifyUser(username: string, verificationCode: string): Promise<void>
+  verifyUserConfirmationToken(user: User, confirmationCode: string): Promise<void>
+  verifyPasswordToken(user: User, passwordToken: string): Promise<void>
   deleteUserConfirmationToken(userID: number): Promise<void>
 
   updatePasswordWithConfirmationToken(username: string, confirmationToken: string, password: string): Promise<boolean>

@@ -37,7 +37,7 @@ export class AuthenticationHelper implements IAuthenticationHelper{
     return value;
   }
 
-  validateLogin(userToValidate: User, password: string){
+  validateLogin(userToValidate: User, password: string): void{
 
     let hashedPassword: string = this.generateHash(password, userToValidate.salt);
     let storedPassword: string = userToValidate.password;

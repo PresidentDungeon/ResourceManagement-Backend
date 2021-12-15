@@ -8,7 +8,7 @@ export class MailHelper implements IMailHelper{
 
   constructor(private mailerService: MailerService, private configService: ConfigService) {}
 
-  async sendUserConfirmation(email: string, verificationCode: string){
+  async sendUserConfirmation(email: string, verificationCode: string): Promise<void>{
 
     const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
     const verificationLink = `${frontendRoute}/verifyLink?type=confirmation&email=${email}&verificationCode=${verificationCode}`;
@@ -24,7 +24,7 @@ export class MailHelper implements IMailHelper{
     });
   }
 
-  async sendUserRegistrationInvite(email: string, confirmationCode: string){
+  async sendUserRegistrationInvite(email: string, confirmationCode: string): Promise<void>{
 
     const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
     const verificationLink = `${frontendRoute}/verifyLink?type=setup&email=${email}&verificationCode=${confirmationCode}`;
@@ -40,7 +40,7 @@ export class MailHelper implements IMailHelper{
   }
 
 
-  async sendUserPasswordReset(email: string, passwordResetToken: string){
+  async sendUserPasswordReset(email: string, passwordResetToken: string): Promise<void>{
 
     const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
     const resetLink = `${frontendRoute}/verifyLink?type=password&email=${email}&verificationCode=${passwordResetToken}`;
@@ -55,7 +55,7 @@ export class MailHelper implements IMailHelper{
     });
   }
 
-  async sendUserPasswordResetConfirmation(email: string){
+  async sendUserPasswordResetConfirmation(email: string): Promise<void>{
 
     await this.mailerService.sendMail({
       to: email,
