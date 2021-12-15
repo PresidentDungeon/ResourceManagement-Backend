@@ -2,15 +2,15 @@ import { Body, Controller, Delete, Get, Inject, Post, Put, Query, Req, UseGuards
 import { IContractService, IContractServiceProvider } from "../../core/primary-ports/application-services/contract.service.interface";
 import { Contract } from "../../core/models/contract";
 import { Resume } from "../../core/models/resume";
-import { Roles } from "../../infrastructure/authentication/roles.decorator";
-import { JwtAuthGuard } from "../../infrastructure/authentication/jwt-auth-guard";
+import { Roles } from "../security/roles.decorator";
+import { JwtAuthGuard } from "../security/jwt-auth-guard";
 import { Filter } from "../../core/models/filter";
 import { ContractStateReplyDTO } from "../dtos/contract.state.reply.dto";
 import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/application-services/resume.service.interface";
 import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/application-services/socket.service.interface";
 import { CommentDTO } from "../dtos/comment.dto";
 import { Comment } from "../../core/models/comment";
-import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
+import { ErrorInterceptor } from "../error-handling/error-interceptor";
 import { GetUserContractsDTO } from "../dtos/get.user.contracts.dto";
 import { FilterList } from "../../core/models/filterList";
 import { Status } from "../../core/models/status";

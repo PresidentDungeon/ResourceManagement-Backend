@@ -2045,7 +2045,7 @@ describe('UserService', () => {
 
   //#region GenerateSalt
 
-  it('Generate salt is called in authentication service', () => {
+  it('Generate salt is called in security service', () => {
     service.generateSalt();
     expect(mockAuthenticationHelper.generateToken).toHaveBeenCalledTimes(1);
   });

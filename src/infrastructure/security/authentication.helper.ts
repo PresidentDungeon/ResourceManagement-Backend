@@ -13,7 +13,7 @@ export class AuthenticationHelper implements IAuthenticationHelper{
 
   secretKeyLength: number = 16;
   maxPasswordTokenAgeInSeconds: number = 60 * 60 * 1000;
-  secretKey = this.generateToken(this.secretKeyLength);
+  secretKey: string = this.generateToken(this.secretKeyLength);
 
   constructor(private jwtService: JwtService) {}
 
