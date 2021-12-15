@@ -6,7 +6,7 @@ import { Contract } from "../models/contract";
 @Injectable()
 export class SocketService implements ISocketService{
 
-  private server: Server = null;
+  public server: Server = null;
 
   constructor() {}
 
