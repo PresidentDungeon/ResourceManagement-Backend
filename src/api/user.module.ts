@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from "../infrastructure/authentication/auth.module";
+import { AuthModule } from "../infrastructure/security/auth.module";
 import { UserController } from "./controllers/user.controller";
 import { IUserServiceProvider } from "../core/primary-ports/application-services/user.service.interface";
 import { UserService } from "../core/services/user.service";

@@ -2045,7 +2045,7 @@ describe('UserService', () => {
 
   //#region GenerateSalt
 
-  it('Generate salt is called in authentication service', () => {
+  it('Generate salt is called in security service', () => {
     service.generateSalt();
     expect(mockAuthenticationHelper.generateToken).toHaveBeenCalledTimes(1);
   });
@@ -2245,6 +2245,61 @@ describe('UserService', () => {
 
   //#endregion
 
+  //#region VerifyUserApprovedStatus
+
+  it('User with status of active and invalid domain returns false', async () => {
+
+    let user: User = {ID: 1, username: 'someMail@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: 'Active'}};
+    let userID: number = 1;
+
+    jest.spyOn(service, 'getUserByID').mockImplementation((userID: number) => {return new Promise(resolve => {resolve(user)});})
+    jest.spyOn(mockWhitelistService, 'verifyUserWhitelist').mockImplementation((username: string) => {return new Promise(resolve => {resolve(false)});})
+
+    let approvedStatus: boolean
+
+    await expect(approvedStatus = await service.verifyUserApprovedStatus(userID)).resolves;
+    expect(approvedStatus).toBe(false);
+    expect(service.getUserByID).toHaveBeenCalledTimes(1);
+    expect(service.getUserByID).toHaveBeenCalledWith(userID);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledTimes(1);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledWith(user.username);
+  });
+
+  it('User with status of active and valid domain returns true', async () => {
+
+    let user: User = {ID: 2, username: 'someMail@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 2, status: 'Active'}};
+    let userID: number = 2;
+
+    jest.spyOn(service, 'getUserByID').mockImplementation((userID: number) => {return new Promise(resolve => {resolve(user)});})
+    jest.spyOn(mockWhitelistService, 'verifyUserWhitelist').mockImplementation((username: string) => {return new Promise(resolve => {resolve(true)});})
+
+    let approvedStatus: boolean
+
+    await expect(approvedStatus = await service.verifyUserApprovedStatus(userID)).resolves;
+    expect(approvedStatus).toBe(true);
+    expect(service.getUserByID).toHaveBeenCalledTimes(1);
+    expect(service.getUserByID).toHaveBeenCalledWith(userID);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledTimes(1);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledWith(user.username);
+  });
+
+  it('User with Approved resolves correctly', async () => {
+
+    let user: User = {ID: 3, username: 'someMail@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 3, status: 'Approved'}};
+    let userID: number = 3;
+
+    jest.spyOn(service, 'getUserByID').mockImplementation((userID: number) => {return new Promise(resolve => {resolve(user)});})
+
+    let approvedStatus: boolean
+
+    await expect(approvedStatus = await service.verifyUserApprovedStatus(userID)).resolves;
+    expect(approvedStatus).toBe(true);
+    expect(service.getUserByID).toHaveBeenCalledTimes(1);
+    expect(service.getUserByID).toHaveBeenCalledWith(userID);
+    expect(mockWhitelistService.verifyUserWhitelist).toHaveBeenCalledTimes(0);
+  });
+
+  //#endregion
 
 
   //#region GetAllUserRoles

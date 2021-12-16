@@ -3,9 +3,9 @@ import { GetResumesDTO } from "../dtos/get.resumes.dto";
 import { IResumeService, IResumeServiceProvider } from "../../core/primary-ports/application-services/resume.service.interface";
 import { Resume } from "../../core/models/resume";
 import { FilterList } from "../../core/models/filterList";
-import { Roles } from "../../infrastructure/authentication/roles.decorator";
-import { JwtAuthGuard } from "../../infrastructure/authentication/jwt-auth-guard";
-import { ErrorInterceptor } from "../../infrastructure/error-handling/error-interceptor";
+import { Roles } from "../security/roles.decorator";
+import { JwtAuthGuard } from "../security/jwt-auth-guard";
+import { ErrorInterceptor } from "../error-handling/error-interceptor";
 
 @Controller('resume')
 @UseInterceptors(ErrorInterceptor)

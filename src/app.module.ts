@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { AuthModule } from './infrastructure/authentication/auth.module';
+import { AuthModule } from './infrastructure/security/auth.module';
 import { UserModule } from './api/user.module';
 import { MailModule } from "./infrastructure/mail/mail.module";
 import { DatabaseModule } from './infrastructure/data-source/postgres/database.module';

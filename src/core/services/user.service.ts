@@ -1,7 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { IUserService } from "../primary-ports/application-services/user.service.interface";
 import { User } from "../models/user";
-import { AuthenticationHelper } from "../../infrastructure/authentication/authentication.helper";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { Repository } from "typeorm";
@@ -298,8 +297,7 @@ export class UserService implements IUserService {
     return passwordResetString;
   }
 
-  //Calling whitelist if confirm is correct -> calling correct find status by username
-  async verifyUser(username: string, verificationCode: string) {
+  async verifyUser(username: string, verificationCode: string): Promise<void> {
 
     let foundUser = await this.getUserByUsername(username);
 
@@ -321,7 +319,7 @@ export class UserService implements IUserService {
     catch (e) {throw new InternalServerError('Error verifying user')}
   }
 
-  async verifyUserConfirmationToken(user: User, confirmationCode: string) {
+  async verifyUserConfirmationToken(user: User, confirmationCode: string): Promise<void> {
 
     if (confirmationCode == null || confirmationCode == undefined || confirmationCode.length < this.verificationTokenCount) {
       throw new BadRequestError("Invalid verification code entered");
@@ -344,7 +342,7 @@ export class UserService implements IUserService {
     }
   }
 
-  async verifyPasswordToken(user: User, passwordToken: string) {
+  async verifyPasswordToken(user: User, passwordToken: string): Promise<void> {
 
     if (passwordToken == null || passwordToken == undefined || passwordToken.length < this.passwordResetStringCount) {
       throw new BadRequestError("Invalid password token entered");
@@ -470,6 +468,11 @@ export class UserService implements IUserService {
     if (user.status == undefined || user.status == null || user.status.ID <= 0) {
       throw new BadRequestError("An error occurred with user status");
     }
+  }
+
+  async verifyUserApprovedStatus(userID: number): Promise<boolean>{
+    let user: User = await this.getUserByID(userID);
+    return (user.status.status.toLowerCase() != 'approved') ? await this.whitelistService.verifyUserWhitelist(user.username) : true;
   }
 
   async getAllUserRoles(): Promise<Role[]> {

@@ -1,14 +1,7 @@
-import {
-  NestInterceptor,
-  ExecutionContext,
-  Injectable,
-  NotFoundException,
-  CallHandler,
-  BadRequestException, InternalServerErrorException, HttpException
-} from "@nestjs/common";
+import { NestInterceptor, ExecutionContext, Injectable, NotFoundException, CallHandler, BadRequestException, InternalServerErrorException, HttpException } from "@nestjs/common";
 import { Observable } from 'rxjs';
 import { catchError, tap } from "rxjs/operators";
-import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "./errors";
+import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
 
 @Injectable()
 export class ErrorInterceptor implements NestInterceptor {
@@ -27,3 +20,4 @@ export class ErrorInterceptor implements NestInterceptor {
     );
   }
 }
+

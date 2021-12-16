@@ -359,7 +359,7 @@ export class ContractService implements IContractService{
     catch (e) {throw new InternalServerError('Error during delete of contract')}
   }
 
-  verifyContractEntity(contract: Contract) {
+  verifyContractEntity(contract: Contract): void {
     if(contract == null) {throw new BadRequestError('Contract must be instantiated');}
     if(contract.ID == null || contract.ID < 0){throw new BadRequestError('Contract must have a valid ID')}
     if(contract.title == null || contract.title.trim().length == 0){throw new BadRequestError('Contract must have a valid title');}
@@ -371,7 +371,7 @@ export class ContractService implements IContractService{
     if(contract.endDate.getTime() - contract.startDate.getTime() < 0 ){throw new BadRequestError('Start date cannot be after end date');}
   }
 
-  async verifyUserRegistrationToContract(contract: Contract, userID: number){
+  async verifyUserRegistrationToContract(contract: Contract, userID: number): Promise<void>{
 
     let qb = this.contractRepository.createQueryBuilder('contract');
     qb.leftJoin('contract.users', 'users');

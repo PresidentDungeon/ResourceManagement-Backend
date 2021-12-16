@@ -13,7 +13,7 @@ export class AuthenticationHelper implements IAuthenticationHelper{
 
   secretKeyLength: number = 16;
   maxPasswordTokenAgeInSeconds: number = 60 * 60 * 1000;
-  secretKey = this.generateToken(this.secretKeyLength);
+  secretKey: string = this.generateToken(this.secretKeyLength);
 
   constructor(private jwtService: JwtService) {}
 
@@ -37,7 +37,7 @@ export class AuthenticationHelper implements IAuthenticationHelper{
     return value;
   }
 
-  validateLogin(userToValidate: User, password: string){
+  validateLogin(userToValidate: User, password: string): void{
 
     let hashedPassword: string = this.generateHash(password, userToValidate.salt);
     let storedPassword: string = userToValidate.password;
@@ -48,7 +48,7 @@ export class AuthenticationHelper implements IAuthenticationHelper{
   }
 
   generateJWTToken(user: User): string{
-    const payload = {ID: user.ID, username: user.username, role: user.role.role, status: user.status.status};
+    const payload = {userID: user.ID, username: user.username, role: user.role.role, status: user.status.status};
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     return this.jwtService.sign(payload, options);
   }

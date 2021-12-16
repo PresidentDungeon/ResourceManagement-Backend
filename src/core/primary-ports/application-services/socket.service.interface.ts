@@ -4,8 +4,9 @@ import { Contract } from "../../models/contract";
 export const ISocketServiceProvider = 'ISocketServiceProvider'
 export interface ISocketService{
 
-  setServer(socket: Server)
-  emitContractCreateEvent(contract: Contract)
-  emitContractUpdateEvent(contract: Contract)
-  emitContractDeleteEvent(contract: Contract)
+  setServer(socket: Server): void
+  emitContractCreateEvent(contract: Contract): void
+  emitContractUpdateEvent(contract: Contract): void
+  emitContractDeleteEvent(contract: Contract): void
+  redactContract(contract: Contract): Contract
 }

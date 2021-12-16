@@ -17,19 +17,19 @@ export class MockRepositories {
         delete: jest.fn((entitySchema: T) => { return new Promise(resolve => {resolve(entitySchema);});}),
         create: jest.fn((entitySchema: T) => {return new Promise(resolve => {resolve(entitySchema);});}),
         execute: jest.fn(() => {}),
-        createQueryBuilder: jest.fn(() => {return createQueryBuilder}),
+        createQueryBuilder: jest.fn(() => {return selectQueryBuilder}),
       })
     }
 
-    const createQueryBuilder: any = {
-      leftJoinAndSelect: jest.fn(() => createQueryBuilder),
-      leftJoin: () => createQueryBuilder,
-      select: () => createQueryBuilder,
-      addSelect: () => createQueryBuilder,
-      groupBy: () => createQueryBuilder,
-      addGroupBy: () => createQueryBuilder,
-      andWhere: jest.fn(() => createQueryBuilder),
-      where: jest.fn(() => createQueryBuilder),
+    const selectQueryBuilder: any = {
+      leftJoinAndSelect: jest.fn(() => selectQueryBuilder),
+      leftJoin: () => selectQueryBuilder,
+      select: () => selectQueryBuilder,
+      addSelect: () => selectQueryBuilder,
+      groupBy: () => selectQueryBuilder,
+      addGroupBy: () => selectQueryBuilder,
+      andWhere: jest.fn(() => selectQueryBuilder),
+      where: jest.fn(() => selectQueryBuilder),
       getOne: jest.fn(() => {}),
       getMany: jest.fn(() => {}),
       getRawOne: jest.fn(() => {}),
@@ -42,17 +42,17 @@ export class MockRepositories {
       delete: jest.fn(() => {return deleteQueryBuilder}),
     };
 
+    const updateQueryBuilder: any = {
+      set: () => deleteQueryBuilder,
+      where: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
     const deleteQueryBuilder: any = {
       set: () => deleteQueryBuilder,
       where: () => deleteQueryBuilder,
       from: () => deleteQueryBuilder,
       andWhere: () => deleteQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
-
-    const updateQueryBuilder: any = {
-      set: () => deleteQueryBuilder,
-      where: () => deleteQueryBuilder,
       execute: jest.fn(() => {}),
     };
 
