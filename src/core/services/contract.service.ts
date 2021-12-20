@@ -105,7 +105,7 @@ export class ContractService implements IContractService{
 
   async getContractByID(ID: number, redact?: boolean, personalID?: number): Promise<Contract>{
 
-    if(ID == null || ID <= 0){
+    if(isNaN(ID) || ID == null || ID <= 0){
       throw new BadRequestError('Contract ID must be instantiated or valid');
     }
 
@@ -329,27 +329,13 @@ export class ContractService implements IContractService{
     await this.getContractByID(contract.ID);
     this.verifyContractEntity(contract);
 
+    const newContract = await this.contractRepository.create(contract);
+
     try{
-      const savedContract = await this.connection.transaction<Contract>(async transactionalEntityManager => {
-
-        await transactionalEntityManager.createQueryBuilder().from(ResumeRequestEntity, 'resumeRequest').delete()
-          .where('contractID = :contractID', {contractID: `${contract.ID}`}).execute();
-
-        const resumeRequests = this.resumeRequestRepository.create(contract.resumeRequests);
-        await transactionalEntityManager.save(resumeRequests);
-
-        contract.resumeRequests = resumeRequests;
-
-        const newContract = await this.contractRepository.create(contract);
-
-        const savedContract = await transactionalEntityManager.save(newContract);
-        return savedContract;
-      });
+      const savedContract = await this.contractRepository.save(newContract);
       return savedContract;
     }
-    catch (e) {
-      throw new InternalServerError('Error during update of contract');
-    }
+    catch (e) {throw new InternalServerError('Error during update of contract')}
 
   }
 
