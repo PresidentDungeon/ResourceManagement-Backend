@@ -379,7 +379,6 @@ export class ContractService implements IContractService{
         contract.status = expiredStatus
         this.contractRepository.createQueryBuilder().update(ContractEntity).set({status: expiredStatus, dueDate: null}).where("ID = :contractID", {contractID: contract.ID}).execute();}
 
-
       if(contract.status.status.toLowerCase() == 'accepted' && contract.endDate.getTime() < new Date().getTime()){
         contract.status = completedStatus;
         this.contractRepository.createQueryBuilder().update(ContractEntity).set({status: completedStatus}).where("ID = :contractID", {contractID: contract.ID}).execute();

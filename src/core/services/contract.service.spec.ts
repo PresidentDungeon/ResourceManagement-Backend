@@ -1301,7 +1301,7 @@ describe('ContractService', () => {
         expectedCalls: 2
       },
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 7, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: [], whitelists: []},
           {ID: 2, title: 'Semco Maritime', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 6, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: [], whitelists: []},
           {ID: 3, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: [], whitelists: []},
         ],
