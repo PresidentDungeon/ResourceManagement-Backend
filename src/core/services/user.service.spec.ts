@@ -96,7 +96,8 @@ describe('UserService', () => {
     const MockManager = { save: jest.fn(() => {}), }
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService, MockAuthenticationHelper, MockMailHelper, MockUserRepository, MockConfirmationTokenRepository, MockPasswordTokenRepository, MockRoleService, MockStatusService, MockWhitelistService, MockConnection],
+      providers: [UserService, MockAuthenticationHelper, MockMailHelper, MockUserRepository, MockConfirmationTokenRepository,
+        MockPasswordTokenRepository, MockRoleService, MockStatusService, MockWhitelistService, MockConnection],
     }).compile();
 
     service = module.get<UserService>(UserService);

@@ -321,7 +321,7 @@ export class UserService implements IUserService {
           .where('userID = :userID', {userID: `${foundUser.ID}`}).execute();
       });
     }
-    catch (e) {console.log(e);throw new InternalServerError('Error verifying user')}
+    catch (e) {throw new InternalServerError('Error verifying user')}
   }
 
   async verifyUserConfirmationToken(user: User, confirmationCode: string): Promise<void> {

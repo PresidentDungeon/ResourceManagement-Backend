@@ -15,7 +15,6 @@ export class ErrorInterceptor implements NestInterceptor {
         else if(error instanceof InternalServerError){throw new InternalServerErrorException(error.message);}
         else if(error instanceof InactiveError){throw new HttpException(error.message, 423);}
         else{throw new BadRequestException(error.message);}
-
       }),
     );
   }
