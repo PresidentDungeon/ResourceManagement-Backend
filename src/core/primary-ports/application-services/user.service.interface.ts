@@ -24,7 +24,6 @@ export interface IUserService{
   verifyUser(username: string, verificationCode: string): Promise<void>
   verifyUserConfirmationToken(user: User, confirmationCode: string): Promise<void>
   verifyPasswordToken(user: User, passwordToken: string): Promise<void>
-  deleteUserConfirmationToken(userID: number): Promise<void>
 
   updatePasswordWithConfirmationToken(username: string, confirmationToken: string, password: string): Promise<boolean>
   updatePasswordWithToken(username: string, passwordToken: string, password: string): Promise<boolean>

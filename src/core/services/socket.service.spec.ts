@@ -59,14 +59,13 @@ describe('SocketService', () => {
     service.server = websocket;
 
     expect(service.emitContractUpdateEvent(contract)).resolves;
-    expect(service.server.emit).toHaveBeenCalledTimes(2);
+    expect(service.server.emit).toHaveBeenCalledTimes(1);
     expect(service.server.emit).toHaveBeenCalledWith('contractUpdatedAdmin', contract);
-    expect(service.server.emit).toHaveBeenCalledWith('contractUpdatedUser', contract);
   });
 
   //#endregion
 
-  //#region EmitContractCreateEvent
+  //#region EmitContractDeleteEvent
 
   it('Calling emit contract delete event resolves correctly', () => {
 

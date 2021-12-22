@@ -356,6 +356,7 @@ describe('ContractService', () => {
 
     jest.spyOn(service, 'verifyContractStatuses').mockImplementation();
 
+    await expect(service.getContractByID(NaN)).rejects.toThrow(errorStringToExcept);
     await expect(service.getContractByID(null)).rejects.toThrow(errorStringToExcept);
     await expect(service.getContractByID(ID)).rejects.toThrow(errorStringToExcept);
     expect(mockContractRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(0);
@@ -1056,31 +1057,13 @@ describe('ContractService', () => {
 
     jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce(() => {});
 
-    const mockedManager = {
-      save: jest.fn(() => {}),
-      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
-    }
-
-    const createQueryBuilder: any = {
-      from: () => createQueryBuilder,
-      delete: jest.fn(() => {return deleteQueryBuilder}),
-    };
-
-    const deleteQueryBuilder: any = {
-      where: () => deleteQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
-
-    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
-
     await expect(service.update(contract)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(0);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
-    expect(mockedManager.save).toHaveBeenCalledTimes(0);
-    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.save).toHaveBeenCalledTimes(0);
   });
 
   it('Update contract with invalid data throws error', async () => {
@@ -1096,23 +1079,6 @@ describe('ContractService', () => {
       .spyOn(service, 'verifyContractEntity')
       .mockImplementationOnce((contract: Contract) => {throw new Error('Contract must have a valid title')});
 
-    const mockedManager = {
-      save: jest.fn(() => {}),
-      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
-    }
-
-    const createQueryBuilder: any = {
-      from: () => createQueryBuilder,
-      delete: jest.fn(() => {return deleteQueryBuilder}),
-    };
-
-    const deleteQueryBuilder: any = {
-      where: () => deleteQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
-
-    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
-
     let expectedErrorMessage: string = 'Contract must have a valid title'
 
     await expect(service.update(contractToUpdate)).rejects.toThrow(expectedErrorMessage);
@@ -1122,8 +1088,7 @@ describe('ContractService', () => {
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contractToUpdate);
     expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
-    expect(mockedManager.save).toHaveBeenCalledTimes(0);
-    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.save).toHaveBeenCalledTimes(0);
   });
 
   it('Error while updating contract throws error', async () => {
@@ -1139,22 +1104,8 @@ describe('ContractService', () => {
       .spyOn(service, 'verifyContractEntity')
       .mockImplementationOnce((contract: Contract) => {});
 
-    const mockedManager = {
-      save: jest.fn(() => {throw new Error('')}),
-      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
-    }
-
-    const createQueryBuilder: any = {
-      from: () => createQueryBuilder,
-      delete: jest.fn(() => {return deleteQueryBuilder}),
-    };
-
-    const deleteQueryBuilder: any = {
-      where: () => deleteQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
-
-    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
+    jest.spyOn(mockContractRepository, 'save')
+      .mockImplementation((contract: ContractEntity) => {throw new Error('')});
 
     let expectedErrorMessage: string = 'Error during update of contract'
 
@@ -1163,11 +1114,10 @@ describe('ContractService', () => {
     expect(service.getContractByID).toHaveBeenCalledWith(contractToUpdate.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contractToUpdate);
-    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(1);
-    expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(1);
-    expect(mockResumeRequestRepository.create).toHaveBeenCalledWith(contractToUpdate.resumeRequests);
-    expect(mockedManager.save).toHaveBeenCalledTimes(1);
-    expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
+    expect(mockContractRepository.create).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.create).toHaveBeenCalledWith(contractToUpdate);
+    expect(mockContractRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.save).toHaveBeenCalledWith(contractToUpdate);
   });
 
   it('Updating contract with valid data resolves correctly', async () => {
@@ -1183,23 +1133,6 @@ describe('ContractService', () => {
       .spyOn(service, 'verifyContractEntity')
       .mockImplementationOnce((contract: Contract) => {});
 
-    const mockedManager = {
-      save: jest.fn(() => {return new Promise(resolve => {resolve(contractToUpdate)});}),
-      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
-    }
-
-    const createQueryBuilder: any = {
-      from: () => createQueryBuilder,
-      delete: jest.fn(() => {return deleteQueryBuilder}),
-    };
-
-    const deleteQueryBuilder: any = {
-      where: () => deleteQueryBuilder,
-      execute: jest.fn(() => {}),
-    };
-
-    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
-
     let updatedContract: Contract;
 
     await expect(updatedContract = await service.update(contractToUpdate)).resolves;
@@ -1208,12 +1141,10 @@ describe('ContractService', () => {
     expect(service.getContractByID).toHaveBeenCalledWith(contractToUpdate.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contractToUpdate);
-    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(1);
-    expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(1);
-    expect(mockResumeRequestRepository.create).toHaveBeenCalledWith([]);
-    expect(mockedManager.save).toHaveBeenCalledTimes(2);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(1);
     expect(mockContractRepository.create).toHaveBeenCalledWith(contractToUpdate);
+    expect(mockContractRepository.save).toHaveBeenCalledTimes(1);
+    expect(mockContractRepository.save).toHaveBeenCalledWith(contractToUpdate);
   });
 
   //#endregion
@@ -1370,7 +1301,7 @@ describe('ContractService', () => {
         expectedCalls: 2
       },
       { input: contracts = [
-          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 5, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: [], whitelists: []},
+          {ID: 1, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 7, status: 'Accepted'}, startDate: new Date('2021-11-08T21:00:00'), endDate: addDays(new Date(), 1), dueDate: addDays(new Date(), 1), users: [], resumes: [], resumeRequests: [], whitelists: []},
           {ID: 2, title: 'Semco Maritime', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 6, status: 'Rejected'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), -1), users: [], resumes: [], resumeRequests: [], whitelists: []},
           {ID: 3, title: 'Mærsk Offshore', description: 'Some company', isVisibleToDomainUsers: false, status: {ID: 3, status: 'Pending review'}, startDate: new Date('2021-11-08T21:00:00'), endDate: new Date('2021-12-15T21:00:00'), dueDate: addDays(new Date(), 0), users: [], resumes: [], resumeRequests: [], whitelists: []},
         ],

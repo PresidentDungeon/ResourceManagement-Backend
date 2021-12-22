@@ -1,9 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { IUserService } from "../primary-ports/application-services/user.service.interface";
 import { User } from "../models/user";
-import { InjectRepository } from "@nestjs/typeorm";
+import { InjectConnection, InjectRepository } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
-import { Repository } from "typeorm";
+import { Connection, Repository } from "typeorm";
 import { PasswordTokenEntity } from "../../infrastructure/data-source/postgres/entities/password-token.entity";
 import { PasswordToken } from "../models/password.token";
 import { Filter } from "../models/filter";
@@ -19,6 +19,7 @@ import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/a
 import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
 import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
 import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
+import { Contract } from "../models/contract";
 
 @Injectable()
 export class UserService implements IUserService {
@@ -32,6 +33,7 @@ export class UserService implements IUserService {
     @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     @InjectRepository(PasswordTokenEntity) private passwordTokenRepository: Repository<PasswordTokenEntity>,
     @InjectRepository(ConfirmationTokenEntity) private confirmationTokenRepository: Repository<ConfirmationTokenEntity>,
+    @InjectConnection() private readonly connection: Connection,
     @Inject(IAuthenticationHelperProvider) private authenticationHelper: IAuthenticationHelper,
     @Inject(IMailHelperProvider) private mailHelper: IMailHelper,
     @Inject(IRoleServiceProvider) private roleService: IRoleService,
@@ -308,13 +310,16 @@ export class UserService implements IUserService {
     await this.verifyUserConfirmationToken(foundUser, verificationCode);
 
     const isWhitelisted: boolean = await this.whitelistService.verifyUserWhitelist(foundUser.username);
-    const userStatus: Status = (isWhitelisted) ? await this.statusService.findStatusByName('whitelisted') : await this.statusService.findStatusByName('active');
+    const userStatus: Status = (isWhitelisted) ? await this.statusService.findStatusByName('approved') : await this.statusService.findStatusByName('active');
 
     foundUser.status = userStatus;
 
     try{
-      await this.userRepository.save(foundUser);
-      await this.deleteUserConfirmationToken(foundUser.ID);
+      await this.connection.transaction(async transactionalEntityManager => {
+        await transactionalEntityManager.save<UserEntity>(foundUser);
+        await transactionalEntityManager.createQueryBuilder().from(ConfirmationTokenEntity, 'confirmToken').delete()
+          .where('userID = :userID', {userID: `${foundUser.ID}`}).execute();
+      });
     }
     catch (e) {throw new InternalServerError('Error verifying user')}
   }
@@ -362,24 +367,6 @@ export class UserService implements IUserService {
 
     this.authenticationHelper.validatePasswordToken(foundPasswordToken);
   }
-
-  async deleteUserConfirmationToken(userID: number) {
-
-    if (userID == null || userID == undefined || userID <= 0) {
-      throw new BadRequestError("User ID must be instantiated or valid");
-    }
-
-    try {
-      await this.confirmationTokenRepository.createQueryBuilder()
-        .delete()
-        .where("userID = :userID", { userID: `${userID}` })
-        .execute();
-    }
-    catch (e) {
-      throw new InternalServerError("Error deleting user confirmation token");
-    }
-  }
-
 
   async updatePasswordWithConfirmationToken(username: string, confirmationToken: string, password: string): Promise<boolean> {
 

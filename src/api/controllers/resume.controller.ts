@@ -10,7 +10,6 @@ import { ErrorInterceptor } from "../error-handling/error-interceptor";
 @Controller('resume')
 @UseInterceptors(ErrorInterceptor)
 export class ResumeController {
-
   constructor(@Inject(IResumeServiceProvider) private resumeService: IResumeService) {}
 
   @Roles('Admin')

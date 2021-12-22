@@ -20,7 +20,6 @@ export class SocketService implements ISocketService{
 
   emitContractUpdateEvent(contract: Contract): void {
     this.server.emit('contractUpdatedAdmin', contract);
-    this.server.emit('contractUpdatedUser', this.redactContract(contract));
   }
 
   emitContractDeleteEvent(contract: Contract): void {

@@ -57,8 +57,8 @@ export class ContractController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getContractByID')
-  async getContractByID(@Query() contractID: any): Promise<Contract> {
-    const contract: Contract = await this.contractService.getContractByID(contractID.ID, false);
+  async getContractByID(@Query() query: any): Promise<Contract> {
+    const contract: Contract = await this.contractService.getContractByID(query.ID, false);
     const resumes: Resume[] = await this.resumeService.getResumesByID(contract.resumes, false);
     contract.resumes = resumes;
     return contract;
@@ -100,7 +100,7 @@ export class ContractController {
   @Put('update')
   async updateContract(@Body() contract: Contract): Promise<Contract> {
     const updatedContract = await this.contractService.update(contract);
-    this.contractService.getContractByID(contract.ID, false).then((contract) => { this.socketService.emitContractUpdateEvent(contract) });
+    this.socketService.emitContractUpdateEvent(contract);
     return updatedContract;
   }
 

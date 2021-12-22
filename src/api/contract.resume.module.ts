@@ -20,7 +20,8 @@ import { WhitelistModule } from './whitelist.module';
 import { WhitelistController } from './controllers/whitelist.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ContractEntity, ResumeEntity, ContractStatusEntity, ResumeRequestEntity, CommentEntity]), HttpModule, SocketModule, WhitelistModule],
+  imports: [TypeOrmModule.forFeature([ContractEntity, ResumeEntity, ContractStatusEntity, ResumeRequestEntity, CommentEntity]),
+    HttpModule, SocketModule, WhitelistModule],
   controllers: [ContractController, ResumeController, WhitelistController],
   providers: [
     { provide: IContractServiceProvider, useClass: ContractService },
