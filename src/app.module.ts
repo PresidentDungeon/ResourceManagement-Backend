@@ -1,17 +1,16 @@
 import { Module } from "@nestjs/common";
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './infrastructure/security/auth.module';
 import { UserModule } from './api/user.module';
 import { MailModule } from "./infrastructure/mail/mail.module";
 import { DatabaseModule } from './infrastructure/data-source/postgres/database.module';
 import { ConfigModule } from "@nestjs/config";
 import { SocketModule } from "./api/socket.module";
-
-import { UserController } from './api/controllers/user.controller';
-import { StatusService } from './core/services/status.service';
+import { ContractResumeModule } from "./api/contract.resume.module";
 import * as Joi from '@hapi/joi';
+import { WhitelistModule } from "./api/whitelist.module";
 
 @Module({
-  imports: [UserModule, ConfigModule.forRoot({
+  imports: [UserModule, ContractResumeModule, WhitelistModule, ConfigModule.forRoot({
     envFilePath: '.dev.env',
     isGlobal: true,
     validationSchema: Joi.object({
@@ -22,6 +21,7 @@ import * as Joi from '@hapi/joi';
       POSTGRES_DB: Joi.string().required(),
       PORT: Joi.number(),
       FRONTEND_ROUTE: Joi.string().required(),
+      MOCK_API_URL: Joi.string().required(),
       EMAIL_USER: Joi.string().required(),
       EMAIL_PASS: Joi.string().required()
     })

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ISocketService } from "../primary-ports/socket.service.interface";
+import { ISocketService } from "../primary-ports/application-services/socket.service.interface";
 import { Server } from "socket.io";
-import { UserDTO } from "../../api/dtos/user.dto";
-import { User } from "../models/user";
+import { Contract } from "../models/contract";
 
 @Injectable()
 export class SocketService implements ISocketService{
@@ -11,26 +10,26 @@ export class SocketService implements ISocketService{
 
   constructor() {}
 
-  setServer(socket: Server) {
+  setServer(socket: Server): void {
     this.server = socket;
   }
 
-  emitUserCreateEvent(user: User) {
-    this.server.emit('userCreated', this.convertUserToDTO(user));
+  emitContractCreateEvent(contract: Contract): void {
+    this.server.emit('contractCreated', contract);
   }
 
-  emitUserUpdateEvent(user: User) {
-    this.server.emit('userUpdated', this.convertUserToDTO(user));
+  emitContractUpdateEvent(contract: Contract): void {
+    this.server.emit('contractUpdatedAdmin', contract);
   }
 
-  emitUserDeleteEvent(user: User) {
-    this.server.emit('userDeleted', this.convertUserToDTO(user));
+  emitContractDeleteEvent(contract: Contract): void {
+    this.server.emit('contractDeleted', contract);
   }
 
-  convertUserToDTO(user: User): UserDTO{
-    return {ID: user.ID, username: user.username, status: user.status, role: user.role}
+  redactContract(contract: Contract): Contract{
+    contract.users = [];
+    contract.resumes.map((resume) => {resume.firstName = ''; resume.middleName = ''; resume.lastName = ''; resume.middleLastName = '';});
+    return contract;
   }
-
-
 
 }

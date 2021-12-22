@@ -1,7 +1,9 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { RoleEntity } from "./role.entity";
 import { PasswordTokenEntity } from "./password-token.entity";
-import { StatusEntity } from "./status.entity";
+import { UserStatusEntity } from "./user-status.entity";
+import { ConfirmationTokenEntity } from "./confirmation-token.entity";
+import { CommentEntity } from "./comment.entity";
 
 @Entity()
 export class UserEntity {
@@ -18,12 +20,9 @@ export class UserEntity {
   @Column()
   public salt: string;
 
-  @Column()
-  public verificationCode: string;
-
   @Index()
-  @ManyToOne(() => StatusEntity, (statusEntity: StatusEntity) => statusEntity.users)
-  public status: StatusEntity;
+  @ManyToOne(() => UserStatusEntity, (userStatusEntity: UserStatusEntity) => userStatusEntity.users)
+  public status: UserStatusEntity;
 
   @Index()
   @ManyToOne(() => RoleEntity, (roleEntity: RoleEntity) => roleEntity.users)
@@ -31,6 +30,12 @@ export class UserEntity {
 
   @OneToOne(() => PasswordTokenEntity,{cascade: true})
   public passwordToken?: PasswordTokenEntity
+
+  @OneToOne(() => ConfirmationTokenEntity,{cascade: true})
+  public confirmationToken?: ConfirmationTokenEntity
+
+  @OneToMany(() => CommentEntity, (commentEntity: CommentEntity) => commentEntity.user, {cascade: true})
+  public comments?: CommentEntity[]
 
 }
 

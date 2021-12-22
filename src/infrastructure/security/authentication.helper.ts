@@ -1,24 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { Hmac } from "crypto";
-import { User } from "../core/models/user";
+import { User } from "../../core/models/user";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
-import { PasswordToken } from "../core/models/password.token";
+import { PasswordToken } from "../../core/models/password.token";
+import { BadRequestError } from "../error-handling/errors";
+import { IAuthenticationHelper } from "../../core/primary-ports/domain-services/authentication.helper.interface";
 
 const crypto = require('crypto');
 
 @Injectable()
-export class AuthenticationHelper {
+export class AuthenticationHelper implements IAuthenticationHelper{
 
   secretKeyLength: number = 16;
   maxPasswordTokenAgeInSeconds: number = 60 * 60 * 1000;
-  secretKey = this.generateToken(this.secretKeyLength);
+  secretKey: string = this.generateToken(this.secretKeyLength);
 
   constructor(private jwtService: JwtService) {}
+
+  getSecretKey(): string{
+    return this.secretKey;
+  }
 
   generateToken(tokenLength: number): string{
 
     if(tokenLength == null || tokenLength <= 0 || !Number.isInteger(tokenLength)){
-      throw new Error('Token length must be a positive numeric number')
+      throw new BadRequestError('Token length must be a positive numeric number')
     }
 
     return crypto.randomBytes(tokenLength).toString('hex').slice(0, tokenLength);
@@ -37,12 +43,12 @@ export class AuthenticationHelper {
     let storedPassword: string = userToValidate.password;
 
     if(storedPassword !== hashedPassword){
-      throw new Error('Entered password is incorrect');
+      throw new BadRequestError('Entered password is incorrect');
     }
   }
 
   generateJWTToken(user: User): string{
-    const payload = {ID: user.ID, username: user.username, role: user.role.role};
+    const payload = {userID: user.ID, username: user.username, role: user.role.role, status: user.status.status};
     const options: JwtSignOptions = {secret: this.secretKey, algorithm: 'HS256'}
     return this.jwtService.sign(payload, options);
   }
@@ -58,7 +64,7 @@ export class AuthenticationHelper {
     const date: Date = new Date();
 
     if(date.getTime() - passwordToken.time.getTime() >= this.maxPasswordTokenAgeInSeconds){
-      throw new Error('Password reset link has expired')
+      throw new BadRequestError('Password reset link has expired')
     }
 
     return true;

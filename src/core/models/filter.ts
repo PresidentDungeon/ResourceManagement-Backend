@@ -1,10 +1,15 @@
 export interface Filter{
   currentPage: number
   itemsPrPage: number
-
-  name?: string
   statusID?: number
   roleID?: number
+
+  name?: string
+  contractUser?: string
   sortingType?: string
   sorting?: string
+  domain?: string
+
+  enableCommentCount?: boolean
+  enableMatchComplete?: boolean
 }

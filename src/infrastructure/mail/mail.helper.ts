@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
-import { User } from "../../core/models/user";
-import { IMailService } from "../../core/primary-ports/mail.service.interface";
 import { ConfigService } from "@nestjs/config";
+import { IMailHelper } from "../../core/primary-ports/domain-services/mail.helper.interface";
 
 @Injectable()
-export class MailService implements IMailService{
+export class MailHelper implements IMailHelper{
 
   constructor(private mailerService: MailerService, private configService: ConfigService) {}
 
-  async sendUserConfirmation(email: string, verificationCode: string){
+  async sendUserConfirmation(email: string, verificationCode: string): Promise<void>{
 
     const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
     const verificationLink = `${frontendRoute}/verifyLink?type=confirmation&email=${email}&verificationCode=${verificationCode}`;
@@ -25,7 +24,23 @@ export class MailService implements IMailService{
     });
   }
 
-  async sendUserPasswordReset(email: string, passwordResetToken: string){
+  async sendUserRegistrationInvite(email: string, confirmationCode: string): Promise<void>{
+
+    const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
+    const verificationLink = `${frontendRoute}/verifyLink?type=setup&email=${email}&verificationCode=${confirmationCode}`;
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Semco Maritime Resource Management Invitation Link',
+      template: './invitation',
+      context: {
+        url: verificationLink
+      }
+    });
+  }
+
+
+  async sendUserPasswordReset(email: string, passwordResetToken: string): Promise<void>{
 
     const frontendRoute: string = this.configService.get('FRONTEND_ROUTE');
     const resetLink = `${frontendRoute}/verifyLink?type=password&email=${email}&verificationCode=${passwordResetToken}`;
@@ -40,7 +55,7 @@ export class MailService implements IMailService{
     });
   }
 
-  async sendUserPasswordResetConfirmation(email: string){
+  async sendUserPasswordResetConfirmation(email: string): Promise<void>{
 
     await this.mailerService.sendMail({
       to: email,

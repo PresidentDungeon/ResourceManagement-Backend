@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthenticationHelper } from './authentication.helper';
-import { User } from "../core/models/user";
+import { User } from "../../core/models/user";
 import { JwtService, JwtSignOptions } from "@nestjs/jwt";
 import theoretically from "jest-theories";
-import { PasswordToken } from "../core/models/password.token";
+import { PasswordToken } from "../../core/models/password.token";
 
 describe('AuthenticationService', () => {
   let service: AuthenticationHelper;
@@ -45,7 +45,7 @@ describe('AuthenticationService', () => {
   });
   //#endregion
 
-  //#region GenerateRandomString
+  //#region GenerateToken
 
   describe('Generated token throws error on invalid token length', () => {
     let tokenLength: Number;
@@ -70,6 +70,8 @@ describe('AuthenticationService', () => {
 
      const theories = [
        { input: tokenLength = 1},
+       { input: tokenLength = 10},
+       { input: tokenLength = 20},
      ];
 
      theoretically('The token is of expected length', theories, theory => {
@@ -80,7 +82,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region GenerateHash
+  //#region GenerateHash
 
    it('Generated hash value should be defined', () => {
      let password: string = "somePassword";
@@ -100,7 +102,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region validateLogin
+  //#region validateLogin
 
    it('Valid login for user', () => {
 
@@ -134,11 +136,12 @@ describe('AuthenticationService', () => {
 
      const user: User = {
        ID: 1,
+       username: 'Hans',
        password: generatedHash,
        salt: generatedSalt,
        role: {ID: 1, role: 'admin'},
-       status: {ID: 1, status: 'active'},
-       username: 'Hans'
+       status: {ID: 1, status: 'active'}
+
      }
 
      let errorStringToExcept: string = 'Entered password is incorrect';
@@ -148,17 +151,17 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region GenerateJWTToken
+  //#region GenerateJWTToken
 
    it('Generation of JWT token is successful on valid user', () => {
 
      const user: User = {
        ID: 1,
+       username: 'Hans',
        password: 'someHash',
        salt: 'someSalt',
        role: {ID: 1, role: 'admin'},
-       status: {ID: 1, status: 'active'},
-       username: 'Hans'
+       status: {ID: 1, status: 'active'}
      }
 
      const result = service.generateJWTToken(user);
@@ -170,7 +173,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region validateJWTToken
+  //#region validateJWTToken
 
    it('Validate valid token should return true', () => {
      let token: string = 'SomeToken';
@@ -193,7 +196,7 @@ describe('AuthenticationService', () => {
 
    //#endregion
 
-   //#region ValidatePasswordToken
+  //#region ValidatePasswordToken
 
    it('Validation of expired password token throws error',  () => {
 
