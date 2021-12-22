@@ -157,8 +157,7 @@ export class ContractService implements IContractService{
     personalQB.leftJoinAndSelect('contract.status', 'status');
     personalQB.andWhere(`status.status NOT IN (:...status)`, { status: ['Rejected', 'Draft']});
 
-    if(statusID > 0)
-    {
+    if(statusID > 0) {
       personalQB.andWhere(`status.ID = :statusID`, { statusID: `${statusID}` });
     }
 
@@ -173,8 +172,7 @@ export class ContractService implements IContractService{
     domainQB.andWhere(`whitelists.domain ILIKE :userDomain`, { userDomain: domainName});
     domainQB.andWhere(`status.status NOT IN (:...status)`, { status: ['Rejected', 'Draft']});
 
-    if(statusID > 0)
-    {
+    if(statusID > 0) {
       domainQB.andWhere(`status.ID = :statusID`, { statusID: `${statusID}` });
     }
 
@@ -231,22 +229,18 @@ export class ContractService implements IContractService{
     qb.leftJoinAndSelect('contract.status', 'status');
     qb.leftJoin('contract.users', 'users');
 
-    if(filter.name != null && filter.name !== '')
-    {
+    if(filter.name != null && filter.name !== '') {
       qb.andWhere(`contract.title ILIKE :title`, { title: `%${filter.name}%` });
     }
 
-    if(filter.contractUser != null && filter.contractUser !== '')
-    {
+    if(filter.contractUser != null && filter.contractUser !== '') {
       if(!enableMatchComplete){qb.andWhere(`users.username ILIKE :contractUser`, { contractUser: `%${filter.contractUser}%` });}
       else{qb.andWhere(`users.username ILIKE :contractUser`, {contractUser: `${filter.contractUser}` });}
     }
 
-    if(filter.statusID != null && filter.statusID > 0)
-    {
+    if(filter.statusID != null && filter.statusID > 0) {
       qb.andWhere(`status.ID = :statusID`, { statusID: `${filter.statusID}` });
     }
-
 
     if(enableCommentCount){
       qb.leftJoin('contract.comments', 'comments');

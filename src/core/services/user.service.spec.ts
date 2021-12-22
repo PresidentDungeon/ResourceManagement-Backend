@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { User } from "../models/user";
 import theoretically from "jest-theories";
-import { Repository } from "typeorm";
+import { Connection, Repository } from "typeorm";
 import { getRepositoryToken } from "@nestjs/typeorm";
 import { UserEntity } from "../../infrastructure/data-source/postgres/entities/user.entity";
 import { UnauthorizedException } from "@nestjs/common";
@@ -31,6 +31,7 @@ describe('UserService', () => {
   let mockRoleService: IRoleService;
   let mockStatusService: IUserStatusService;
   let mockWhitelistService: IWhitelistService;
+  let connection: Connection;
 
   let mockContractFactory = new MockRepositories();
 
@@ -85,8 +86,17 @@ describe('UserService', () => {
       })
     }
 
+    const MockConnection = {
+      provide: Connection,
+      useFactory: () => ({
+        transaction: jest.fn((fn) => {return fn(MockManager)}),
+      })
+    };
+
+    const MockManager = { save: jest.fn(() => {}), }
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService, MockAuthenticationHelper, MockMailHelper, MockUserRepository, MockConfirmationTokenRepository, MockPasswordTokenRepository, MockRoleService, MockStatusService, MockWhitelistService],
+      providers: [UserService, MockAuthenticationHelper, MockMailHelper, MockUserRepository, MockConfirmationTokenRepository, MockPasswordTokenRepository, MockRoleService, MockStatusService, MockWhitelistService, MockConnection],
     }).compile();
 
     service = module.get<UserService>(UserService);
@@ -98,6 +108,7 @@ describe('UserService', () => {
     mockRoleService = module.get<IRoleService>(IRoleServiceProvider);
     mockStatusService = module.get<IUserStatusService>(IUserStatusServiceProvider);
     mockWhitelistService = module.get<IWhitelistService>(IWhitelistServiceProvider);
+    connection = module.get<Connection>(Connection);
   });
 
     it('User service Should be defined', () => {
@@ -135,6 +146,10 @@ describe('UserService', () => {
     it('Mock whitelisted service Should be defined', () => {
       expect(mockWhitelistService).toBeDefined();
     });
+
+  it('Connection Should be defined', () => {
+    expect(connection).toBeDefined();
+  });
 
   //#region CreateUser
 
@@ -1243,9 +1258,8 @@ describe('UserService', () => {
       status: {ID: 2, status: 'active'},
       role: {ID: 1, role: 'user'}};
 
+    let username: string = "peter@gmail.com";
     let verificationCode = "2xY3b4";
-
-    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, salt: 'saltValue', hashedConfirmationToken: 'someHashedToken'};
 
     jest
       .spyOn(service, 'getUserByUsername')
@@ -1255,11 +1269,23 @@ describe('UserService', () => {
       .spyOn(service, 'verifyUserConfirmationToken')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
 
-    jest
-      .spyOn(service, 'deleteUserConfirmationToken')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+    const mockedManager = {
+      save: jest.fn(() => {}),
+      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
+    }
 
-    let username: string = "peter@gmail.com";
+    const createQueryBuilder: any = {
+      from: () => createQueryBuilder,
+      delete: jest.fn(() => {return deleteQueryBuilder}),
+    };
+
+    const deleteQueryBuilder: any = {
+      where: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
+
     let errorStringToExcept: string = 'This user has already been verified';
 
     await expect(service.verifyUser(username, verificationCode)).rejects.toThrow(errorStringToExcept);
@@ -1267,8 +1293,8 @@ describe('UserService', () => {
     expect(service.getUserByUsername).toHaveBeenCalledWith(username);
     expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(0);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(0);
-    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(0);
+    expect(mockedManager.save).toHaveBeenCalledTimes(0);
+    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(0);
   });
 
   it('Error during save on user verification throws correct error', async () => {
@@ -1280,9 +1306,8 @@ describe('UserService', () => {
       status: {ID: 2, status: 'pending'},
       role: {ID: 1, role: 'user'}};
 
+    let username: string = "peter@gmail.com";
     let verificationCode = "2xY3b4";
-
-    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, salt: 'saltValue', hashedConfirmationToken: 'someHashedToken'};
 
     jest
       .spyOn(service, 'getUserByUsername')
@@ -1292,13 +1317,22 @@ describe('UserService', () => {
       .spyOn(service, 'verifyUserConfirmationToken')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
 
-    jest
-      .spyOn(service, 'deleteUserConfirmationToken')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+    const mockedManager = {
+      save: jest.fn(() => {throw new Error()}),
+      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
+    }
 
-    jest.spyOn(mockUserRepository, 'save').mockImplementation((user: User) => {throw new Error()});
+    const createQueryBuilder: any = {
+      from: () => createQueryBuilder,
+      delete: jest.fn(() => {return deleteQueryBuilder}),
+    };
 
-    let username: string = "peter@gmail.com";
+    const deleteQueryBuilder: any = {
+      where: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
 
     let expectedErrorMessage: string = 'Error verifying user'
 
@@ -1308,8 +1342,9 @@ describe('UserService', () => {
     expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
-    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(0);
+    expect(mockedManager.save).toHaveBeenCalledTimes(1);
+    expect(mockedManager.save).toHaveBeenCalledWith(storedUser);
+    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(0);
   });
 
   it('Verification of user with pending status and correct verification code is successful', async () => {
@@ -1321,9 +1356,8 @@ describe('UserService', () => {
       status: {ID: 2, status: 'pending'},
       role: {ID: 1, role: 'user'}};
 
+    let username: string = "peter@gmail.com";
     let verificationCode = "2xY3b4";
-
-    const storedConfirmationToken: ConfirmationTokenEntity = {user: storedUser, salt: 'saltValue', hashedConfirmationToken: 'someHashedToken'};
 
     jest
       .spyOn(service, 'getUserByUsername')
@@ -1333,11 +1367,22 @@ describe('UserService', () => {
       .spyOn(service, 'verifyUserConfirmationToken')
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
 
-    jest
-      .spyOn(service, 'deleteUserConfirmationToken')
-      .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null);});});
+    const mockedManager = {
+      save: jest.fn(() => {}),
+      createQueryBuilder: jest.fn(() => {return createQueryBuilder})
+    }
 
-    let username: string = "peter@gmail.com";
+    const createQueryBuilder: any = {
+      from: () => createQueryBuilder,
+      delete: jest.fn(() => {return deleteQueryBuilder}),
+    };
+
+    const deleteQueryBuilder: any = {
+      where: () => deleteQueryBuilder,
+      execute: jest.fn(() => {}),
+    };
+
+    connection.transaction = jest.fn().mockImplementation((fn) => {return fn(mockedManager)});
 
     await expect(await service.verifyUser(username, verificationCode)).resolves;
     expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
@@ -1345,8 +1390,9 @@ describe('UserService', () => {
     expect(service.verifyUserConfirmationToken).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledTimes(1);
     expect(mockStatusService.findStatusByName).toHaveBeenCalledWith('active');
-    expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
-    expect(service.deleteUserConfirmationToken).toHaveBeenCalledTimes(1);
+    expect(mockedManager.save).toHaveBeenCalledTimes(1);
+    expect(mockedManager.save).toHaveBeenCalledWith(storedUser);
+    expect(deleteQueryBuilder.execute).toHaveBeenCalledTimes(1);
   });
 
   //#endregion
@@ -1550,44 +1596,6 @@ describe('UserService', () => {
 
   //#endregion
 
-  //#region DeleteUserConfirmationToken
-
-  it('Delete user confirmation token with invalid ID results in error', async () => {
-
-    let ID: number = 0;
-
-    let errorStringToExcept = 'User ID must be instantiated or valid';
-
-    await expect(service.deleteUserConfirmationToken(null)).rejects.toThrow(errorStringToExcept);
-    await expect(service.deleteUserConfirmationToken(undefined)).rejects.toThrow(errorStringToExcept);
-    await expect(service.deleteUserConfirmationToken(ID)).rejects.toThrow(errorStringToExcept);
-    expect(mockUserRepository.createQueryBuilder).toHaveBeenCalledTimes(0);
-    expect(mockUserRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(0);
-  });
-
-  it('Error during delete of user confirmation token results in correct error code', async () => {
-
-    let ID: number = 1;
-
-    let errorStringToExcept = 'Error deleting user confirmation token';
-
-    jest.spyOn(mockConfirmationTokenRepository.createQueryBuilder().delete(), 'execute')
-      .mockImplementationOnce(() => {return new Promise(resolve => {throw new Error();});})
-
-
-    await expect(service.deleteUserConfirmationToken(ID)).rejects.toThrow(errorStringToExcept);
-    expect(mockConfirmationTokenRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(1);
-  });
-
-  it('Deletion of valid user confirmation token resolves correctly', async () => {
-
-    let ID: number = 1;
-
-    await expect(await service.deleteUserConfirmationToken(ID)).resolves;
-    expect(mockConfirmationTokenRepository.createQueryBuilder().delete().execute).toHaveBeenCalledTimes(1);
-  });
-
-  //#endregion
 
 
 
