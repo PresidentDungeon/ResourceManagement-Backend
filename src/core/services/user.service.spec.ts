@@ -332,7 +332,7 @@ describe('UserService', () => {
 
     jest.spyOn(mockUserRepository, "count").mockResolvedValueOnce(1);
 
-    let errorStringToExcept: string = 'User with the same name already exists';
+    let errorStringToExcept: string = 'User with the same email already exists';
 
     let user: User = {
       ID: 0,
@@ -459,7 +459,7 @@ describe('UserService', () => {
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null)});});
 
     let username: string = 'peter@gmail.com';
-    let errorStringToExcept = 'No user registered with such a name';
+    let errorStringToExcept = 'No user registered with such an email';
 
     await expect(service.getUserByUsername(username)).rejects.toThrow(errorStringToExcept);
     expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
@@ -2199,17 +2199,17 @@ describe('UserService', () => {
       { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid ID" },
       { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid email" },
       { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid email" },
       { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid email" },
       { input: user = {ID: 1, username: 'Jensen', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid email" },
       { input: user = {ID: 1, username: 'Jensen@@gmail', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid email" },
       { input: user = {ID: 1, username: 'Jensen@@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid email" },
       { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
       { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
