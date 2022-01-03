@@ -254,7 +254,7 @@ export class UserService implements IUserService {
     }
 
     if(foundUser.status.status.toLowerCase() == 'pending') {
-      throw new InactiveError('E-mail has not been confirmed for this user. Please confirm this account before logging in.');
+      throw new InactiveError('e-mail has not been confirmed for this user. Please confirm this account before logging in.');
     }
 
     return foundUser;
