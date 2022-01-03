@@ -15,7 +15,7 @@ export class MailHelper implements IMailHelper{
 
     await this.mailerService.sendMail({
       to: email,
-      subject: 'Semco Maritime Resource Management Email Confirmation',
+      subject: 'Semco Maritime Resource Management e-mail Confirmation',
       template: './confirmation',
       context: {
         url: verificationLink,
