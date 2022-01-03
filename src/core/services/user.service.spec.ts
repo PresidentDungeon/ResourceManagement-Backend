@@ -1026,7 +1026,7 @@ describe('UserService', () => {
     let username: string = 'Username@gmail.com';
     let password: string = 'Password';
 
-    let errorStringToExcept = 'E-mail has not been confirmed for this user. Please confirm this account before logging in.';
+    let errorStringToExcept = 'e-mail has not been confirmed for this user. Please confirm this account before logging in.';
 
     await expect(service.login(username, password)).rejects.toThrow(errorStringToExcept);
     expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
