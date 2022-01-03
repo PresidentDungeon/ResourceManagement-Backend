@@ -1053,15 +1053,14 @@ describe('ContractService', () => {
 
     jest
       .spyOn(service, 'getContractByID')
-      .mockImplementationOnce((ID: number) => {throw new Error('Contract ID must be instantiated or valid');});
+      .mockImplementation((ID: number) => {throw new Error('Contract ID must be instantiated or valid');});
 
-    jest.spyOn(service, 'verifyContractEntity').mockImplementationOnce(() => {});
+    jest.spyOn(service, 'verifyContractEntity').mockImplementation();
 
     await expect(service.update(contract)).rejects.toThrow(expectedErrorMessage);
     expect(service.getContractByID).toHaveBeenCalledTimes(1);
     expect(service.getContractByID).toHaveBeenCalledWith(contract.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(0);
-    expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.save).toHaveBeenCalledTimes(0);
   });
@@ -1073,11 +1072,11 @@ describe('ContractService', () => {
 
     jest
       .spyOn(service, 'getContractByID')
-      .mockImplementationOnce((ID: number) => {return new Promise(resolve => {return resolve(storedContract);});});
+      .mockImplementation((ID: number) => {return new Promise(resolve => {return resolve(storedContract);});});
 
     jest
       .spyOn(service, 'verifyContractEntity')
-      .mockImplementationOnce((contract: Contract) => {throw new Error('Contract must have a valid title')});
+      .mockImplementation((contract: Contract) => {throw new Error('Contract must have a valid title')});
 
     let expectedErrorMessage: string = 'Contract must have a valid title'
 
@@ -1086,7 +1085,6 @@ describe('ContractService', () => {
     expect(service.getContractByID).toHaveBeenCalledWith(contractToUpdate.ID);
     expect(service.verifyContractEntity).toHaveBeenCalledTimes(1);
     expect(service.verifyContractEntity).toHaveBeenCalledWith(contractToUpdate);
-    expect(mockResumeRequestRepository.create).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.create).toHaveBeenCalledTimes(0);
     expect(mockContractRepository.save).toHaveBeenCalledTimes(0);
   });
@@ -1098,11 +1096,11 @@ describe('ContractService', () => {
 
     jest
       .spyOn(service, 'getContractByID')
-      .mockImplementationOnce((ID: number) => {return new Promise(resolve => {return resolve(storedContract);});});
+      .mockImplementation((ID: number) => {return new Promise(resolve => {return resolve(storedContract);});});
 
     jest
       .spyOn(service, 'verifyContractEntity')
-      .mockImplementationOnce((contract: Contract) => {});
+      .mockImplementation();
 
     jest.spyOn(mockContractRepository, 'save')
       .mockImplementation((contract: ContractEntity) => {throw new Error('')});
@@ -1131,7 +1129,7 @@ describe('ContractService', () => {
 
     jest
       .spyOn(service, 'verifyContractEntity')
-      .mockImplementationOnce((contract: Contract) => {});
+      .mockImplementation();
 
     let updatedContract: Contract;
 

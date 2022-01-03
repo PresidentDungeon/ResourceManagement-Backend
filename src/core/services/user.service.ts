@@ -19,7 +19,6 @@ import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/a
 import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
 import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
 import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
-import { Contract } from "../models/contract";
 
 @Injectable()
 export class UserService implements IUserService {
@@ -89,7 +88,7 @@ export class UserService implements IUserService {
     const existingUsers = await this.userRepository.count({ where: `"username" ILIKE '${user.username}'` });
 
     if (existingUsers > 0) {
-      throw new BadRequestError("User with the same name already exists");
+      throw new BadRequestError("User with the same email already exists");
     }
 
     const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
@@ -122,7 +121,7 @@ export class UserService implements IUserService {
     qb.andWhere(`user.username ILIKE :Username`, { Username: `${username}` });
     const foundUser: UserEntity = await qb.getOne();
 
-    if (foundUser == null) {throw new EntityNotFoundError("No user registered with such a name");}
+    if (foundUser == null) {throw new EntityNotFoundError("No user registered with such an email");}
     return foundUser;
   }
 
@@ -444,7 +443,7 @@ export class UserService implements IUserService {
       throw new BadRequestError("User must have a valid ID");
     }
     if (user.username == undefined || user.username == null || !this.emailRegex.test(user.username)) {
-      throw new BadRequestError("User must have a valid Username");
+      throw new BadRequestError("User must have a valid email");
     }
     if (user.salt == undefined || user.salt == null || user.salt.trim().length <= 0) {
       throw new BadRequestError("An error occurred with Salt");
