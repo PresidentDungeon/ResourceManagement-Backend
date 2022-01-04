@@ -2136,7 +2136,7 @@ describe('UserService', () => {
 
     let JWTToken: string;
 
-    expect(JWTToken = service.generateJWTToken(user)).resolves;
+    expect(JWTToken = service.generateJWT(user)).resolves;
     expect(JWTToken).toBeDefined();
     expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledTimes(1);
     expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledWith(user);
@@ -2144,7 +2144,7 @@ describe('UserService', () => {
 
   it('Generate JWT token AuthenticationService is not called on invalid user', () => {
     let user: User = null
-    expect(() => { service.generateJWTToken(user); }).toThrow();
+    expect(() => { service.generateJWT(user); }).toThrow();
     expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledTimes(0);
   });
 
@@ -2157,15 +2157,15 @@ describe('UserService', () => {
 
     let errorStringToExcept = 'Must enter a valid token';
 
-    expect(() => { service.verifyJWTToken(null); }).toThrow(errorStringToExcept);
-    expect(() => { service.verifyJWTToken(undefined); }).toThrow(errorStringToExcept);
-    expect(() => { service.verifyJWTToken(token); }).toThrow(errorStringToExcept);
+    expect(() => { service.verifyJWT(null); }).toThrow(errorStringToExcept);
+    expect(() => { service.verifyJWT(undefined); }).toThrow(errorStringToExcept);
+    expect(() => { service.verifyJWT(token); }).toThrow(errorStringToExcept);
     expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(0);
   });
 
   it('Validation of valid token should return true', () => {
     let validToken = 'token';
-    expect(service.verifyJWTToken(validToken)).toBe(true);
+    expect(service.verifyJWT(validToken)).toBe(true);
     expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(1);
     expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledWith(validToken);
   });
@@ -2175,7 +2175,7 @@ describe('UserService', () => {
     jest.spyOn(mockAuthenticationHelper, "validateJWTToken").mockImplementationOnce(() => {throw new UnauthorizedException()});
 
     let invalidToken = 'token';
-    expect(() => { service.verifyJWTToken(invalidToken); }).toThrow();
+    expect(() => { service.verifyJWT(invalidToken); }).toThrow();
     expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(1);
     expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledWith(invalidToken);
   });

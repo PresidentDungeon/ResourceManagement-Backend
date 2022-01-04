@@ -82,14 +82,14 @@ export class UserController {
   async login(@Body() loginDto: LoginDTO): Promise<LoginResponseDTO> {
     let foundUser, tokenString;
     foundUser = await this.userService.login(loginDto.username, loginDto.password);
-    tokenString = this.userService.generateJWTToken(foundUser);
+    tokenString = this.userService.generateJWT(foundUser);
     const responseDTO: LoginResponseDTO = {token: tokenString};
     return responseDTO;
   }
 
   @Post('verifyToken')
   verifyToken(@Body() loginResponseDTO: LoginResponseDTO): boolean {
-    try{return this.userService.verifyJWTToken(loginResponseDTO.token);}
+    try{return this.userService.verifyJWT(loginResponseDTO.token);}
     catch (e) {throw new HttpException(e.message, HttpStatus.UNAUTHORIZED);}
   }
 
