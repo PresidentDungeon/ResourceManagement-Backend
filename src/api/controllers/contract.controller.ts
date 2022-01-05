@@ -35,7 +35,7 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Post('requestContract')
-  async requestContract(@Body() contract: Contract, @Req() request: any) {
+  async requestContract(@Body() contract: Contract, @Req() request: any): Promise<Contract> {
     let createdContract: Contract = await this.contractService.addRequestContract(contract, request.user.username, request.user.status);
     this.socketService.emitContractCreateEvent(createdContract);
     return createdContract;
@@ -50,8 +50,8 @@ export class ContractController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getComments')
-  async getContractComments(@Query() commentID: any): Promise<Comment[]> {
-    return await this.contractService.getContractComments(commentID.ID);
+  async getContractComments(@Query() query: any): Promise<Comment[]> {
+    return await this.contractService.getContractComments(query.ID);
   }
 
   @Roles('Admin')
@@ -66,9 +66,9 @@ export class ContractController {
 
   @UseGuards(JwtAuthGuard)
   @Get('getContractByIDUser')
-  async getContractByIDUser(@Query() contractID: any, @Req() request: any): Promise<Contract> {
+  async getContractByIDUser(@Query() query: any, @Req() request: any): Promise<Contract> {
     let userID = request.user.userID;
-    const contract: Contract = await this.contractService.getContractByID(contractID.ID, true, userID);
+    const contract: Contract = await this.contractService.getContractByID(query.ID, true, userID);
     const resumes: Resume[] = await this.resumeService.getResumesByID(contract.resumes, true);
     contract.resumes = resumes;
     return contract;
@@ -77,8 +77,8 @@ export class ContractController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getContractsByResume')
-  async getContractsByResume(@Query() resumeID: any): Promise<Contract[]> {
-    const contracts: Contract[] = await this.contractService.getContractsByResume(resumeID.ID);
+  async getContractsByResume(@Query() query: any): Promise<Contract[]> {
+    const contracts: Contract[] = await this.contractService.getContractsByResume(query.ID);
     return contracts;
   }
 
