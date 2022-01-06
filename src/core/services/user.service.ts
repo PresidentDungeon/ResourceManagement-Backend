@@ -426,12 +426,12 @@ export class UserService implements IUserService {
 
   generateJWT(user: User): string {
     this.verifyUserEntity(user);
-    return this.authenticationHelper.generateJWTToken(user);
+    return this.authenticationHelper.generateJWT(user);
   }
 
   verifyJWT(token: string): boolean {
     if (token == undefined || token == null || token.length == 0) {throw new BadRequestError("Must enter a valid token");}
-    return this.authenticationHelper.validateJWTToken(token);
+    return this.authenticationHelper.validateJWT(token);
   }
 
 

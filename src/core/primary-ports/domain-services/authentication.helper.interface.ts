@@ -7,7 +7,7 @@ export interface IAuthenticationHelper {
   generateToken(tokenLength: number): string
   generateHash(password: string, salt: string): string
   validateLogin(userToValidate: User, password: string): void
-  generateJWTToken(user: User): string
-  validateJWTToken(token: string): boolean
+  generateJWT(user: User): string
+  validateJWT(token: string): boolean
   validatePasswordToken(passwordToken: PasswordToken): boolean
 }
