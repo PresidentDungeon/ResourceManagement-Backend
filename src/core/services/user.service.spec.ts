@@ -47,8 +47,8 @@ describe('UserService', () => {
         generateToken: jest.fn((tokenLength: number) => {return 'tokenValue';}),
         generateHash: jest.fn((password: string, salt: string) => {return 'hashValue';}),
         validateLogin: jest.fn((user: User, password: string) => {return true;}),
-        generateJWTToken: jest.fn((user: User) => {return 'signedToken';}),
-        validateJWTToken: jest.fn((token: string) => {return true;}),
+        generateJWT: jest.fn((user: User) => {return 'signedToken';}),
+        validateJWT: jest.fn((token: string) => {return true;}),
         validatePasswordToken: jest.fn((token: string) => {return true;}),
       })
     }
@@ -2138,14 +2138,14 @@ describe('UserService', () => {
 
     expect(JWTToken = service.generateJWT(user)).resolves;
     expect(JWTToken).toBeDefined();
-    expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledTimes(1);
-    expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledWith(user);
+    expect(mockAuthenticationHelper.generateJWT).toHaveBeenCalledTimes(1);
+    expect(mockAuthenticationHelper.generateJWT).toHaveBeenCalledWith(user);
   });
 
   it('Generate JWT token AuthenticationService is not called on invalid user', () => {
     let user: User = null
     expect(() => { service.generateJWT(user); }).toThrow();
-    expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledTimes(0);
+    expect(mockAuthenticationHelper.generateJWT).toHaveBeenCalledTimes(0);
   });
 
   //#endregion
@@ -2160,24 +2160,24 @@ describe('UserService', () => {
     expect(() => { service.verifyJWT(null); }).toThrow(errorStringToExcept);
     expect(() => { service.verifyJWT(undefined); }).toThrow(errorStringToExcept);
     expect(() => { service.verifyJWT(token); }).toThrow(errorStringToExcept);
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(0);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledTimes(0);
   });
 
   it('Validation of valid token should return true', () => {
     let validToken = 'token';
     expect(service.verifyJWT(validToken)).toBe(true);
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(1);
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledWith(validToken);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledTimes(1);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledWith(validToken);
   });
 
   it('Validation of invalid token should throw exception', () => {
 
-    jest.spyOn(mockAuthenticationHelper, "validateJWTToken").mockImplementationOnce(() => {throw new UnauthorizedException()});
+    jest.spyOn(mockAuthenticationHelper, "validateJWT").mockImplementationOnce(() => {throw new UnauthorizedException()});
 
     let invalidToken = 'token';
     expect(() => { service.verifyJWT(invalidToken); }).toThrow();
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(1);
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledWith(invalidToken);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledTimes(1);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledWith(invalidToken);
   });
 
   //#endregion
