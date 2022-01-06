@@ -164,7 +164,7 @@ describe('AuthenticationService', () => {
        status: {ID: 1, status: 'active'}
      }
 
-     const result = service.generateJWTToken(user);
+     const result = service.generateJWT(user);
 
      expect(result).toBeDefined();
      expect(typeof result).toBe('string');
@@ -178,7 +178,7 @@ describe('AuthenticationService', () => {
    it('Validate valid token should return true', () => {
      let token: string = 'SomeToken';
 
-     expect(service.validateJWTToken(token)).toBe(true);
+     expect(service.validateJWT(token)).toBe(true);
      expect(jwtMock.verify).toHaveBeenCalledTimes(1);
    });
 
@@ -189,7 +189,7 @@ describe('AuthenticationService', () => {
      let token: string = 'invalidToken';
      let errorStringToExcept = 'Token is not valid';
 
-     expect(() => { service.validateJWTToken(token); }).toThrow(errorStringToExcept);
+     expect(() => { service.validateJWT(token); }).toThrow(errorStringToExcept);
      expect(jwtMock.verify).toHaveBeenCalledTimes(1);
 
    });

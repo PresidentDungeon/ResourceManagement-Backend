@@ -32,8 +32,8 @@ export interface IUserService{
 
   generateSalt(): string
   generateHash(password: string, salt: string): string
-  generateJWTToken(user: User): string
-  verifyJWTToken(token: string): boolean
+  generateJWT(user: User): string
+  verifyJWT(token: string): boolean
 
   verifyUserEntity(user: User): void
   verifyUserApprovedStatus(userID: number): Promise<boolean>

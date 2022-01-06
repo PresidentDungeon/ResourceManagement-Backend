@@ -1,17 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Inject,
-  Post,
-  Put,
-  Query,
-  Req,
-  UseGuards,
-  UseInterceptors
-} from "@nestjs/common";
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Put, Query, Req, UseGuards, UseInterceptors } from "@nestjs/common";
 import { IUserService, IUserServiceProvider } from "../../core/primary-ports/application-services/user.service.interface";
 import { User } from "../../core/models/user";
 import { LoginDTO } from "../dtos/login.dto";
@@ -23,7 +10,6 @@ import { Filter } from "../../core/models/filter";
 import { JwtAuthGuard } from "../security/jwt-auth-guard";
 import { Roles } from "../security/roles.decorator";
 import { UserDTO } from "../dtos/user.dto";
-import { ISocketService, ISocketServiceProvider } from "../../core/primary-ports/application-services/socket.service.interface";
 import { UserPasswordUpdateDTO } from "../dtos/user.password.update.dto";
 import { ErrorInterceptor } from "../error-handling/error-interceptor";
 import { FilterList } from "src/core/models/filterList";
@@ -37,8 +23,8 @@ export class UserController {
   constructor(@Inject(IUserServiceProvider) private userService: IUserService) {}
 
   @Post('register')
-  async register(@Body() loginDto: LoginDTO): Promise<void> {
-    await this.userService.createUser(loginDto.username, loginDto.password);
+  async register(@Body() loginDTO: LoginDTO): Promise<void> {
+    await this.userService.createUser(loginDTO.username, loginDTO.password);
   }
 
   @Roles('Admin')
@@ -73,23 +59,23 @@ export class UserController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getUsernames')
-  async getUsernames(@Query() data: any): Promise<string[]> {
-    let usernames: string[] = await this.userService.getUsernames(data.username);
+  async getUsernames(@Query() query: any): Promise<string[]> {
+    let usernames: string[] = await this.userService.getUsernames(query.username);
     return usernames;
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDTO): Promise<LoginResponseDTO> {
+  async login(@Body() loginDTO: LoginDTO): Promise<LoginResponseDTO> {
     let foundUser, tokenString;
-    foundUser = await this.userService.login(loginDto.username, loginDto.password);
-    tokenString = this.userService.generateJWTToken(foundUser);
+    foundUser = await this.userService.login(loginDTO.username, loginDTO.password);
+    tokenString = this.userService.generateJWT(foundUser);
     const responseDTO: LoginResponseDTO = {token: tokenString};
     return responseDTO;
   }
 
   @Post('verifyToken')
   verifyToken(@Body() loginResponseDTO: LoginResponseDTO): boolean {
-    try{return this.userService.verifyJWTToken(loginResponseDTO.token);}
+    try{return this.userService.verifyJWT(loginResponseDTO.token);}
     catch (e) {throw new HttpException(e.message, HttpStatus.UNAUTHORIZED);}
   }
 

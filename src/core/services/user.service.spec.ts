@@ -47,8 +47,8 @@ describe('UserService', () => {
         generateToken: jest.fn((tokenLength: number) => {return 'tokenValue';}),
         generateHash: jest.fn((password: string, salt: string) => {return 'hashValue';}),
         validateLogin: jest.fn((user: User, password: string) => {return true;}),
-        generateJWTToken: jest.fn((user: User) => {return 'signedToken';}),
-        validateJWTToken: jest.fn((token: string) => {return true;}),
+        generateJWT: jest.fn((user: User) => {return 'signedToken';}),
+        validateJWT: jest.fn((token: string) => {return true;}),
         validatePasswordToken: jest.fn((token: string) => {return true;}),
       })
     }
@@ -160,11 +160,11 @@ describe('UserService', () => {
      let password: string;
 
      const theories = [
-       { username: username = null, password: password = 'password', expectedError: "Username must be a valid email" },
-       { username: username = '', password: password = 'password', expectedError: "Username must be a valid email" },
-       { username: username = 'Jensen', password: password = 'password', expectedError: "Username must be a valid email" },
-       { username: username = 'Jensen@@gmail', password: password = 'password', expectedError: "Username must be a valid email" },
-       { username: username = 'Jensen@@hotmail.com', password: password = 'password', expectedError: "Username must be a valid email" },
+       { username: username = null, password: password = 'password', expectedError: "Username must be a valid e-mail" },
+       { username: username = '', password: password = 'password', expectedError: "Username must be a valid e-mail" },
+       { username: username = 'Jensen', password: password = 'password', expectedError: "Username must be a valid e-mail" },
+       { username: username = 'Jensen@@gmail', password: password = 'password', expectedError: "Username must be a valid e-mail" },
+       { username: username = 'Jensen@@hotmail.com', password: password = 'password', expectedError: "Username must be a valid e-mail" },
        { username: username = 'Jensen@gmail.com', password: password = null, expectedError: "Password must be minimum 8 characters long" },
        { username: username = 'Jensen@gmail.com', password: password = 'passwor', expectedError: "Password must be minimum 8 characters long" },
        { username: username = 'Jensen@gmail.com', password: password = '        ', expectedError: "Password must be minimum 8 characters long" },
@@ -237,7 +237,7 @@ describe('UserService', () => {
   it('Registration of user throws error if username is invalid', async () => {
 
     let username: string = 'Jens'
-    let expectedErrorMessage = 'Username must be a valid email';
+    let expectedErrorMessage = 'Username must be a valid e-mail';
 
     jest.spyOn(service, 'addUser').mockImplementation();
 
@@ -332,7 +332,7 @@ describe('UserService', () => {
 
     jest.spyOn(mockUserRepository, "count").mockResolvedValueOnce(1);
 
-    let errorStringToExcept: string = 'User with the same name already exists';
+    let errorStringToExcept: string = 'User with the same e-mail already exists';
 
     let user: User = {
       ID: 0,
@@ -459,7 +459,7 @@ describe('UserService', () => {
       .mockImplementationOnce(() => {return new Promise(resolve => {resolve(null)});});
 
     let username: string = 'peter@gmail.com';
-    let errorStringToExcept = 'No user registered with such a name';
+    let errorStringToExcept = 'No user registered with such an e-mail';
 
     await expect(service.getUserByUsername(username)).rejects.toThrow(errorStringToExcept);
     expect(mockUserRepository.createQueryBuilder().getOne).toHaveBeenCalledTimes(1);
@@ -1026,7 +1026,7 @@ describe('UserService', () => {
     let username: string = 'Username@gmail.com';
     let password: string = 'Password';
 
-    let errorStringToExcept = 'Email has not been confirmed for this user. Please confirm this account before logging in.';
+    let errorStringToExcept = 'e-mail has not been confirmed for this user. Please confirm this account before logging in.';
 
     await expect(service.login(username, password)).rejects.toThrow(errorStringToExcept);
     expect(service.getUserByUsername).toHaveBeenCalledTimes(1);
@@ -2136,16 +2136,16 @@ describe('UserService', () => {
 
     let JWTToken: string;
 
-    expect(JWTToken = service.generateJWTToken(user)).resolves;
+    expect(JWTToken = service.generateJWT(user)).resolves;
     expect(JWTToken).toBeDefined();
-    expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledTimes(1);
-    expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledWith(user);
+    expect(mockAuthenticationHelper.generateJWT).toHaveBeenCalledTimes(1);
+    expect(mockAuthenticationHelper.generateJWT).toHaveBeenCalledWith(user);
   });
 
   it('Generate JWT token AuthenticationService is not called on invalid user', () => {
     let user: User = null
-    expect(() => { service.generateJWTToken(user); }).toThrow();
-    expect(mockAuthenticationHelper.generateJWTToken).toHaveBeenCalledTimes(0);
+    expect(() => { service.generateJWT(user); }).toThrow();
+    expect(mockAuthenticationHelper.generateJWT).toHaveBeenCalledTimes(0);
   });
 
   //#endregion
@@ -2157,27 +2157,27 @@ describe('UserService', () => {
 
     let errorStringToExcept = 'Must enter a valid token';
 
-    expect(() => { service.verifyJWTToken(null); }).toThrow(errorStringToExcept);
-    expect(() => { service.verifyJWTToken(undefined); }).toThrow(errorStringToExcept);
-    expect(() => { service.verifyJWTToken(token); }).toThrow(errorStringToExcept);
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(0);
+    expect(() => { service.verifyJWT(null); }).toThrow(errorStringToExcept);
+    expect(() => { service.verifyJWT(undefined); }).toThrow(errorStringToExcept);
+    expect(() => { service.verifyJWT(token); }).toThrow(errorStringToExcept);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledTimes(0);
   });
 
   it('Validation of valid token should return true', () => {
     let validToken = 'token';
-    expect(service.verifyJWTToken(validToken)).toBe(true);
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(1);
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledWith(validToken);
+    expect(service.verifyJWT(validToken)).toBe(true);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledTimes(1);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledWith(validToken);
   });
 
   it('Validation of invalid token should throw exception', () => {
 
-    jest.spyOn(mockAuthenticationHelper, "validateJWTToken").mockImplementationOnce(() => {throw new UnauthorizedException()});
+    jest.spyOn(mockAuthenticationHelper, "validateJWT").mockImplementationOnce(() => {throw new UnauthorizedException()});
 
     let invalidToken = 'token';
-    expect(() => { service.verifyJWTToken(invalidToken); }).toThrow();
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledTimes(1);
-    expect(mockAuthenticationHelper.validateJWTToken).toHaveBeenCalledWith(invalidToken);
+    expect(() => { service.verifyJWT(invalidToken); }).toThrow();
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledTimes(1);
+    expect(mockAuthenticationHelper.validateJWT).toHaveBeenCalledWith(invalidToken);
   });
 
   //#endregion
@@ -2199,17 +2199,17 @@ describe('UserService', () => {
       { input: user = {ID: -1, username: 'Username@gmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "User must have a valid ID" },
       { input: user = {ID: 1, username: undefined, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid e-mail" },
       { input: user = {ID: 1, username: null, password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid e-mail" },
       { input: user = {ID: 1, username: '', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid e-mail" },
       { input: user = {ID: 1, username: 'Jensen', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid e-mail" },
       { input: user = {ID: 1, username: 'Jensen@@gmail', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid e-mail" },
       { input: user = {ID: 1, username: 'Jensen@@hotmail.com', password: 'somePassword', salt: 'someSalt', role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
-        expected: "User must have a valid Username" },
+        expected: "User must have a valid e-mail" },
       { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: undefined, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},
         expected: "An error occurred with Salt" },
       { input: user = {ID: 1, username: 'Username@gmail.com', password: 'somePassword', salt: null, role: {ID: 1, role: 'user'}, status: {ID: 1, status: 'pending'}},

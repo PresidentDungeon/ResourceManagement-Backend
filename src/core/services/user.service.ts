@@ -19,7 +19,6 @@ import { IWhitelistService, IWhitelistServiceProvider } from "../primary-ports/a
 import { BadRequestError, EntityNotFoundError, InactiveError, InternalServerError } from "../../infrastructure/error-handling/errors";
 import { IMailHelper, IMailHelperProvider, } from "../primary-ports/domain-services/mail.helper.interface";
 import { IAuthenticationHelper, IAuthenticationHelperProvider } from "../primary-ports/domain-services/authentication.helper.interface";
-import { Contract } from "../models/contract";
 
 @Injectable()
 export class UserService implements IUserService {
@@ -44,7 +43,7 @@ export class UserService implements IUserService {
   async createUser(username: string, password: string): Promise<User> {
 
     if (username == null || !this.emailRegex.test(username)) {
-      throw new BadRequestError("Username must be a valid email");
+      throw new BadRequestError("Username must be a valid e-mail");
     }
     if (password == null || password.trim().length < 8) {
       throw new BadRequestError("Password must be minimum 8 characters long");
@@ -64,7 +63,7 @@ export class UserService implements IUserService {
   async registerUser(username: string): Promise<User> {
 
     if (username == null || !this.emailRegex.test(username)) {
-      throw new BadRequestError("Username must be a valid email");
+      throw new BadRequestError("Username must be a valid e-mail");
     }
 
     let userRole: Role = await this.roleService.findRoleByName("user");
@@ -89,7 +88,7 @@ export class UserService implements IUserService {
     const existingUsers = await this.userRepository.count({ where: `"username" ILIKE '${user.username}'` });
 
     if (existingUsers > 0) {
-      throw new BadRequestError("User with the same name already exists");
+      throw new BadRequestError("User with the same e-mail already exists");
     }
 
     const verificationCode = this.authenticationHelper.generateToken(this.verificationTokenCount);
@@ -122,7 +121,7 @@ export class UserService implements IUserService {
     qb.andWhere(`user.username ILIKE :Username`, { Username: `${username}` });
     const foundUser: UserEntity = await qb.getOne();
 
-    if (foundUser == null) {throw new EntityNotFoundError("No user registered with such a name");}
+    if (foundUser == null) {throw new EntityNotFoundError("No user registered with such an e-mail");}
     return foundUser;
   }
 
@@ -255,7 +254,7 @@ export class UserService implements IUserService {
     }
 
     if(foundUser.status.status.toLowerCase() == 'pending') {
-      throw new InactiveError('Email has not been confirmed for this user. Please confirm this account before logging in.');
+      throw new InactiveError('e-mail has not been confirmed for this user. Please confirm this account before logging in.');
     }
 
     return foundUser;
@@ -425,14 +424,14 @@ export class UserService implements IUserService {
     return this.authenticationHelper.generateHash(value, salt);
   }
 
-  generateJWTToken(user: User): string {
+  generateJWT(user: User): string {
     this.verifyUserEntity(user);
-    return this.authenticationHelper.generateJWTToken(user);
+    return this.authenticationHelper.generateJWT(user);
   }
 
-  verifyJWTToken(token: string): boolean {
+  verifyJWT(token: string): boolean {
     if (token == undefined || token == null || token.length == 0) {throw new BadRequestError("Must enter a valid token");}
-    return this.authenticationHelper.validateJWTToken(token);
+    return this.authenticationHelper.validateJWT(token);
   }
 
 
@@ -444,7 +443,7 @@ export class UserService implements IUserService {
       throw new BadRequestError("User must have a valid ID");
     }
     if (user.username == undefined || user.username == null || !this.emailRegex.test(user.username)) {
-      throw new BadRequestError("User must have a valid Username");
+      throw new BadRequestError("User must have a valid e-mail");
     }
     if (user.salt == undefined || user.salt == null || user.salt.trim().length <= 0) {
       throw new BadRequestError("An error occurred with Salt");
