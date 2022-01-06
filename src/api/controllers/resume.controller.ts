@@ -23,14 +23,14 @@ export class ResumeController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @Get('getResumeByID')
-  async getResumeByID(@Query() resumeID: any){
-    return await this.resumeService.getResumeByID(resumeID.ID, false);
+  async getResumeByID(@Query() query: any){
+    return await this.resumeService.getResumeByID(query.ID, false);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('getResumeByIDUser')
-  async getResumeByIDUser(@Query() resumeID: any){
-    return await this.resumeService.getResumeByID(resumeID.ID, true);
+  async getResumeByIDUser(@Query() query: any){
+    return await this.resumeService.getResumeByID(query.ID, true);
   }
 
 }
